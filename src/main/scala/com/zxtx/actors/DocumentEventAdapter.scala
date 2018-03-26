@@ -25,6 +25,7 @@ class DocumentEventAdapter extends EventAdapter {
   final val MANIFEST_DOMAIN_CREATED = classOf[DomainCreated].getName
   final val MANIFEST_DOMAIN_REPLACED = classOf[DomainReplaced].getName
   final val MANIFEST_DOMAIN_PATCHED = classOf[DomainPatched].getName
+  final val MANIFEST_DOMAIN_AUTHORIZED = classOf[DomainAuthorized].getName
   final val MANIFEST_DOMAIN_DELETED = classOf[DomainDeleted].getName
 
   /**
@@ -58,6 +59,7 @@ class DocumentEventAdapter extends EventAdapter {
     case dc: DomainCreated        => dc.toJson
     case dr: DomainReplaced       => dr.toJson
     case dp: DomainPatched        => dp.toJson
+    case da: DomainAuthorized     => da.toJson
     case dd: DomainDeleted        => dd.toJson
     case _                        => event
   }
@@ -87,6 +89,7 @@ class DocumentEventAdapter extends EventAdapter {
     case MANIFEST_DOMAIN_CREATED        => convertTo(event)(_.convertTo[DomainCreated])
     case MANIFEST_DOMAIN_REPLACED       => convertTo(event)(_.convertTo[DomainReplaced])
     case MANIFEST_DOMAIN_PATCHED        => convertTo(event)(_.convertTo[DomainPatched])
+    case MANIFEST_DOMAIN_AUTHORIZED     => convertTo(event)(_.convertTo[DomainAuthorized])
     case MANIFEST_DOMAIN_DELETED        => convertTo(event)(_.convertTo[DomainDeleted])
     case _                              => throw new IllegalArgumentException(s"Unable to handle manifest $manifest!")
   }

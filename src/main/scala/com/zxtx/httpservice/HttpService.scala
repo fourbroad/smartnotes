@@ -152,28 +152,8 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     extractHost { domainName =>
       checkAsync(checkDomain(domainName)) { result =>
         result match {
-          case true =>
-            documentRoutes(domainName) ~ documentSetRoutes(domainName) ~ domainRoutes(domainName)
-          case false => domainName match {
-            case `rootDomain` =>
-              post {
-                path("_init") {
-                  onComplete(init) {
-                    case Success(Done) =>
-                      val ok = StatusCodes.OK
-                      completeJson(APIStatusCode(ok.intValue, ok.reason, JsString("Platform initialize success!")))
-                    case Failure(e) =>
-                      val error = StatusCodes.InternalServerError
-                      completeJson(APIStatusCode(error.intValue, error.reason, JsString(s"Platform initialize error:${e}")))
-                  }
-                }
-              } ~
-                {
-                  val code = StatusCodes.PreconditionRequired
-                  completeJson(APIStatusCode(code.intValue, code.reason, JsString("Smartnotes is not initialized, please run 'curl -XPOST http://[domain:port]/_init'.")))
-                }
-            case _ => reject(AuthorizationFailedRejection)
-          }
+          case true  => documentRoutes(domainName) ~ documentSetRoutes(domainName) ~ domainRoutes(domainName)
+          case false => reject(AuthorizationFailedRejection)
         }
       }
     }
@@ -235,7 +215,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
 
   def domainRoutes(domain: String): Route = requiredHttpSession { session =>
     val username = session.username
-    registerUser(username) ~ logout ~ gc(domain, username) ~ reset(username) ~ {
+    registerUser ~ authorizeDomain(domain, username) ~ logout ~ gc(domain, username) ~ {
       domain match {
         case `rootDomain` => pathPrefix(".domains") {
           findDomains(username) ~ pathPrefix(Segment) { name =>
@@ -296,11 +276,31 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     }
   }
 
-  def registerUser(user: String) = path("_register") {
+  def registerUser = path("_register") {
     post {
       entity(as[User]) { ud =>
         val raw = JsObject("name" -> JsString(ud.name), "password" -> JsString(ud.password.md5.hex))
-        onCompleteJson((documentRegion ? CreateDocument(s"${rootDomain}~users~${ud.name}", user, raw)).map(documentStatus))
+        val userProfile = JsObject("roles" -> JsArray(JsString("user")))
+        onCompleteJson {
+          val createUser = documentRegion ? CreateDocument(s"${rootDomain}~users~${ud.name}", adminName, raw)
+          createUser.flatMap {
+            case _: DocumentCreated =>
+              val createProfile = documentRegion ? CreateDocument(s"${rootDomain}~profiles~${ud.name}", adminName, userProfile)
+              createProfile.map {
+                case _: DocumentCreated => APIStatusCode(StatusCodes.OK.intValue, StatusCodes.OK.reason, JsString(s"User ${ud.name} has been registered successfully!"))
+                case _                  => APIStatusCode(StatusCodes.InternalServerError.intValue, StatusCodes.InternalServerError.reason, JsString(s"Register {ud.name} error!"))
+              }
+            case DocumentAlreadyExists => Future.successful(APIStatusCode(StatusCodes.Conflict.intValue, StatusCodes.Conflict.reason, JsString(s"${ud.name} is already registered!")))
+          }
+        }
+      }
+    }
+  }
+
+  def authorizeDomain(domain: String, user: String) = pathSuffix("_authorize") {
+    patch {
+      entity(as[JsValue]) { jv =>
+        onCompleteJson((domainRegion ? AuthorizeDomain(s"${rootDomain}~.domains~${domain}", user, JsonPatch(jv))).map(domainStatus))
       }
     }
   }
@@ -336,12 +336,6 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
   def gc(domainName: String, user: String) = path("_gc") {
     delete {
       onCompleteJson(garbageCollection(domainName, user))
-    }
-  }
-
-  def reset(user: String) = path("_reset") {
-    delete {
-      onCompleteJson((domainRegion ? DeleteDomain(s"${rootDomain}~.domains~${rootDomain}", user)).map(domainStatus))
     }
   }
 
@@ -449,16 +443,6 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     complete(statusCode, HttpEntity(ContentTypes.`application/json`, if (printPretty) code.toJson.prettyPrint else code.toJson.compactPrint))
   }
 
-  def init: Future[Done] = {
-    val adminName = system.settings.config.getString("domain.administrator.name")
-    Source.fromFuture {
-      domainRegion ? CreateDomain(s"${rootDomain}~.domains~${rootDomain}", adminName, JsObject())
-    }.map {
-      case _: DomainCreated => Done
-      case other            => throw new RuntimeException(other.toString)
-    }.runWith(Sink.ignore)
-  }
-
   def checkAsync(check: => Future[Boolean]): Directive1[Boolean] = checkAsync(ctx => check)
   def checkAsync(check: RequestContext => Future[Boolean]): Directive1[Boolean] =
     extractExecutionContext.flatMap { implicit ec ⇒
@@ -475,8 +459,8 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     Source.fromFuture {
       documentRegion ? GetDocument(s"${rootDomain}~users~${user.name}", user.name)
     }.map {
-      case doc: Document    => doc.raw.fields("password").asInstanceOf[JsString].value == user.password.md5.hex
-      case DocumentNotFound => false
+      case doc: Document => doc.raw.fields("password").asInstanceOf[JsString].value == user.password.md5.hex
+      case _             => false
     }.runWith(Sink.head[Boolean])
   }
 
@@ -508,6 +492,18 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
       case NotFound(_, _) => false
     }
   }
+
+  val adminName = system.settings.config.getString("domain.administrator.name")
+  for {
+    r1 <- Source.fromFuture {
+      domainRegion ? GetDomain(s"${rootDomain}~.domains~${rootDomain}", adminName)
+    }.runWith(Sink.head[Any])
+    if !r1.isInstanceOf[Domain]
+    r2 <- Source.fromFuture {
+      domainRegion ? CreateDomain(s"${rootDomain}~.domains~${rootDomain}", adminName, JsObject())
+    }.runWith(Sink.head[Any])
+    if r2.isInstanceOf[DomainCreated]
+  } System.out.println("System intialize successfully!")
 
   /**
    * It tries to retrieve the [[ServerBinding]] if the server has been successfully started. It fails otherwise.
@@ -559,7 +555,6 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
   }
 
   val bindingFuture = Http().bindAndHandle(handler = routes, interface = "localhost", port = 8080, settings = settings)
-
   bindingFuture.onComplete {
     case Success(binding) ⇒
       //setting the server binding for possible future uses in the client

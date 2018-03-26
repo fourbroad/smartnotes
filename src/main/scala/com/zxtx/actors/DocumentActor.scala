@@ -380,19 +380,21 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
 
   private def checkPermission(user: String, command: Command): Future[Permission] = (documentSet, id) match {
     case ("profiles", `user`) => Future.successful(Granted)
-    case _ => fetchProfile(domain, user).map { profile =>
-      val aclObj = state.document.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
-      val userRoles = profileValue(profile, "roles")
-      val userGroups = profileValue(profile, "groups")
-      val (aclRoles, aclGroups, aclUsers) = command match {
-        case _: GetDocument     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
-        case _: ReplaceDocument => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
-        case _: PatchDocument   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
-        case _: DeleteDocument  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
-        case _: ExecuteDocument => (aclValue(aclObj, "execute", "roles"), aclValue(aclObj, "execute", "groups"), aclValue(aclObj, "execute", "users"))
-        case _                  => (Vector[String](), Vector[String](), Vector[String]())
-      }
-      if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
+    case _ => fetchProfile(domain, user).map {
+      case profile: Document =>
+        val aclObj = state.document.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
+        val userRoles = profileValue(profile.raw, "roles")
+        val userGroups = profileValue(profile.raw, "groups")
+        val (aclRoles, aclGroups, aclUsers) = command match {
+          case _: GetDocument     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
+          case _: ReplaceDocument => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
+          case _: PatchDocument   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
+          case _: DeleteDocument  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
+          case _: ExecuteDocument => (aclValue(aclObj, "execute", "roles"), aclValue(aclObj, "execute", "groups"), aclValue(aclObj, "execute", "users"))
+          case _                  => (Vector[String](), Vector[String](), Vector[String]())
+        }
+        if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
+      case _ => Denied
     }
   }
 

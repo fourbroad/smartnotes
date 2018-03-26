@@ -72,19 +72,21 @@ trait APIStatusCodes {
 
   import com.zxtx.actors.DomainActor.JsonProtocol._
   def domainStatus: Any => APIStatusCode = {
-    case DomainCreated(_, _, _, _, raw)    => APIStatusCode(Created.intValue, Created.reason, raw)
-    case DomainReplaced(_, _, _, _, raw)   => APIStatusCode(OK.intValue, OK.reason, raw)
-    case DomainPatched(_, _, _, _, _, raw) => APIStatusCode(OK.intValue, OK.reason, raw)
-    case DomainDeleted(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, domainDeleted)
-    case domain: Domain                    => APIStatusCode(OK.intValue, OK.reason, domain.toJson)
-    case domains: JsObject                 => APIStatusCode(OK.intValue, OK.reason, domains)
-    case Denied                            => APIStatusCode(Unauthorized.intValue, Unauthorized.reason, unauthorizedAccess)
-    case GarbageCollectionCompleted        => APIStatusCode(OK.intValue, OK.reason, garbageCollectionCompleted)
-    case DomainNotFound                    => APIStatusCode(NotFound.intValue, NotFound.reason, domainNotFound)
-    case DomainAlreadyExists               => APIStatusCode(Conflict.intValue, Conflict.reason, domainAlreadyExists)
-    case DomainIsCreating                  => APIStatusCode(Conflict.intValue, Conflict.reason, domainIsCreating)
-    case DomainSoftDeleted                 => APIStatusCode(Conflict.intValue, Conflict.reason, domainSoftDeleted)
-    case PatchDomainException(e)           => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
+    case DomainCreated(_, _, _, _, raw)       => APIStatusCode(Created.intValue, Created.reason, raw)
+    case DomainReplaced(_, _, _, _, raw)      => APIStatusCode(OK.intValue, OK.reason, raw)
+    case DomainPatched(_, _, _, _, _, raw)    => APIStatusCode(OK.intValue, OK.reason, raw)
+    case DomainAuthorized(_, _, _, _, _, raw) => APIStatusCode(OK.intValue, OK.reason, raw)
+    case DomainDeleted(_, _, _, _, _)         => APIStatusCode(OK.intValue, OK.reason, domainDeleted)
+    case domain: Domain                       => APIStatusCode(OK.intValue, OK.reason, domain.toJson)
+    case domains: JsObject                    => APIStatusCode(OK.intValue, OK.reason, domains)
+    case Denied                               => APIStatusCode(Unauthorized.intValue, Unauthorized.reason, unauthorizedAccess)
+    case GarbageCollectionCompleted           => APIStatusCode(OK.intValue, OK.reason, garbageCollectionCompleted)
+    case DomainNotFound                       => APIStatusCode(NotFound.intValue, NotFound.reason, domainNotFound)
+    case DomainAlreadyExists                  => APIStatusCode(Conflict.intValue, Conflict.reason, domainAlreadyExists)
+    case DomainIsCreating                     => APIStatusCode(Conflict.intValue, Conflict.reason, domainIsCreating)
+    case DomainSoftDeleted                    => APIStatusCode(Conflict.intValue, Conflict.reason, domainSoftDeleted)
+    case PatchDomainException(e)              => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
+    case AuthorizeDomainException(e)          => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
   }
 
 }

@@ -1,19 +1,21 @@
 package com.zxtx.actors
 
-import spray.json.JsObject
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import spray.json.JsArray
-import spray.json.JsString
-import com.zxtx.actors.DocumentActor._
-import akka.cluster.sharding.ClusterSharding
+
+import com.zxtx.actors.DocumentActor.GetDocument
+
 import akka.actor.Actor
+import akka.cluster.sharding.ClusterSharding
+import akka.stream.ActorMaterializer
+import akka.stream.ActorMaterializerSettings
+import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.Source
 import akka.pattern.ask
 import akka.util.Timeout
-import akka.stream.ActorMaterializerSettings
-import akka.stream.ActorMaterializer
+import spray.json.JsArray
+import spray.json.JsObject
+import spray.json.JsString
 
 trait ACL { this: Actor =>
   def aclValue(aclObj: JsObject, op: String, name: String): Vector[String] = aclObj.getFields(op) match {
@@ -29,14 +31,11 @@ trait ACL { this: Actor =>
     case _                => Vector[String]()
   }
 
-  def fetchProfile(domain: String, user: String): Future[JsObject] = {
+  def fetchProfile(domain: String, user: String): Future[Any] = {
     implicit val timeOut = Timeout(5.seconds)
     implicit val materializer = ActorMaterializer(ActorMaterializerSettings(context.system))
     val documentRegion = ClusterSharding(context.system).shardRegion(DocumentActor.shardName)
-    Source.fromFuture(documentRegion ? GetDocument(s"${domain}~profiles~${user}", user)).map {
-      case Document(_, _, _, _, _, _, raw) => raw
-      case other                           => throw new RuntimeException(other.toString)
-    }.runWith(Sink.head[JsObject])
+    Source.fromFuture(documentRegion ? GetDocument(s"${domain}~profiles~${user}", user)).runWith(Sink.head[Any])
   }
 }
 

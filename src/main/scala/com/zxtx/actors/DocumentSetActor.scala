@@ -172,25 +172,114 @@ object DocumentSetActor {
     }
   }
 
-  private def getJson(jsValue: JsValue, path: Array[String]): JsValue =
-    path.size match {
-      case size if size <= 1 => jsValue
-      case _ =>
-        jsValue match {
-          case jo: JsObject =>
-            Try {
-              getJson(jo.fields(path(1)), path.slice(1, path.size))
-            }.recover { case e: java.util.NoSuchElementException => JsNull }.get
-          case _ => JsNull
+  import spray.json._
+  def defaultEventIndexTemplate(domainName: String, documentSetName: String): JsObject =
+    s"""{
+      "index_patterns": ["${domainName}~${documentSetName}_*~events-*"],
+      "aliases" : {
+        "${domainName}~${documentSetName}~hot~events" : {},
+        "${domainName}~${documentSetName}~all~events" : {}
+      },      
+      "settings": {
+        "number_of_shards": 5,
+        "number_of_replicas": 1
+      },
+     "mappings": {
+        "event": {
+          "properties": {
+            "_metadata":{
+              "properties":{
+                "created": {
+                  "type": "date",
+                  "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+                }
+              }
+            }
+          }
         }
-    }
+      }
+    }""".parseJson.asJsObject
+
+  def defaultSnapshotIndexTemplate(domainName: String, documentSetName: String): JsObject =
+    s"""{
+      "index_patterns": ["${domainName}~${documentSetName}_*~snapshots-*"],
+      "aliases" : {
+        "${domainName}~${documentSetName}~hot~snapshots" : {},
+        "${domainName}~${documentSetName}~all~snapshots" : {}
+      },      
+      "settings": {
+        "number_of_shards": 5,
+        "number_of_replicas": 1
+      },
+      "mappings": {
+        "snapshot": {
+          "properties": {
+            "_metadata":{
+              "properties":{
+                "created": {
+                  "type": "date",
+                  "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+                },
+                "updated": {
+                  "type": "date",
+                  "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+                }
+              }
+            }
+          }
+        }
+      }
+    }""".parseJson.asJsObject
+
+  def defaultACL(user: String) = s"""{
+        "get":{
+            "roles":["administrator","user"],
+            "users":["${user}"]
+        },
+        "replace":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "patch":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "delete":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "create_document":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "find_documents":{
+            "roles":["administrator","user"],
+            "users":["${user}"]
+        },
+        "gc":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        }
+      }""".parseJson.asJsObject
+
+  private def getJson(jsValue: JsValue, path: Array[String]): JsValue = path.size match {
+    case size if size <= 1 => jsValue
+    case _ =>
+      jsValue match {
+        case jo: JsObject =>
+          Try {
+            getJson(jo.fields(path(1)), path.slice(1, path.size))
+          }.recover { case e: java.util.NoSuchElementException => spray.json.JsNull }.get
+        case _ => spray.json.JsNull
+      }
+  }
 }
 
 class DocumentSetActor extends PersistentActor with ActorLogging with ACL {
   import DocumentSetActor._
   import DocumentSetActor.JsonProtocol._
-  import DomainActor._
   import spray.json._
+  import DomainActor._
   import ElasticSearchStore._
   import ACL._
 
@@ -269,53 +358,23 @@ class DocumentSetActor extends PersistentActor with ActorLogging with ACL {
         case Some(it: JsObject) =>
           it.fields.get("eventIndexTemplate") match {
             case Some(eit: JsObject) => eit
-            case Some(_) | None      => defaultEventIndexTemplate
+            case Some(_) | None      => defaultEventIndexTemplate(domain, id)
           }
-        case Some(_) | None => defaultEventIndexTemplate
+        case Some(_) | None => defaultEventIndexTemplate(domain, id)
       }
       val snapshotIndexTemplate = raw.fields.get("indexTemplates") match {
         case Some(it: JsObject) =>
           it.fields.get("snapshotIndexTemplate") match {
             case Some(sit: JsObject) => sit
-            case Some(_) | None      => defaultSnapshotIndexTemplate
+            case Some(_) | None      => defaultSnapshotIndexTemplate(domain, id)
           }
-        case Some(_) | None => defaultSnapshotIndexTemplate
+        case Some(_) | None => defaultSnapshotIndexTemplate(domain, id)
       }
       val templates = Map("event_index_template" -> eventIndexTemplate, "snapshot_index_template" -> snapshotIndexTemplate)
       val newRaw = JsObject(raw.fields + ("indexTemplates" -> JsObject(templates)))
       initIndices(templates).foreach { Done => self ! DoCreateDocumentSet(user, newRaw, Some(replyTo)) }
     case DoCreateDocumentSet(user, raw, Some(replyTo: ActorRef)) =>
-      val acl = s"""{
-        "get":{
-            "roles":["administrator","user"],
-            "users":["${user}"]
-        },
-        "replace":{
-            "roles":["administrator"],
-            "users":["${user}"]
-        },
-        "patch":{
-            "roles":["administrator"],
-            "users":["${user}"]
-        },
-        "delete":{
-            "roles":["administrator"],
-            "users":["${user}"]
-        },
-        "create_document":{
-            "roles":["administrator"],
-            "users":["${user}"]
-        },
-        "find_documents":{
-            "roles":["administrator","user"],
-            "users":["${user}"]
-        },
-        "gc":{
-            "roles":["administrator"],
-            "users":["${user}"]
-        }
-      }""".parseJson.asJsObject
-      persist(DocumentSetCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> acl))))) { evt =>
+      persist(DocumentSetCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> DocumentSetActor.defaultACL(user)))))) { evt =>
         state = state.updated(evt)
         val ds = state.documentSet.toJson.asJsObject
         saveSnapshot(ds)
@@ -441,87 +500,23 @@ class DocumentSetActor extends PersistentActor with ActorLogging with ACL {
     case _              => super.unhandled(msg)
   }
 
-  private def checkPermission(user: String, command: Command) = fetchProfile(domain, user).map { profile =>
-    val aclObj = state.documentSet.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
-    val userRoles = profileValue(profile, "roles")
-    val userGroups = profileValue(profile, "groups")
-    val (aclRoles, aclGroups, aclUsers) = command match {
-      case _: GetDocumentSet     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
-      case _: ReplaceDocumentSet => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
-      case _: PatchDocumentSet   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
-      case _: DeleteDocumentSet  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
-      case _: CreateDocument     => (aclValue(aclObj, "create_document", "roles"), aclValue(aclObj, "create_document", "groups"), aclValue(aclObj, "create_document", "users"))
-      case _: FindDocuments      => (aclValue(aclObj, "find_documents", "roles"), aclValue(aclObj, "find_documents", "groups"), aclValue(aclObj, "find_documents", "users"))
-      case _: GarbageCollection  => (aclValue(aclObj, "gc", "roles"), aclValue(aclObj, "gc", "groups"), aclValue(aclObj, "gc", "users"))
-      case _                     => (Vector[String](), Vector[String](), Vector[String]())
-    }
-    if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
-  }
-
-  def defaultEventIndexTemplate: JsObject = {
-    val segments = persistenceId.split("%7E")
-    val domainId = segments(0)
-    val id = segments(2)
-    s"""{
-      "index_patterns": ["${domainId}~${id}_*~events-*"],
-      "aliases" : {
-        "${domainId}~${id}~hot~events" : {},
-        "${domainId}~${id}~all~events" : {}
-      },      
-      "settings": {
-        "number_of_shards": 5,
-        "number_of_replicas": 1
-      },
-     "mappings": {
-        "event": {
-          "properties": {
-            "_metadata":{
-              "properties":{
-                "created": {
-                  "type": "date",
-                  "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
-                }
-              }
-            }
-          }
-        }
+  private def checkPermission(user: String, command: Command) = fetchProfile(domain, user).map {
+    case profile: Document =>
+      val aclObj = state.documentSet.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
+      val userRoles = profileValue(profile.raw, "roles")
+      val userGroups = profileValue(profile.raw, "groups")
+      val (aclRoles, aclGroups, aclUsers) = command match {
+        case _: GetDocumentSet     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
+        case _: ReplaceDocumentSet => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
+        case _: PatchDocumentSet   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
+        case _: DeleteDocumentSet  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
+        case _: CreateDocument     => (aclValue(aclObj, "create_document", "roles"), aclValue(aclObj, "create_document", "groups"), aclValue(aclObj, "create_document", "users"))
+        case _: FindDocuments      => (aclValue(aclObj, "find_documents", "roles"), aclValue(aclObj, "find_documents", "groups"), aclValue(aclObj, "find_documents", "users"))
+        case _: GarbageCollection  => (aclValue(aclObj, "gc", "roles"), aclValue(aclObj, "gc", "groups"), aclValue(aclObj, "gc", "users"))
+        case _                     => (Vector[String](), Vector[String](), Vector[String]())
       }
-    }""".parseJson.asJsObject
-  }
-
-  def defaultSnapshotIndexTemplate: JsObject = {
-    val segments = persistenceId.split("%7E")
-    val domainId = segments(0)
-    val id = segments(2)
-    s"""{
-      "index_patterns": ["${domainId}~${id}_*~snapshots-*"],
-      "aliases" : {
-        "${domainId}~${id}~hot~snapshots" : {},
-        "${domainId}~${id}~all~snapshots" : {}
-      },      
-      "settings": {
-        "number_of_shards": 5,
-        "number_of_replicas": 1
-      },
-      "mappings": {
-        "snapshot": {
-          "properties": {
-            "_metadata":{
-              "properties":{
-                "created": {
-                  "type": "date",
-                  "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
-                },
-                "updated": {
-                  "type": "date",
-                  "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
-                }
-              }
-            }
-          }
-        }
-      }
-    }""".parseJson.asJsObject
+      if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
+    case _ => Denied
   }
 
   private def initIndices(templates: Map[String, JsObject]): Future[Done] = {
