@@ -7,7 +7,7 @@ import com.eclipsesource.v8.JavaCallback
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.V8Array
 import com.eclipsesource.v8.V8Object
-import com.eclipsesource.v8.utils.V8ObjectUtils;
+import com.eclipsesource.v8.utils.V8ObjectUtils
 
 object ThreadMain extends App {
   val sortAlgorithm = """

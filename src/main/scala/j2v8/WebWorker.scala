@@ -33,6 +33,8 @@ class WebWorker {
 
   def print(s: String) = System.out.println(s)
 
+  
+  
   def start = {
     val mainExecutor = new V8Executor("""
       var messageHandler = function(e) { print(e[0]); };
@@ -44,7 +46,6 @@ class WebWorker {
       protected override def setup(runtime: V8): Unit = configureWorker(runtime)
     }
     mainExecutor.start
-    mainExecutor.postMessage("相由心生")
     mainExecutor.join
   }
 

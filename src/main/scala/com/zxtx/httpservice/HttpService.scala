@@ -54,6 +54,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.server.{ Route, ValidationRejection }
 import akka.pattern.ask
+import akka.pattern.pipe
 import akka.stream.scaladsl.Source
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
@@ -69,7 +70,6 @@ import com.softwaremill.session.SessionOptions._
 import com.softwaremill.session._
 
 import com.roundeights.hasher.Implicits._
-import scala.language.postfixOps
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val userFormat = jsonFormat2(User)

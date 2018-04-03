@@ -74,7 +74,7 @@ class ElasticSearchStore(system: ActorSystem) {
   def delete(uri: Uri): Future[(StatusCode, JsValue)] = request(HttpMethods.DELETE, uri = uri)
 
   def request(method: HttpMethod = HttpMethods.GET, uri: Uri, entity: RequestEntity = HttpEntity.empty(ContentTypes.`application/json`)): Future[(StatusCode, JsValue)] = {
-    val request = HttpRequest(method = method, uri = uri, entity = entity);
+    val request = HttpRequest(method = method, uri = uri, entity = entity)
     request.addHeader(Accept(MediaRange(MediaTypes.`application/json`)))
     http.singleRequest(request).flatMap {
       case resp @ HttpResponse(StatusCodes.OK | StatusCodes.Created, headers, respEntity, _) =>

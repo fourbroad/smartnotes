@@ -33,6 +33,7 @@ lazy val root = (project in file(".")).
       "com.softwaremill.akka-http-session" %% "core"                    % "0.5.4",
       "com.roundeights"                    %% "hasher"                  % "1.2.0",
       "org.slf4j"                          % "slf4j-api"                % "1.7.25",
+      "org.scala-sbt.ipcsocket"            % "ipcsocket"                % "1.0.0",
       "org.slf4j"                          % "slf4j-simple"             % "1.7.25" % "test",
       
       "ch.megard"                          %% "akka-http-cors"          % corsVersion,
