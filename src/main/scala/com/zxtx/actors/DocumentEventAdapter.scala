@@ -9,8 +9,8 @@ import spray.json.enrichAny
 class DocumentEventAdapter extends EventAdapter {
   import DocumentActor._
   import DocumentActor.JsonProtocol._
-  import DocumentSetActor._
-  import DocumentSetActor.JsonProtocol._
+  import CollectionActor._
+  import CollectionActor.JsonProtocol._
   import DomainActor._
   import DomainActor.JsonProtocol._
 
@@ -18,15 +18,19 @@ class DocumentEventAdapter extends EventAdapter {
   final val MANIFEST_DOCUMENT_REPLACED = classOf[DocumentReplaced].getName
   final val MANIFEST_DOCUMENT_PATCHED = classOf[DocumentPatched].getName
   final val MANIFEST_DOCUMENT_DELETED = classOf[DocumentDeleted].getName
-  final val MANIFEST_DOCUMENT_SET_CREATED = classOf[DocumentSetCreated].getName
-  final val MANIFEST_DOCUMENT_SET_REPLACED = classOf[DocumentSetReplaced].getName
-  final val MANIFEST_DOCUMENT_SET_PATCHED = classOf[DocumentSetPatched].getName
-  final val MANIFEST_DOCUMENT_SET_DELETED = classOf[DocumentSetDeleted].getName
+  final val MANIFEST_DOCUMENT_SET_CREATED = classOf[CollectionCreated].getName
+  final val MANIFEST_DOCUMENT_SET_REPLACED = classOf[CollectionReplaced].getName
+  final val MANIFEST_DOCUMENT_SET_PATCHED = classOf[CollectionPatched].getName
+  final val MANIFEST_DOCUMENT_SET_DELETED = classOf[CollectionDeleted].getName
   final val MANIFEST_DOMAIN_CREATED = classOf[DomainCreated].getName
   final val MANIFEST_DOMAIN_REPLACED = classOf[DomainReplaced].getName
   final val MANIFEST_DOMAIN_PATCHED = classOf[DomainPatched].getName
   final val MANIFEST_DOMAIN_AUTHORIZED = classOf[DomainAuthorized].getName
   final val MANIFEST_DOMAIN_DELETED = classOf[DomainDeleted].getName
+  final val MANIFEST_DOMAIN_USER_REGISTERED = classOf[UserRegistered].getName
+  final val MANIFEST_DOMAIN_JOINED = classOf[DomainJoined].getName
+  final val MANIFEST_DOMAIN_USER_LOGGEDIN = classOf[UserLoggedIn].getName
+  final val MANIFEST_DOMAIN_USER_LOGGEDOUT = classOf[UserLoggedOut].getName
 
   /**
    * Return the manifest (type hint) that will be provided in the `fromJournal` method.
@@ -52,15 +56,19 @@ class DocumentEventAdapter extends EventAdapter {
     case docr: DocumentReplaced   => docr.toJson
     case docp: DocumentPatched    => docp.toJson
     case docd: DocumentDeleted    => docd.toJson
-    case dsc: DocumentSetCreated  => dsc.toJson
-    case dsr: DocumentSetReplaced => dsr.toJson
-    case dsp: DocumentSetPatched  => dsp.toJson
-    case dsd: DocumentSetDeleted  => dsd.toJson
+    case dsc: CollectionCreated  => dsc.toJson
+    case dsr: CollectionReplaced => dsr.toJson
+    case dsp: CollectionPatched  => dsp.toJson
+    case dsd: CollectionDeleted  => dsd.toJson
     case dc: DomainCreated        => dc.toJson
     case dr: DomainReplaced       => dr.toJson
     case dp: DomainPatched        => dp.toJson
     case da: DomainAuthorized     => da.toJson
     case dd: DomainDeleted        => dd.toJson
+    case ur: UserRegistered       => ur.toJson
+    case dj: DomainJoined         => dj.toJson
+    case uli: UserLoggedIn        => uli.toJson
+    case ulo: UserLoggedOut       => ulo.toJson
     case _                        => event
   }
 
@@ -78,20 +86,25 @@ class DocumentEventAdapter extends EventAdapter {
    * @return sequence containing the adapted events (possibly zero) which will be delivered to the PersistentActor
    */
   def fromJournal(event: Any, manifest: String): EventSeq = manifest match {
-    case MANIFEST_DOCUMENT_CREATED      => convertTo(event)(_.convertTo[DocumentCreated])
-    case MANIFEST_DOCUMENT_REPLACED     => convertTo(event)(_.convertTo[DocumentReplaced])
-    case MANIFEST_DOCUMENT_PATCHED      => convertTo(event)(_.convertTo[DocumentPatched])
-    case MANIFEST_DOCUMENT_DELETED      => convertTo(event)(_.convertTo[DocumentDeleted])
-    case MANIFEST_DOCUMENT_SET_CREATED  => convertTo(event)(_.convertTo[DocumentSetCreated])
-    case MANIFEST_DOCUMENT_SET_REPLACED => convertTo(event)(_.convertTo[DocumentSetReplaced])
-    case MANIFEST_DOCUMENT_SET_PATCHED  => convertTo(event)(_.convertTo[DocumentSetPatched])
-    case MANIFEST_DOCUMENT_SET_DELETED  => convertTo(event)(_.convertTo[DocumentSetDeleted])
-    case MANIFEST_DOMAIN_CREATED        => convertTo(event)(_.convertTo[DomainCreated])
-    case MANIFEST_DOMAIN_REPLACED       => convertTo(event)(_.convertTo[DomainReplaced])
-    case MANIFEST_DOMAIN_PATCHED        => convertTo(event)(_.convertTo[DomainPatched])
-    case MANIFEST_DOMAIN_AUTHORIZED     => convertTo(event)(_.convertTo[DomainAuthorized])
-    case MANIFEST_DOMAIN_DELETED        => convertTo(event)(_.convertTo[DomainDeleted])
-    case _                              => throw new IllegalArgumentException(s"Unable to handle manifest $manifest!")
+    case MANIFEST_DOCUMENT_CREATED       => convertTo(event)(_.convertTo[DocumentCreated])
+    case MANIFEST_DOCUMENT_REPLACED      => convertTo(event)(_.convertTo[DocumentReplaced])
+    case MANIFEST_DOCUMENT_PATCHED       => convertTo(event)(_.convertTo[DocumentPatched])
+    case MANIFEST_DOCUMENT_DELETED       => convertTo(event)(_.convertTo[DocumentDeleted])
+    case MANIFEST_DOCUMENT_SET_CREATED   => convertTo(event)(_.convertTo[CollectionCreated])
+    case MANIFEST_DOCUMENT_SET_REPLACED  => convertTo(event)(_.convertTo[CollectionReplaced])
+    case MANIFEST_DOCUMENT_SET_PATCHED   => convertTo(event)(_.convertTo[CollectionPatched])
+    case MANIFEST_DOCUMENT_SET_DELETED   => convertTo(event)(_.convertTo[CollectionDeleted])
+    case MANIFEST_DOMAIN_CREATED         => convertTo(event)(_.convertTo[DomainCreated])
+    case MANIFEST_DOMAIN_REPLACED        => convertTo(event)(_.convertTo[DomainReplaced])
+    case MANIFEST_DOMAIN_PATCHED         => convertTo(event)(_.convertTo[DomainPatched])
+    case MANIFEST_DOMAIN_AUTHORIZED      => convertTo(event)(_.convertTo[DomainAuthorized])
+    case MANIFEST_DOMAIN_DELETED         => convertTo(event)(_.convertTo[DomainDeleted])
+    case MANIFEST_DOMAIN_USER_REGISTERED => convertTo(event)(_.convertTo[UserRegistered])
+    case MANIFEST_DOMAIN_JOINED          => convertTo(event)(_.convertTo[DomainJoined])
+    case MANIFEST_DOMAIN_USER_LOGGEDIN   => convertTo(event)(_.convertTo[UserLoggedIn])
+    case MANIFEST_DOMAIN_USER_LOGGEDOUT  => convertTo(event)(_.convertTo[UserLoggedOut])
+
+    case _                               => throw new IllegalArgumentException(s"Unable to handle manifest $manifest!")
   }
 
   private def convertTo(event: Any)(converter: (JsObject) => DocumentEvent): EventSeq = event match {

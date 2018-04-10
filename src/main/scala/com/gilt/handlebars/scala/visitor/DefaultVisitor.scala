@@ -39,18 +39,18 @@ object DefaultVisitor {
 class DefaultVisitor[T](context: Context[T], partials: Map[String, Handlebars[T]], helpers: Map[String, Helper[T]], data: Map[String, Binding[T]])(implicit val contextFactory: BindingFactory[T]) extends Visitor with Loggable {
   def visit(node: Node): String = {
     node match {
-      case c: Content => visit(c)
-      case c: Comment => visit(c)
-      case p: Program => visit(p)
+      case c: Content         => visit(c)
+      case c: Comment         => visit(c)
+      case p: Program         => visit(p)
       case mustache: Mustache => visit(mustache)
-      case block: Block => visit(block)
-      case partial: Partial => visit(partial)
-      case n => n.toString
+      case block: Block       => visit(block)
+      case partial: Partial   => visit(partial)
+      case n                  => n.toString
     }
   }
 
   def visit(program: Program): String = {
-  val buf = new StringBuilder
+    val buf = new StringBuilder
     program.statements.foreach { s => buf.append(visit(s)) }
     buf.toString()
   }
@@ -62,9 +62,9 @@ class DefaultVisitor[T](context: Context[T], partials: Map[String, Handlebars[T]
   def visit(mustache: Mustache): String = {
     // I. There is no hash present on this {{mustache}}
 
-    lazy val paramsList = mustache.params.map{
+    lazy val paramsList = mustache.params.map {
       case Left(n: Mustache) => contextFactory.bindPrimitive(visit(n))
-      case Right(valueNode) => valueNodeToBindings(valueNode)
+      case Right(valueNode)  => valueNodeToBindings(valueNode)
     }.toList
 
     lazy val paramsMap = valueHashToBindingMap(mustache.hash)
@@ -94,9 +94,9 @@ class DefaultVisitor[T](context: Context[T], partials: Map[String, Handlebars[T]
   }
 
   def visit(block: Block): String = {
-    lazy val paramsList = block.mustache.params.map{
+    lazy val paramsList = block.mustache.params.map {
       case Left(n: Mustache) => contextFactory.bindPrimitive(visit(n))
-      case Right(valueNode) => valueNodeToBindings(valueNode)
+      case Right(valueNode)  => valueNodeToBindings(valueNode)
     }.toList
 
     lazy val paramsMap = valueHashToBindingMap(block.mustache.hash)
@@ -128,7 +128,7 @@ class DefaultVisitor[T](context: Context[T], partials: Map[String, Handlebars[T]
   def visit(partial: Partial): String = {
     val partialName = (partial.name.value match {
       case i: IdentifierNode => i.string
-      case o => o.value.toString
+      case o                 => o.value.toString
     }).replace("/", ".")
 
     val partialContext = partial.context.map(context.lookup(_)).getOrElse(context)
@@ -141,7 +141,7 @@ class DefaultVisitor[T](context: Context[T], partials: Map[String, Handlebars[T]
   }
 
   protected def valueNodesToBindings(nodes: Iterable[ValueNode]): Iterable[Binding[T]] = {
-    nodes.map (valueNodeToBindings)
+    nodes.map(valueNodeToBindings)
   }
   protected def valueNodeToBindings(node: ValueNode): Binding[T] = {
     node match {

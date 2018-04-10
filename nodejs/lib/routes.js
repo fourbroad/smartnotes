@@ -16,17 +16,7 @@ var
   router = require('express').Router(),
   crud        = require( './crud' ),
   makeMongoId = crud.makeMongoId,
-  jwt = require('jsonwebtoken'),
-  
-  users = [{
-	  id: 1,
-	  name: 'jonathanmh',
-	  password: '%2yx4'
-	},{
-	  id: 2,
-	  name: 'test',
-	  password: 'test'
-	}];
+  utils = require('./utils');
 // ------------- END MODULE SCOPE VARIABLES ---------------
 
 // ---------------- BEGIN PUBLIC METHODS ------------------
@@ -37,34 +27,29 @@ router.get('/', function(request, response){
 router.post("/_login", function(req, res){
 	var 
 	  name = req.body.name,
-	  password = req.body.password,
-	  hostname = req.headers.host.replace(/:.*$/,"");
+	  password = req.body.password;
 	
-	// usually this would be a database call:
-	var user = users.find(u => u.name == name);
-	if(!user){
-		res.status(401).json({message:"no such user found"});
-	}
-	
-	if(user.password === req.body.password) {
-		// from now on we'll identify the user by the id and the id is the only
-		// personalized value that goes into our token
-	    var payload = {id: user.id};
-	    var token = jwt.sign(payload, 'z4bb4z');
-	    res.json({message: "ok", token: token});
-	} else {
-		res.status(401).json({message:"passwords did not match"});
-    }
+	req.domain.login(name, password, function(err, result){
+		if(err) return res.status(err.code).json(err);
+		res.json(result);
+	});
 });
 
 router.get("/_logout", function(req,res){
-	var hostname = req.headers.host.replace(/:.*$/,"");
-	res.writeHead(200, {'Content-Type': 'text/plain'});
-	res.json({message:"logout"});
+	var 
+	  hostName = utils.getHostName(req);
+	
+	req.domain.logout(function(err, result){
+		if(err) return res.status(err.code).json(err);			
+		res.json({message:"logout"});	
+	});
 });
 
 router.get("/secret", function(req, res){
-	res.json("Success! You can not see this without a token");
+	req.domain.isValidToken(function(err, result){
+		if(err) return res.status(err.code).json(err);
+		res.json(req.domain);	
+	});
 });
 
 router.all('/:obj_type/*?', function(request, response, next){

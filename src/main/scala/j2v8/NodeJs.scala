@@ -9,9 +9,9 @@ import java.io.File
 import posix.Signal
 
 object NodeJs extends App {
-  
+
   object DomainWrapper {
-    def register(receiver: V8Object, domainName: String) = {
+    def bind(receiver: V8Object, domainName: String) = {
       val runtime = receiver.getRuntime
       val dw = new DomainWrapper(domainName)
       val domain = runtime.getObject("Domain")
@@ -24,14 +24,14 @@ object NodeJs extends App {
     }
   }
   class DomainWrapper(domainName: String) {
-    def login(userName: String, password: String) = {
+    def login(receiver: V8Object, userName: String, password: String) = {
       System.out.println(s"login Domain: ${domainName}")
     }
     def logout = {
       System.out.println("logout Domain.")
     }
   }
-  
+
   val nodeJS = NodeJS.createNodeJS();
   val callback = new JavaCallback() {
     def invoke(receiver: V8Object, parameters: V8Array): Object = {
@@ -40,17 +40,15 @@ object NodeJs extends App {
   };
 
   val runtime = nodeJS.getRuntime
-  runtime.registerJavaMethod(DomainWrapper, "register", "Domain", Array[Class[_]](classOf[V8Object], classOf[String]), true)
-  
+  runtime.registerJavaMethod(DomainWrapper, "bind", "Domain", Array[Class[_]](classOf[V8Object], classOf[String]), true)
+
   runtime.registerJavaMethod(callback, "someJavaMethod");
 
   import sys.process._
   val pid = Seq("sh", "-c", "echo $PPID").!!.trim.toInt
   val sig = Signal.SIGUSR2
-  //  sig.setAction(Signal.SIG_EVT)
 
-//  nodeJS.exec(new File("nodejs/bin/www"))
-    nodeJS.exec(new File("nodejs/world-server2.js"))
+  nodeJS.exec(new File("nodejs/hello-world.js"))
 
   while (nodeJS.isRunning()) {
     nodeJS.handleMessage()

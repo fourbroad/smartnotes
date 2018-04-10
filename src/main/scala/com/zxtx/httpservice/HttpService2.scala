@@ -10,7 +10,7 @@ import com.typesafe.config.ConfigFactory
 import com.zxtx.actors.DocumentActor
 import com.zxtx.actors.DocumentActor.Document
 import com.zxtx.actors.DocumentActor.GetDocument
-import com.zxtx.actors.DocumentSetActor
+import com.zxtx.actors.CollectionActor
 import com.zxtx.actors.DomainActor
 import com.zxtx.actors.DomainActor.CreateDomain
 import com.zxtx.actors.DomainActor.Domain
@@ -81,11 +81,11 @@ object HttpService2 extends App with APIStatusCodes {
     extractShardId = DomainActor.shardResolver)
 
   val documentSetRegion = ClusterSharding(system).start(
-    typeName = DocumentSetActor.shardName,
-    entityProps = DocumentSetActor.props(),
+    typeName = CollectionActor.shardName,
+    entityProps = CollectionActor.props(),
     settings = ClusterShardingSettings(system),
-    extractEntityId = DocumentSetActor.idExtractor,
-    extractShardId = DocumentSetActor.shardResolver)
+    extractEntityId = CollectionActor.idExtractor,
+    extractShardId = CollectionActor.shardResolver)
 
   val documentRegion = ClusterSharding(system).start(
     typeName = DocumentActor.shardName,
@@ -108,7 +108,6 @@ object HttpService2 extends App with APIStatusCodes {
    * [[ActorSystem]] used to start this server. Stopping this system will interfere with the proper functioning condition of the server.
    */
   val systemReference = new AtomicReference[ActorSystem](system)
-
 
   def checkPassword(user: User) = {
     Source.fromFuture {
@@ -159,6 +158,5 @@ object HttpService2 extends App with APIStatusCodes {
     }.runWith(Sink.head[Any])
     if r2.isInstanceOf[DomainCreated]
   } System.out.println("System intialize successfully!")
-
 
 }

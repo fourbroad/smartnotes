@@ -49,7 +49,6 @@ class APIClient(system: ActorSystem) {
   val http = Http(system)
   val log = Logging(system, this)
 
-
   def get(uri: Uri, headers: immutable.Seq[HttpHeader] = immutable.Seq.empty[HttpHeader]): Future[(StatusCode, immutable.Seq[HttpHeader], JsValue)] =
     request(HttpMethods.GET, uri = uri, headers = headers)
   def post(uri: Uri, headers: immutable.Seq[HttpHeader] = immutable.Seq.empty[HttpHeader], entity: RequestEntity = HttpEntity.empty(ContentTypes.`application/json`)): Future[(StatusCode, immutable.Seq[HttpHeader], JsValue)] =

@@ -5,7 +5,7 @@ import spray.json.DefaultJsonProtocol._
 import akka.http.scaladsl.model.StatusCodes._
 
 import com.zxtx.actors.DocumentActor._
-import com.zxtx.actors.DocumentSetActor._
+import com.zxtx.actors.CollectionActor._
 import com.zxtx.actors.DomainActor._
 import com.zxtx.actors._
 import com.zxtx.actors.ACL._
@@ -53,21 +53,21 @@ trait APIStatusCodes {
     case PatchDocumentException(e)           => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
   }
 
-  import com.zxtx.actors.DocumentSetActor.JsonProtocol._
+  import com.zxtx.actors.CollectionActor.JsonProtocol._
   def documentSetStatus: Any => APIStatusCode = {
-    case DocumentSetCreated(_, _, _, _, raw)    => APIStatusCode(Created.intValue, Created.reason, raw)
-    case DocumentSetReplaced(_, _, _, _, raw)   => APIStatusCode(OK.intValue, OK.reason, raw)
-    case DocumentSetPatched(_, _, _, _, _, raw) => APIStatusCode(OK.intValue, OK.reason, raw)
-    case DocumentSetDeleted(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, documentSetDeleted)
-    case documentSet: DocumentSet               => APIStatusCode(OK.intValue, OK.reason, documentSet.toJson)
+    case CollectionCreated(_, _, _, _, raw)    => APIStatusCode(Created.intValue, Created.reason, raw)
+    case CollectionReplaced(_, _, _, _, raw)   => APIStatusCode(OK.intValue, OK.reason, raw)
+    case CollectionPatched(_, _, _, _, _, raw) => APIStatusCode(OK.intValue, OK.reason, raw)
+    case CollectionDeleted(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, documentSetDeleted)
+    case documentSet: Collection               => APIStatusCode(OK.intValue, OK.reason, documentSet.toJson)
     case documentSets: JsObject                 => APIStatusCode(OK.intValue, OK.reason, documentSets)
     case Denied                                 => APIStatusCode(Unauthorized.intValue, Unauthorized.reason, unauthorizedAccess)
     case GarbageCollectionCompleted             => APIStatusCode(OK.intValue, OK.reason, garbageCollectionCompleted)
-    case DocumentSetNotFound                    => APIStatusCode(NotFound.intValue, NotFound.reason, documentSetNotFound)
-    case DocumentSetAlreadyExists               => APIStatusCode(Conflict.intValue, Conflict.reason, documentSetAlreadyExists)
-    case DocumentSetIsCreating                  => APIStatusCode(Conflict.intValue, Conflict.reason, documentSetIsCreating)
-    case DocumentSetSoftDeleted                 => APIStatusCode(Conflict.intValue, Conflict.reason, documentSetSoftDeleted)
-    case PatchDocumentSetException(e)           => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
+    case CollectionNotFound                    => APIStatusCode(NotFound.intValue, NotFound.reason, documentSetNotFound)
+    case CollectionAlreadyExists               => APIStatusCode(Conflict.intValue, Conflict.reason, documentSetAlreadyExists)
+    case CollectionIsCreating                  => APIStatusCode(Conflict.intValue, Conflict.reason, documentSetIsCreating)
+    case CollectionSoftDeleted                 => APIStatusCode(Conflict.intValue, Conflict.reason, documentSetSoftDeleted)
+    case PatchCollectionException(e)           => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
   }
 
   import com.zxtx.actors.DomainActor.JsonProtocol._
@@ -81,7 +81,7 @@ trait APIStatusCodes {
     case domains: JsObject                    => APIStatusCode(OK.intValue, OK.reason, domains)
     case Denied                               => APIStatusCode(Unauthorized.intValue, Unauthorized.reason, unauthorizedAccess)
     case GarbageCollectionCompleted           => APIStatusCode(OK.intValue, OK.reason, garbageCollectionCompleted)
-    case DomainNotFound                       => APIStatusCode(NotFound.intValue, NotFound.reason, domainNotFound)
+    case DomainNotExists                      => APIStatusCode(NotFound.intValue, NotFound.reason, domainNotFound)
     case DomainAlreadyExists                  => APIStatusCode(Conflict.intValue, Conflict.reason, domainAlreadyExists)
     case DomainIsCreating                     => APIStatusCode(Conflict.intValue, Conflict.reason, domainIsCreating)
     case DomainSoftDeleted                    => APIStatusCode(Conflict.intValue, Conflict.reason, domainSoftDeleted)

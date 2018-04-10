@@ -8,13 +8,13 @@ import spray.json.JsString
 object J2V8 extends App {
   // take a native json object
   val start = System.currentTimeMillis()
-    val text: JsObject = JsObject("key" -> JsString("value"))
+  val text: JsObject = JsObject("key" -> JsString("value"))
   // add it's stringified version to the runtime
-    val nodeJs = NodeJS.createNodeJS()
-    nodeJs.getRuntime.add("text", text.compactPrint)
-    System.out.println(s"NodeVersion = ${nodeJs.getNodeVersion}")
-    val r = nodeJs.getRuntime.executeIntegerScript("100+100")
-    System.out.println(r)
+  val nodeJs = NodeJS.createNodeJS()
+  nodeJs.getRuntime.add("text", text.compactPrint)
+  System.out.println(s"NodeVersion = ${nodeJs.getNodeVersion}")
+  val r = nodeJs.getRuntime.executeIntegerScript("100+100")
+  System.out.println(r)
 
   val runtime = V8.createV8Runtime()
   val result = runtime.executeIntegerScript("""
@@ -26,7 +26,7 @@ object J2V8 extends App {
 
   val x = runtime.executeScript("var func = x => x * x; func(5);")
   System.out.println(x)
-  
+
   runtime.executeVoidScript("""
     var person = {};
     var hockeyTeam = {
@@ -77,24 +77,23 @@ object J2V8 extends App {
   runtime.registerJavaMethod(callback, "print")
   runtime.executeScript("print('您好，Smartnotes！');")
 
-  class Console {
+  object Console {
     def log(worker: V8Object, message: String) = System.out.println("[INFO] " + message)
     def error(worker: V8Object, message: String) = System.out.println("[ERROR] " + message)
-    def func(worker: V8Object, callback:V8Object) = callback match {
-      case vf:V8Function => 
+    def func(worker: V8Object, callback: V8Object) = callback match {
+      case vf: V8Function =>
         val params = new V8Array(worker.getRuntime)
         vf.call(worker, params)
         params.release
       case o => System.out.println(s"${o}")
     }
   }
-  val console = new Console()
   val v8Console = new V8Object(runtime)
   runtime.add("console", v8Console)
-  v8Console.add("test","Hello world!")
-  v8Console.registerJavaMethod(console, "log", "log", Array[Class[_]](classOf[V8Object], classOf[String]), true)
-  v8Console.registerJavaMethod(console, "error", "error", Array[Class[_]](classOf[V8Object], classOf[String]), true)
-  v8Console.registerJavaMethod(console, "func", "func", Array[Class[_]](classOf[V8Object],classOf[V8Object]), true)
+  v8Console.add("test", "Hello world!")
+  v8Console.registerJavaMethod(Console, "log", "log", Array[Class[_]](classOf[V8Object], classOf[String]), true)
+  v8Console.registerJavaMethod(Console, "error", "error", Array[Class[_]](classOf[V8Object], classOf[String]), true)
+  v8Console.registerJavaMethod(Console, "func", "func", Array[Class[_]](classOf[V8Object], classOf[V8Object]), true)
   v8Console.release()
   runtime.executeScript("console.log('hello, world');")
   runtime.executeScript("console.error('错误是成功的铺路石！');")

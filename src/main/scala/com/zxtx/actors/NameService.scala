@@ -29,7 +29,7 @@ object NameService {
 }
 
 class NameService extends Actor with Timers with ActorLogging {
-  import DocumentSetActor._
+  import CollectionActor._
   import DomainActor._
   import NameService._
   import akka.cluster.ddata.Replicator._
@@ -41,7 +41,7 @@ class NameService extends Actor with Timers with ActorLogging {
   implicit val cluster = Cluster(system)
   val replicator = DistributedData(system).replicator
 
-  val documentSetRegion = ClusterSharding(system).shardRegion(DocumentSetActor.shardName)
+  val documentSetRegion = ClusterSharding(system).shardRegion(CollectionActor.shardName)
   val domainRegion = ClusterSharding(system).shardRegion(DomainActor.shardName)
 
   val timeout = system.settings.config.getDuration("name_service.timeout").getSeconds.seconds
@@ -52,7 +52,7 @@ class NameService extends Actor with Timers with ActorLogging {
   def receive = {
     case UpdateSuccess(LWWMapKey(key), Some(dsc)) =>
       val request = requesters.get(key).get
-      if (request.cmd.isInstanceOf[CreateDocumentSet]) {
+      if (request.cmd.isInstanceOf[CreateCollection]) {
         request.replyTo ! dsc
       }
 

@@ -1,10 +1,10 @@
 package com.gilt.handlebars.scala.helper
 
 import com.gilt.handlebars.scala.Handlebars
-import com.gilt.handlebars.scala.binding.{Binding, BindingFactory, VoidBinding}
+import com.gilt.handlebars.scala.binding.{ Binding, BindingFactory, VoidBinding }
 import com.gilt.handlebars.scala.context.Context
 import com.gilt.handlebars.scala.logging.Loggable
-import com.gilt.handlebars.scala.parser.{Program, _}
+import com.gilt.handlebars.scala.parser.{ Program, _ }
 import com.gilt.handlebars.scala.visitor.DefaultVisitor
 
 trait HelperOptions[T] {
@@ -64,24 +64,26 @@ trait HelperOptions[T] {
   val dataMap: Map[String, Binding[T]]
 }
 
-class HelperOptionsBuilder[T](context: Context[T],
-                              partials: Map[String, Handlebars[T]],
-                              helpers: Map[String, Helper[T]],
-                              data: Map[String, Binding[T]],
-                              program: Node,
-                              args: Seq[Binding[T]])(implicit contextFactory: BindingFactory[T]) extends Loggable {
+class HelperOptionsBuilder[T](
+    context: Context[T],
+    partials: Map[String, Handlebars[T]],
+    helpers: Map[String, Helper[T]],
+    data: Map[String, Binding[T]],
+    program: Node,
+    args: Seq[Binding[T]])(implicit contextFactory: BindingFactory[T]) extends Loggable {
 
   private val inverseNode: Option[Node] = program match {
-    case p:Program => p.inverse
-    case b:Block => b.inverse
-    case _ => None
+    case p: Program => p.inverse
+    case b: Block   => b.inverse
+    case _          => None
   }
 
   def build: HelperOptions[T] =
     new HelperOptionsImpl(args, data)
 
-  private class HelperOptionsImpl(args: Seq[Binding[T]],
-                                  val dataMap: Map[String, Binding[T]]) extends HelperOptions[T] {
+  private class HelperOptionsImpl(
+      args: Seq[Binding[T]],
+      val dataMap: Map[String, Binding[T]]) extends HelperOptions[T] {
 
     def argument(index: Int): Binding[T] = {
       args.lift(index) getOrElse VoidBinding[T]

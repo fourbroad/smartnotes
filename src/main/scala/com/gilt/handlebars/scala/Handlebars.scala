@@ -2,7 +2,7 @@ package com.gilt.handlebars.scala
 
 import java.io.File
 
-import com.gilt.handlebars.scala.binding.{Binding, BindingFactory}
+import com.gilt.handlebars.scala.binding.{ Binding, BindingFactory }
 import com.gilt.handlebars.scala.context.Context
 import com.gilt.handlebars.scala.helper.Helper
 import com.gilt.handlebars.scala.parser._
@@ -24,10 +24,10 @@ trait Handlebars[T] {
 }
 
 class HandlebarsImpl[T](
-  override val program: Program,
-  override val partials: Map[String, Handlebars[T]],
-  override val helpers: Map[String, Helper[T]])
-    extends Handlebars[T] {
+    override val program: Program,
+    override val partials: Map[String, Handlebars[T]],
+    override val helpers: Map[String, Helper[T]])
+  extends Handlebars[T] {
 
   // TODO: check program for partials that are not in the partials map. See if they exist as strings in data
   override def apply(

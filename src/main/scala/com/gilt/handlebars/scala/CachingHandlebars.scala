@@ -2,9 +2,9 @@ package com.gilt.handlebars.scala
 
 import java.io.File
 
-import com.gilt.handlebars.scala.binding.{Binding, BindingFactory}
+import com.gilt.handlebars.scala.binding.{ Binding, BindingFactory }
 import com.gilt.handlebars.scala.helper.Helper
-import com.gilt.handlebars.scala.parser.{HandlebarsGrammar, Program}
+import com.gilt.handlebars.scala.parser.{ HandlebarsGrammar, Program }
 import com.gilt.handlebars.scala.partial.PartialHelper
 
 import scala.io.Source
@@ -48,18 +48,18 @@ object CachingHandlebars {
 }
 
 case class CachingHandlebarsImpl[T](
-   program: Program,
-   partials: Map[String, Handlebars[T]],
-   helpers: Map[String, Helper[T]],
-   sourceFile: Option[String])(implicit f: BindingFactory[T]) extends CachingHandlebars[T] {
+    program: Program,
+    partials: Map[String, Handlebars[T]],
+    helpers: Map[String, Helper[T]],
+    sourceFile: Option[String])(implicit f: BindingFactory[T]) extends CachingHandlebars[T] {
 
   // TODO: Warn if we getOrElse is called. Didn't know how to re-load files.
   // TODO: Use handlebars builder to construct the new instance?
   def reload = sourceFile.map(file => CachingHandlebars.apply(new File(file))).getOrElse(this)
 
   def apply(
-     context: Binding[T],
-     data: Map[String, Binding[T]] = Map.empty[String, Binding[T]],
-     partials: Map[String, Handlebars[T]] = Map.empty[String, Handlebars[T]],
-     helpers: Map[String, Helper[T]] = Map.empty[String, Helper[T]])(implicit c: BindingFactory[T]): String = "" // Call to HandlebarsVisitor
+    context: Binding[T],
+    data: Map[String, Binding[T]] = Map.empty[String, Binding[T]],
+    partials: Map[String, Handlebars[T]] = Map.empty[String, Handlebars[T]],
+    helpers: Map[String, Helper[T]] = Map.empty[String, Helper[T]])(implicit c: BindingFactory[T]): String = "" // Call to HandlebarsVisitor
 }

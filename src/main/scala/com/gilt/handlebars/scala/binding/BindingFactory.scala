@@ -7,9 +7,9 @@ trait BindingFactory[T] {
   def bindPrimitive(s: Boolean): Binding[T]
   def bindPrimitiveDynamic(v: Any) = {
     v match {
-      case i: Int => bindPrimitive(i)
+      case i: Int     => bindPrimitive(i)
       case b: Boolean => bindPrimitive(b)
-      case s => bindPrimitive(s.toString)
+      case s          => bindPrimitive(s.toString)
     }
   }
 }

@@ -9,7 +9,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.load("chat")
     val systemName = "ChatApp"
-    val system1 = ActorSystem(systemName,config)
+    val system1 = ActorSystem(systemName, config)
     val joinAddress = Cluster(system1).selfAddress
     Cluster(system1).join(joinAddress)
     system1.actorOf(Props[MemberListener], "memberListener")

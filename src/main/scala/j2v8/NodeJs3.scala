@@ -20,7 +20,7 @@ object NodeJs3 extends App {
       val prototype = runtime.executeObjectScript("Domain.prototype")
       prototype.registerJavaMethod(dw, "login", "login", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String]), true)
       prototype.registerJavaMethod(dw, "logout", "logout", Array[Class[_]]())
-      prototype.registerJavaMethod(dw, "callback", "callback", Array[Class[_]](classOf[V8Object],classOf[V8Object]), true)
+      prototype.registerJavaMethod(dw, "callback", "callback", Array[Class[_]](classOf[V8Object], classOf[V8Object]), true)
       domain.setPrototype(prototype)
       prototype.release
       domain.release

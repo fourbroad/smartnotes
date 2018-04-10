@@ -1,6 +1,6 @@
 package com.gilt.handlebars.scala.helper
 
-import com.gilt.handlebars.scala.binding.{Binding, BindingFactory}
+import com.gilt.handlebars.scala.binding.{ Binding, BindingFactory }
 
 class EachHelper[T] extends Helper[T] {
   def apply(binding: Binding[T], options: HelperOptions[T])(implicit contextFactory: BindingFactory[T]): String = {
@@ -8,7 +8,8 @@ class EachHelper[T] extends Helper[T] {
     if (arg0.isDictionary)
       arg0.asDictionaryCollection.zipWithIndex.map {
         case ((key, value), idx) =>
-          options.visit(value,
+          options.visit(
+            value,
             Map(
               "key" -> contextFactory.bindPrimitive(key),
               "index" -> contextFactory.bindPrimitive(idx)))
@@ -16,13 +17,14 @@ class EachHelper[T] extends Helper[T] {
     else if (arg0.isCollection)
       arg0.asCollection.zipWithIndex.map {
         case (value, idx) =>
-          options.visit(value,
+          options.visit(
+            value,
             Map(
               "index" -> contextFactory.bindPrimitive(idx)))
       }.mkString
 
     else {
-//      warn("Could not iterate over argument for {{#each}}")
+      //      warn("Could not iterate over argument for {{#each}}")
       ""
     }
   }

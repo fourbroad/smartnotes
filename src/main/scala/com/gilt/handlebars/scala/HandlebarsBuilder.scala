@@ -4,7 +4,7 @@ import java.io.File
 
 import com.gilt.handlebars.scala.binding.BindingFactory
 import com.gilt.handlebars.scala.helper.Helper
-import com.gilt.handlebars.scala.parser.{Program, ProgramHelper}
+import com.gilt.handlebars.scala.parser.{ Program, ProgramHelper }
 import com.gilt.handlebars.scala.partial.PartialHelper
 
 trait HandlebarsBuilder[T] {
@@ -19,16 +19,16 @@ trait HandlebarsBuilder[T] {
 }
 
 case class DefaultHandlebarsBuilder[T](
-  program: Program,
-  partials: Map[String, Handlebars[T]] = Map.empty[String, Handlebars[T]],
-  helpers: Map[String, Helper[T]] = Map.empty[String, Helper[T]])(implicit contextFactory: BindingFactory[T])
-    extends HandlebarsBuilder[T] {
+    program: Program,
+    partials: Map[String, Handlebars[T]] = Map.empty[String, Handlebars[T]],
+    helpers: Map[String, Helper[T]] = Map.empty[String, Helper[T]])(implicit contextFactory: BindingFactory[T])
+  extends HandlebarsBuilder[T] {
 
   def withPartials(items: Map[String, Handlebars[T]]) = copy(partials = partials ++ items)
 
   def withHelpers(items: Map[String, Helper[T]]) = copy(helpers = helpers ++ items)
 
-  def build: Handlebars[T] = new HandlebarsImpl(program, partials, helpers ++ Helper.defaultHelpers.asInstanceOf[Map[String,Helper[T]]])
+  def build: Handlebars[T] = new HandlebarsImpl(program, partials, helpers ++ Helper.defaultHelpers.asInstanceOf[Map[String, Helper[T]]])
 }
 
 object DefaultHandlebarsBuilder extends ProgramHelper {

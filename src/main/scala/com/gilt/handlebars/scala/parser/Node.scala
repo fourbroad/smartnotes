@@ -14,10 +14,10 @@ trait IdentifierNode extends ValueNode {
   def string = value.mkString(".")
 }
 
-
 case class Program(statements: Seq[Node], inverse: Option[Program] = None) extends Node
 
-case class Mustache(path: IdentifierNode,
+case class Mustache(
+    path: IdentifierNode,
     params: Seq[Either[Mustache, ValueNode]] = Nil,
     hash: HashNode = HashNode(Map.empty),
     unescaped: Boolean = false) extends Node {
@@ -27,9 +27,10 @@ case class Mustache(path: IdentifierNode,
 
 case class Partial(name: PartialName, context: Option[Identifier] = None) extends Node
 
-case class Block(mustache: Mustache,
-  program: Program,
-  inverse: Option[Program] = None) extends Node
+case class Block(
+    mustache: Mustache,
+    program: Program,
+    inverse: Option[Program] = None) extends Node
 
 case class Content(value: String) extends Node
 

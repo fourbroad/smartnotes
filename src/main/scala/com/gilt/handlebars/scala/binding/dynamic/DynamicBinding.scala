@@ -1,7 +1,7 @@
 package com.gilt.handlebars.scala.binding.dynamic
 
 import java.lang.reflect.Method
-import com.gilt.handlebars.scala.binding.{Binding, BindingFactory, FullBinding, VoidBinding}
+import com.gilt.handlebars.scala.binding.{ Binding, BindingFactory, FullBinding, VoidBinding }
 import com.gilt.handlebars.scala.logging.Loggable
 import java.lang.reflect.Modifier
 
@@ -40,7 +40,6 @@ object DynamicBindingCache {
   }
 }
 
-
 class DynamicBinding(val data: Any) extends FullBinding[Any] with Loggable {
   override protected def factory = DynamicBinding
   def render = if (isTruthy) data.toString else ""
@@ -53,7 +52,7 @@ class DynamicBinding(val data: Any) extends FullBinding[Any] with Loggable {
   override def toString = s"DynamicBinding($data)"
   override def isDefined = data match {
     case /* UndefinedValue |*/ None | Unit | null => false
-    case _ => true
+    case _                                        => true
   }
 
   @scala.annotation.tailrec
@@ -67,19 +66,18 @@ class DynamicBinding(val data: Any) extends FullBinding[Any] with Loggable {
       .getMethods(data.getClass)
       .get(key + args.length)
       .map { method =>
-      try {
-        if (args.isEmpty) new DynamicBinding(method.invoke(data))
-        else new DynamicBinding(method.invoke(data, args.map(_.get).asInstanceOf[Seq[AnyRef]]: _*))
-      }
-      catch {
-        case e: java.lang.IllegalArgumentException =>
-          sys.error(s"method $key with args $args invoked on $data failed with cause: ${e.getStackTrace.mkString("\n")}")
-      }
-    }.getOrElse(VoidBinding)
+        try {
+          if (args.isEmpty) new DynamicBinding(method.invoke(data))
+          else new DynamicBinding(method.invoke(data, args.map(_.get).asInstanceOf[Seq[AnyRef]]: _*))
+        } catch {
+          case e: java.lang.IllegalArgumentException =>
+            sys.error(s"method $key with args $args invoked on $data failed with cause: ${e.getStackTrace.mkString("\n")}")
+        }
+      }.getOrElse(VoidBinding)
   }
 
   def isDictionary = data.isInstanceOf[Map[_, _]]
-  def isCollection = data.isInstanceOf[Iterable[_]] && ! isDictionary
+  def isCollection = data.isInstanceOf[Iterable[_]] && !isDictionary
   protected def collectionToIterable = data.asInstanceOf[Iterable[Any]]
   protected def dictionaryToIterable = data.asInstanceOf[Map[Any, Any]].toIterable map { case (k, v) => (k.toString, v) }
   protected def isPrimitiveType(obj: Any) = obj.isInstanceOf[Int] || obj.isInstanceOf[Long] || obj.isInstanceOf[Float] ||

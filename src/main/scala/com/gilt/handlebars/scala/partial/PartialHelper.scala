@@ -5,9 +5,9 @@ import java.nio.charset.CodingErrorAction
 
 import com.gilt.handlebars.scala.binding.BindingFactory
 import com.gilt.handlebars.scala.parser._
-import com.gilt.handlebars.scala.{Handlebars, HandlebarsImpl}
+import com.gilt.handlebars.scala.{ Handlebars, HandlebarsImpl }
 
-import scala.io.{Codec, Source}
+import scala.io.{ Codec, Source }
 
 /**
  * @author chicks
@@ -26,11 +26,11 @@ object PartialHelper extends ProgramHelper {
    */
   def filterPartials(node: Node): Seq[Partial] = {
     node match {
-      case n:Partial => Seq(n)
-      case n:Block => filterPartials(n.mustache) ++ filterPartials(n.program) ++ n.inverse.map(filterPartials(_)).getOrElse(Seq())
-      case n:Mustache => filterPartials(n.path)
-      case n:Program => n.statements.flatMap(filterPartials) ++ n.inverse.map(filterPartials(_)).getOrElse(Seq())
-      case _ => Seq()
+      case n: Partial  => Seq(n)
+      case n: Block    => filterPartials(n.mustache) ++ filterPartials(n.program) ++ n.inverse.map(filterPartials(_)).getOrElse(Seq())
+      case n: Mustache => filterPartials(n.path)
+      case n: Program  => n.statements.flatMap(filterPartials) ++ n.inverse.map(filterPartials(_)).getOrElse(Seq())
+      case _           => Seq()
     }
   }
 
@@ -66,7 +66,7 @@ object PartialHelper extends ProgramHelper {
 
   def getTemplates[T](file: File)(implicit contextFactory: BindingFactory[T]): Map[String, Handlebars[T]] = {
     findAllPartials(file).map {
-      case(name, partialFile) => name -> new HandlebarsImpl[T](programFromFile(partialFile), Map.empty, Map.empty)
+      case (name, partialFile) => name -> new HandlebarsImpl[T](programFromFile(partialFile), Map.empty, Map.empty)
     }
   }
 

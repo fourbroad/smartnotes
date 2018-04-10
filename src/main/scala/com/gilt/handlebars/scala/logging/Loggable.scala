@@ -7,7 +7,6 @@ package com.gilt.handlebars.scala.logging
 
 import org.slf4j.LoggerFactory
 
-
 trait Loggable {
   lazy val logger = LoggerFactory.getLogger(getClass)
 

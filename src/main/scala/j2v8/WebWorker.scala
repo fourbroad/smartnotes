@@ -33,8 +33,6 @@ class WebWorker {
 
   def print(s: String) = System.out.println(s)
 
-  
-  
   def start = {
     val mainExecutor = new V8Executor("""
       var messageHandler = function(e) { print(e[0]); };

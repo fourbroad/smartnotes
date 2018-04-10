@@ -18,7 +18,7 @@ import scala.util.Try
 import com.typesafe.config.ConfigFactory
 import com.zxtx.actors._
 import com.zxtx.actors.DocumentActor._
-import com.zxtx.actors.DocumentSetActor._
+import com.zxtx.actors.CollectionActor._
 import com.zxtx.actors.DomainActor._
 import com.zxtx.persistence.ElasticSearchStore
 
@@ -118,11 +118,11 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     extractShardId = DomainActor.shardResolver)
 
   val documentSetRegion = ClusterSharding(system).start(
-    typeName = DocumentSetActor.shardName,
-    entityProps = DocumentSetActor.props(),
+    typeName = CollectionActor.shardName,
+    entityProps = CollectionActor.props(),
     settings = ClusterShardingSettings(system),
-    extractEntityId = DocumentSetActor.idExtractor,
-    extractShardId = DocumentSetActor.shardResolver)
+    extractEntityId = CollectionActor.idExtractor,
+    extractShardId = CollectionActor.shardResolver)
 
   val documentRegion = ClusterSharding(system).start(
     typeName = DocumentActor.shardName,
@@ -341,31 +341,31 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
 
   def getDocumentSet(domain: String, name: String, user: String) = get {
     parameters('path ? "/") { path =>
-      onCompleteJson((documentSetRegion ? GetDocumentSet(s"${domain}~.documentsets~${name}", user, path)).map(documentSetStatus))
+      onCompleteJson((documentSetRegion ? GetCollection(s"${domain}~.documentsets~${name}", user, path)).map(documentSetStatus))
     }
   }
 
   def replaceDocumentSet(domain: String, name: String, user: String) = put {
     entity(as[String]) { c =>
       val raw = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-      onCompleteJson((documentSetRegion ? ReplaceDocumentSet(s"${domain}~.documentsets~${name}", user, raw)).map(documentSetStatus))
+      onCompleteJson((documentSetRegion ? ReplaceCollection(s"${domain}~.documentsets~${name}", user, raw)).map(documentSetStatus))
     }
   }
 
   def patchDocumentSet(domain: String, name: String, user: String) = patch {
     entity(as[JsValue]) { jv =>
-      onCompleteJson((documentSetRegion ? PatchDocumentSet(s"${domain}~.documentsets~${name}", user, JsonPatch(jv))).map(documentSetStatus))
+      onCompleteJson((documentSetRegion ? PatchCollection(s"${domain}~.documentsets~${name}", user, JsonPatch(jv))).map(documentSetStatus))
     }
   }
 
   def deleteDocumentSet(domain: String, name: String, user: String) = delete {
-    onCompleteJson((documentSetRegion ? DeleteDocumentSet(s"${domain}~.documentsets~${name}", user)).map(documentSetStatus))
+    onCompleteJson((documentSetRegion ? DeleteCollection(s"${domain}~.documentsets~${name}", user)).map(documentSetStatus))
   }
 
   def createDocumentSet(domain: String, name: String, user: String) = post {
     entity(as[String]) { c =>
       val raw = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-      onCompleteJson((documentSetRegion ? CreateDocumentSet(s"${domain}~.documentsets~${name}", user, raw)).map(documentSetStatus))
+      onCompleteJson((documentSetRegion ? CreateCollection(s"${domain}~.documentsets~${name}", user, raw)).map(documentSetStatus))
     }
   }
 

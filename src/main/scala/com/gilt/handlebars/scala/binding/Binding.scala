@@ -9,7 +9,7 @@ trait Binding[T] {
   def isTruthy: Boolean
   def isCollection: Boolean
   def isDictionary: Boolean
-  def isPrimitive = ! isCollection && ! isDictionary
+  def isPrimitive = !isCollection && !isDictionary
 
   def asOption: Option[Binding[T]] = if (isDefined) Some(this) else None
   def asCollection: Iterable[Binding[T]]
@@ -49,7 +49,7 @@ trait FullBinding[T] extends Binding[T] {
 
   def asDictionaryCollection =
     if (isDictionary)
-      dictionaryToIterable map { case (k,v) => (k, factory(v)) }
+      dictionaryToIterable map { case (k, v) => (k, factory(v)) }
     else
       Seq()
   override def equals(o: Any) = o match {
@@ -64,7 +64,7 @@ object FullBinding {
   def unapply[T](v: FullBinding[T]) = Some(v.get)
 }
 
-trait VoidBinding[T] extends Binding[T]  {
+trait VoidBinding[T] extends Binding[T] {
   def isDefined = false
   def render = ""
   def traverse(key: String, args: Seq[Binding[T]] = Seq()) = this

@@ -175,7 +175,6 @@ mongoClient.connect(url, function(err, client) {
 //   client.close();
 });
 
-
 // load schemas into memory (objTypeMap)
 (function () {
   var schema_name, schema_path;

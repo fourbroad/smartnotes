@@ -1,54 +1,45 @@
 package com.zxtx.actors
 
+import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import akka.pattern.ask
+import com.gilt.handlebars.scala.Handlebars
+import com.gilt.handlebars.scala.binding.sprayjson._
+import com.zxtx.persistence._
+
 import akka.actor.ActorLogging
+import akka.actor.ActorRef
 import akka.actor.PoisonPill
 import akka.actor.Props
 import akka.actor.ReceiveTimeout
-import akka.cluster.Cluster
-import akka.cluster.ddata.DistributedData
 import akka.cluster.ddata.Replicator.ReadMajority
 import akka.cluster.ddata.Replicator.WriteMajority
+import akka.cluster.pubsub.DistributedPubSub
+import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
+import akka.cluster.sharding.ClusterSharding
 import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion.Passivate
-import akka.cluster.pubsub.DistributedPubSub
-import akka.cluster.pubsub.DistributedPubSubMediator.{ Publish, Subscribe }
+import akka.http.scaladsl.model.StatusCodes
+import akka.pattern.ask
 import akka.persistence.PersistentActor
 import akka.persistence.RecoveryCompleted
 import akka.persistence.SaveSnapshotFailure
 import akka.persistence.SaveSnapshotSuccess
 import akka.persistence.SnapshotOffer
-
-import gnieh.diffson.sprayJson.provider.marshall
+import akka.stream.ActorMaterializer
+import akka.stream.ActorMaterializerSettings
 import gnieh.diffson.sprayJson.JsonPatch
 import gnieh.diffson.sprayJson.provider._
-import spray.json.DefaultJsonProtocol
-import spray.json.DeserializationException
+import gnieh.diffson.sprayJson.provider.marshall
 import spray.json.JsBoolean
 import spray.json.JsNumber
 import spray.json.JsObject
 import spray.json.JsString
 import spray.json.JsValue
 import spray.json.RootJsonFormat
-import akka.http.scaladsl.model.StatusCodes
-
-import com.gilt.handlebars.scala.Handlebars
-import com.gilt.handlebars.scala.binding.sprayjson._
-
-import com.zxtx.persistence._
-import akka.actor.ActorRef
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
-import akka.cluster.sharding.ClusterSharding
-import akka.util.Timeout
-import akka.stream.ActorMaterializerSettings
-import akka.stream.ActorMaterializer
-import scala.concurrent.Future
 
 object DocumentActor {
 
@@ -59,12 +50,12 @@ object DocumentActor {
   }
   case class Document(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, deleted: Option[Boolean], raw: JsObject)
 
-  case class GetDocument(pid: String, user: String) extends Command
-  case class ExecuteDocument(pid: String, user: String, params: Seq[(String, String)], body: JsObject) extends Command
-  case class CreateDocument(pid: String, user: String, raw: JsObject) extends Command
-  case class ReplaceDocument(pid: String, user: String, raw: JsObject) extends Command
-  case class PatchDocument(pid: String, user: String, patch: JsonPatch) extends Command
-  case class DeleteDocument(pid: String, user: String) extends Command
+  case class GetDocument(pid: String, token: String) extends Command
+  case class ExecuteDocument(pid: String, token: String, params: Seq[(String, String)], body: JsObject) extends Command
+  case class CreateDocument(pid: String, token: String, raw: JsObject) extends Command
+  case class ReplaceDocument(pid: String, token: String, raw: JsObject) extends Command
+  case class PatchDocument(pid: String, token: String, patch: JsonPatch) extends Command
+  case class DeleteDocument(pid: String, token: String) extends Command
 
   case class DocumentCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class DocumentReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
@@ -173,13 +164,13 @@ object DocumentActor {
 }
 
 class DocumentActor extends PersistentActor with ACL with ActorLogging {
+  import ACL._
+  import CollectionActor._
   import DocumentActor._
   import DocumentActor.JsonProtocol._
   import DomainActor._
-  import DocumentSetActor._
+  import com.zxtx.persistence.ElasticSearchStore._
   import spray.json._
-  import ElasticSearchStore._
-  import ACL._
 
   // self.path.parent.name is the type name (utf-8 URL-encoded)
   // self.path.name is the entry identifier (utf-8 URL-encoded)
@@ -188,16 +179,10 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   override def journalPluginId = "akka.persistence.elasticsearch.journal"
   override def snapshotPluginId = "akka.persistence.elasticsearch-snapshot-store"
 
-  val system = context.system
-  val replicator = DistributedData(system).replicator
-  val documentSetRegion = ClusterSharding(system).shardRegion(DocumentSetActor.shardName)
+  val collectionRegion = ClusterSharding(system).shardRegion(CollectionActor.shardName)
 
-  implicit val cluster = Cluster(system)
   implicit val materializer = ActorMaterializer(ActorMaterializerSettings(system))
-  implicit val executionContext = context.dispatcher
 
-  private implicit val duration = 5.seconds
-  private implicit val timeOut = Timeout(duration)
   private val readMajority = ReadMajority(duration)
   private val writeMajority = WriteMajority(duration)
 
@@ -205,12 +190,12 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   context.setReceiveTimeout(2.minutes)
 
   private def domain = persistenceId.split("%7E")(0)
-  private def documentSet = persistenceId.split("%7E")(1)
+  private def collection = persistenceId.split("%7E")(1)
   private def id = persistenceId.split("%7E")(2)
 
   val mediator = DistributedPubSub(system).mediator
   mediator ! Subscribe(domain, self)
-  mediator ! Subscribe(s"${domain}~${documentSet}", self)
+  mediator ! Subscribe(s"${domain}~${collection}", self)
 
   private var state = State(Document.empty)
   private val store = ElasticSearchStore(system)
@@ -238,13 +223,13 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   override def receiveCommand: Receive = initial
 
   def initial: Receive = {
-    case cd @ CreateDocument(_, user, raw) =>
+    case CreateDocument(_, token, raw) =>
       val replyTo = sender
       val parent = context.parent
-      Source.fromFuture(documentSetRegion ? CheckPermission(s"${domain}~.documentsets~${documentSet}", user, cd)).runWith(Sink.head[Any]).foreach {
-        case Granted => self ! DoCreateDocument(user, raw, Some(replyTo))
-        case Denied =>
-          replyTo ! Denied
+      createDocument(token, raw).foreach {
+        case dcd: DoCreateDocument => self ! dcd.copy(request = Some(replyTo))
+        case other =>
+          replyTo ! other
           parent ! Passivate(stopMessage = PoisonPill)
       }
       context.become(creating)
@@ -253,7 +238,107 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
 
   def creating: Receive = {
     case DoCreateDocument(user, raw, Some(replyTo: ActorRef)) =>
-      val acl = s"""{
+      persist(DocumentCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+        state = state.updated(evt)
+        val doc = state.document.toJson.asJsObject
+        saveSnapshot(doc)
+        context.become(created)
+        replyTo ! evt.copy(raw = doc)
+      }
+    case _: Command => sender ! DocumentIsCreating
+  }
+
+  def created: Receive = {
+    case GetDocument(_, token) =>
+      val replyTo = sender
+      check(token, GetDocument) { user => Future.successful(DoGetDocument(user)) }.foreach {
+        case dgd: DoGetDocument => self ! dgd.copy(request = Some(replyTo))
+        case other              => replyTo ! other
+      }
+    case DoGetDocument(user, Some(replyTo: ActorRef)) =>
+      replyTo ! state.document
+    case ReplaceDocument(_, token, raw) =>
+      val replyTo = sender
+      check(token, ReplaceDocument) { user => Future.successful(DoReplaceDocument(user, raw)) }.foreach {
+        case drd: DoReplaceDocument => self ! drd.copy(request = Some(replyTo))
+        case other                  => replyTo ! other
+      }
+    case DoReplaceDocument(user, raw, Some(replyTo: ActorRef)) =>
+      persist(DocumentReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+        state = state.updated(evt)
+        val doc = state.document.toJson.asJsObject
+        saveSnapshot(doc)
+        deleteSnapshot(lastSequenceNr - 1)
+        replyTo ! evt.copy(raw = doc)
+      }
+    case PatchDocument(_, token, patch) =>
+      val replyTo = sender
+      patchDocument(token, patch).foreach {
+        case dpd: DoPatchDocument => self ! dpd.copy(request = Some(replyTo))
+        case other                => replyTo ! other
+      }
+    case DoPatchDocument(user, patch, Some(replyTo: ActorRef)) =>
+      persist(DocumentPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, JsObject())) { evt =>
+        state = state.updated(evt)
+        val doc = state.document.toJson.asJsObject
+        saveSnapshot(doc)
+        deleteSnapshot(lastSequenceNr - 1)
+        replyTo ! evt.copy(raw = doc)
+      }
+    case DeleteDocument(_, token) =>
+      val replyTo = sender
+      check(token, DeleteDocument) { user => Future.successful(DoDeleteDocument(user)) }.foreach {
+        case ddd: DoDeleteDocument => self ! ddd.copy(request = Some(replyTo))
+        case other                 => replyTo ! other
+      }
+    case DoDeleteDocument(user, Some(replyTo: ActorRef)) =>
+      persist(DocumentDeleted(id, user, lastSequenceNr + 1, System.currentTimeMillis(), JsObject())) { evt =>
+        state = state.updated(evt)
+        deleteMessages(lastSequenceNr)
+        deleteSnapshot(lastSequenceNr - 1)
+        val doc = state.document.toJson.asJsObject
+        saveSnapshot(doc)
+        context.become(deleted)
+        replyTo ! evt.copy(raw = doc)
+        context.parent ! Passivate(stopMessage = PoisonPill)
+      }
+    case ExecuteDocument(_, token, params, body) =>
+      val replyTo = sender
+      check(token, ExecuteDocument) { user => Future.successful(DoExecuteDocument(user,params, body)) }.foreach {
+        case ded: DoExecuteDocument => self ! ded.copy(request = Some(replyTo))
+        case other                 => replyTo ! other
+      }
+    case DoExecuteDocument(user, params, body, Some(replyTo: ActorRef)) =>
+      execute(params).foreach { case jo: JsObject => replyTo ! jo }
+
+    case SaveSnapshotSuccess(metadata)           =>
+    case SaveSnapshotFailure(metadata, reason)   =>
+    case _: CreateDocument                       => sender ! DocumentAlreadyExists
+    case _: DomainDeleted | _: CollectionDeleted => context.parent ! Passivate(stopMessage = PoisonPill)
+  }
+
+  def deleted: Receive = {
+    case GetDocument(_, token) =>
+      val replyTo = sender
+      check(token, GetDocument) { user => Future.successful(DoGetDocument(user)) }.foreach {
+        case dgd: DoGetDocument => self ! dgd.copy(request = Some(replyTo))
+        case other              => replyTo ! other
+      }
+    case DoGetDocument(_, Some(replyTo: ActorRef)) =>
+      replyTo ! state.document
+      context.parent ! Passivate(stopMessage = PoisonPill)
+    case _: Command => sender ! DocumentSoftDeleted
+  }
+
+  override def unhandled(msg: Any): Unit = msg match {
+    case ReceiveTimeout => context.parent ! Passivate(stopMessage = PoisonPill)
+    case _              => super.unhandled(msg)
+  }
+
+  private def createDocument(token: String, raw: JsObject) = validateToken(token).flatMap {
+    case Some(user) => (collectionRegion ? CheckPermission(s"${domain}~.documentsets~${collection}", user, CreateDocument)).map {
+      case Granted =>
+        val acl = s"""{
         "get":{
             "roles":["administrator","user"],
             "users":["${user}"]
@@ -275,110 +360,22 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
             "users":["${user}"]
         }
       }""".parseJson.asJsObject
-      persist(DocumentCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> acl))))) { evt =>
-        state = state.updated(evt)
-        val doc = state.document.toJson.asJsObject
-        saveSnapshot(doc)
-        context.become(created)
-        replyTo ! evt.copy(raw = doc)
-      }
-    case _: Command => sender ! DocumentIsCreating
+        DoCreateDocument(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> acl))))
+      case Denied => Future.successful(Denied)
+    }
+    case None => Future.successful(TokenInvalid)
   }
 
-  def created: Receive = {
-    case gd @ GetDocument(_, user) =>
-      val replyTo = sender
-      checkPermission(user, gd).foreach {
-        case Granted => self ! DoGetDocument(user, Some(replyTo))
-        case Denied  => replyTo ! Denied
-      }
-    case DoGetDocument(user, Some(replyTo: ActorRef)) =>
-      replyTo ! state.document
-    case rd @ ReplaceDocument(_, user, raw) =>
-      val replyTo = sender
-      checkPermission(user, rd).foreach {
-        case Granted => self ! DoReplaceDocument(user, raw, Some(replyTo))
-        case Denied  => replyTo ! Denied
-      }
-    case DoReplaceDocument(user, raw, Some(replyTo: ActorRef)) =>
-      persist(DocumentReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
-        state = state.updated(evt)
-        val doc = state.document.toJson.asJsObject
-        saveSnapshot(doc)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = doc)
-      }
-    case pd @ PatchDocument(_, user, patch) =>
-      val replyTo = sender
-      checkPermission(user, pd).foreach {
-        case Granted => self ! DoPatchDocument(user, patch, Some(replyTo))
-        case Denied  => replyTo ! Denied
-      }
-    case DoPatchDocument(user, patch, Some(replyTo: ActorRef)) =>
-      Try {
-        patch(state.document.raw)
-      } match {
-        case Success(result) =>
-          persist(DocumentPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, JsObject())) { evt =>
-            state = state.updated(evt)
-            val doc = state.document.toJson.asJsObject
-            saveSnapshot(doc)
-            deleteSnapshot(lastSequenceNr - 1)
-            replyTo ! evt.copy(raw = doc)
-          }
-        case Failure(e) => replyTo ! PatchDocumentException(e)
-      }
-    case dd @ DeleteDocument(_, user) =>
-      val replyTo = sender
-      checkPermission(user, dd).foreach {
-        case Granted => self ! DoDeleteDocument(user, Some(replyTo))
-        case Denied  => replyTo ! Denied
-      }
-    case DoDeleteDocument(user, Some(replyTo: ActorRef)) =>
-      persist(DocumentDeleted(id, user, lastSequenceNr + 1, System.currentTimeMillis(), JsObject())) { evt =>
-        state = state.updated(evt)
-        deleteMessages(lastSequenceNr)
-        deleteSnapshot(lastSequenceNr - 1)
-        val doc = state.document.toJson.asJsObject
-        saveSnapshot(doc)
-        context.become(deleted)
-        replyTo ! evt.copy(raw = doc)
-        context.parent ! Passivate(stopMessage = PoisonPill)
-      }
-    case ed @ ExecuteDocument(_, user, params, body) =>
-      val replyTo = sender
-      checkPermission(user, ed).foreach {
-        case Granted => self ! DoExecuteDocument(user, params, body, Some(replyTo))
-        case Denied  => replyTo ! Denied
-      }
-    case DoExecuteDocument(user, params, body, Some(replyTo: ActorRef)) =>
-      execute(params).foreach { case jo: JsObject => replyTo ! jo }
-
-    case SaveSnapshotSuccess(metadata)            =>
-    case SaveSnapshotFailure(metadata, reason)    =>
-    case _: CreateDocument                        => sender ! DocumentAlreadyExists
-    case _: DomainDeleted | _: DocumentSetDeleted => context.parent ! Passivate(stopMessage = PoisonPill)
+  private def patchDocument(token: String, patch: JsonPatch) = check(token, PatchDocument) { user =>
+    Try {
+      patch(state.document.raw)
+    } match {
+      case Success(_) => Future.successful(DoPatchDocument(user, patch))
+      case Failure(e) => Future.successful(PatchDocumentException(e))
+    }
   }
 
-  def deleted: Receive = {
-    case gd @ GetDocument(_, user) =>
-      val replyTo = sender
-      checkPermission(user, gd).foreach {
-        case Granted => self ! DoGetDocument(user, Some(replyTo))
-        case Denied  => replyTo ! Denied
-      }
-    case DoGetDocument(_, Some(replyTo: ActorRef)) =>
-      replyTo ! state.document
-      context.parent ! Passivate(stopMessage = PoisonPill)
-    case _: Command => sender ! DocumentSoftDeleted
-  }
-
-  override def unhandled(msg: Any): Unit = msg match {
-    case ReceiveTimeout => context.parent ! Passivate(stopMessage = PoisonPill)
-    case _              => super.unhandled(msg)
-  }
-
-  private def checkPermission(user: String, command: Command): Future[Permission] = (documentSet, id) match {
+  override def checkPermission(user: String, command: Any): Future[Permission] = (collection, id) match {
     case ("profiles", `user`) => Future.successful(Granted)
     case _ => fetchProfile(domain, user).map {
       case profile: Document =>
@@ -386,12 +383,12 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
         val userRoles = profileValue(profile.raw, "roles")
         val userGroups = profileValue(profile.raw, "groups")
         val (aclRoles, aclGroups, aclUsers) = command match {
-          case _: GetDocument     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
-          case _: ReplaceDocument => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
-          case _: PatchDocument   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
-          case _: DeleteDocument  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
-          case _: ExecuteDocument => (aclValue(aclObj, "execute", "roles"), aclValue(aclObj, "execute", "groups"), aclValue(aclObj, "execute", "users"))
-          case _                  => (Vector[String](), Vector[String](), Vector[String]())
+          case GetDocument     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
+          case ReplaceDocument => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
+          case PatchDocument   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
+          case DeleteDocument  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
+          case ExecuteDocument => (aclValue(aclObj, "execute", "roles"), aclValue(aclObj, "execute", "groups"), aclValue(aclObj, "execute", "users"))
+          case _               => (Vector[String](), Vector[String](), Vector[String]())
         }
         if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
       case _ => Denied
@@ -401,11 +398,11 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   private def execute(parameterSeq: Seq[(String, String)]) = {
     val domainId = persistenceId.split("%7E")(0)
     val raw = state.document.raw
-    val documentSet = raw.fields("targets").asInstanceOf[JsArray].elements(0).asInstanceOf[JsString].value
+    val collection = raw.fields("targets").asInstanceOf[JsArray].elements(0).asInstanceOf[JsString].value
     val search = raw.fields("search")
     val hb = Handlebars(search.prettyPrint)
     val jo = JsObject(parameterSeq.map(t => (t._1, JsString(t._2))): _*)
-    store.search(s"${domainId}~${documentSet}~all~snapshots", parameterSeq, hb(jo)).map {
+    store.search(s"${domainId}~${collection}~all~snapshots", parameterSeq, hb(jo)).map {
       case (StatusCodes.OK, jo: JsObject) =>
         val fields = jo.fields
         val hitsFields = jo.fields("hits").asJsObject.fields
