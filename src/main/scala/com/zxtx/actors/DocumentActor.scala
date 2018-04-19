@@ -8,6 +8,7 @@ import scala.util.Try
 
 import com.gilt.handlebars.scala.Handlebars
 import com.gilt.handlebars.scala.binding.sprayjson._
+
 import com.zxtx.persistence._
 
 import akka.actor.ActorLogging
@@ -31,47 +32,42 @@ import akka.persistence.SaveSnapshotSuccess
 import akka.persistence.SnapshotOffer
 import akka.stream.ActorMaterializer
 import akka.stream.ActorMaterializerSettings
+import spray.json._
 import gnieh.diffson.sprayJson.JsonPatch
-import gnieh.diffson.sprayJson.provider._
-import gnieh.diffson.sprayJson.provider.marshall
-import spray.json.JsBoolean
-import spray.json.JsNumber
-import spray.json.JsObject
-import spray.json.JsString
-import spray.json.JsValue
-import spray.json.RootJsonFormat
 
 object DocumentActor {
 
   def props(): Props = Props[DocumentActor]
 
   object Document {
-    val empty = new Document("", "", 0L, 0L, 0L, None, JsObject())
+    val empty = new Document("", "", 0L, 0L, 0L, None, spray.json.JsObject())
   }
   case class Document(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, deleted: Option[Boolean], raw: JsObject)
 
-  case class GetDocument(pid: String, token: String) extends Command
-  case class ExecuteDocument(pid: String, token: String, params: Seq[(String, String)], body: JsObject) extends Command
-  case class CreateDocument(pid: String, token: String, raw: JsObject) extends Command
-  case class ReplaceDocument(pid: String, token: String, raw: JsObject) extends Command
-  case class PatchDocument(pid: String, token: String, patch: JsonPatch) extends Command
-  case class DeleteDocument(pid: String, token: String) extends Command
+  case class GetDocument(pid: String, user: String) extends Command
+  case class ExecuteDocument(pid: String, user: String, params: Seq[(String, String)], body: JsObject) extends Command
+  case class CreateDocument(pid: String, user: String, raw: JsObject, initFlag: Option[Boolean] = None) extends Command
+  case class ReplaceDocument(pid: String, user: String, raw: JsObject) extends Command
+  case class PatchDocument(pid: String, user: String, patch: JsonPatch) extends Command
+  case class DeleteDocument(pid: String, user: String) extends Command
 
   case class DocumentCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class DocumentReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class DocumentPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends DocumentEvent
   case class DocumentDeleted(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
 
-  object DocumentNotFound extends Exception
-  object DocumentAlreadyExists extends Exception
-  object DocumentIsCreating extends Exception
-  object DocumentSoftDeleted extends Exception
+  case object DocumentNotFound extends Exception
+  case object DocumentAlreadyExists extends Exception
+  case object DocumentIsCreating extends Exception
+  case object DocumentSoftDeleted extends Exception
   case class ExecuteDocumentException(exception: Throwable) extends Exception
   case class PatchDocumentException(exception: Throwable) extends Exception
 
   val idExtractor: ShardRegion.ExtractEntityId = { case cmd: Command => (cmd.pid, cmd) }
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
   val shardName: String = "Document"
+
+  def persistenceId(domain: String, collection: String, docId: String) = s"${domain}~${collection}~${docId}"
 
   private case class DoGetDocument(user: String, request: Option[Any] = None)
   private case class DoExecuteDocument(user: String, params: Seq[(String, String)], body: JsObject, request: Option[Any] = None)
@@ -115,9 +111,12 @@ object DocumentActor {
     }
 
     implicit object DocumentPatchedFormat extends RootJsonFormat[DocumentPatched] {
+      import gnieh.diffson.sprayJson.provider._
+      import gnieh.diffson.sprayJson.provider.marshall
+
       def write(dp: DocumentPatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
-        JsObject(("id" -> JsString(dp.id)) :: ("patch" -> marshall(dp.patch)) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> marshall(dp.patch)) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
         val (id, author, revision, created, patch, raw) = extractFieldsWithPatch(value, "DocumentPatched event expected!")
@@ -136,6 +135,29 @@ object DocumentActor {
       }
     }
   }
+
+  def acl(user: String) = s"""{
+        "get":{
+            "roles":["administrator","user"],
+            "users":["${user}"]
+        },
+        "replace":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "patch":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "delete":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "execute":{
+            "roles":["administrator","user"],
+            "users":["${user}"]
+        }
+      }""".parseJson.asJsObject
 
   private case class State(document: Document) {
     def updated(evt: DocumentEvent): State = evt match {
@@ -170,7 +192,6 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   import DocumentActor.JsonProtocol._
   import DomainActor._
   import com.zxtx.persistence.ElasticSearchStore._
-  import spray.json._
 
   // self.path.parent.name is the type name (utf-8 URL-encoded)
   // self.path.name is the entry identifier (utf-8 URL-encoded)
@@ -223,10 +244,10 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   override def receiveCommand: Receive = initial
 
   def initial: Receive = {
-    case CreateDocument(_, token, raw) =>
+    case CreateDocument(_, user, raw, initFlag) =>
       val replyTo = sender
       val parent = context.parent
-      createDocument(token, raw).foreach {
+      createDocument(user, raw, initFlag).foreach {
         case dcd: DoCreateDocument => self ! dcd.copy(request = Some(replyTo))
         case other =>
           replyTo ! other
@@ -249,17 +270,15 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   }
 
   def created: Receive = {
-    case GetDocument(_, token) =>
+    case GetDocument(_, user) =>
       val replyTo = sender
-      check(token, GetDocument) { user => Future.successful(DoGetDocument(user)) }.foreach {
-        case dgd: DoGetDocument => self ! dgd.copy(request = Some(replyTo))
+      getDocument(user).foreach {
+        case dgd: DoGetDocument => replyTo ! state.document
         case other              => replyTo ! other
       }
-    case DoGetDocument(user, Some(replyTo: ActorRef)) =>
-      replyTo ! state.document
-    case ReplaceDocument(_, token, raw) =>
+    case ReplaceDocument(_, user, raw) =>
       val replyTo = sender
-      check(token, ReplaceDocument) { user => Future.successful(DoReplaceDocument(user, raw)) }.foreach {
+      replaceDocument(user, raw).foreach {
         case drd: DoReplaceDocument => self ! drd.copy(request = Some(replyTo))
         case other                  => replyTo ! other
       }
@@ -271,9 +290,9 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
         deleteSnapshot(lastSequenceNr - 1)
         replyTo ! evt.copy(raw = doc)
       }
-    case PatchDocument(_, token, patch) =>
+    case PatchDocument(_, user, patch) =>
       val replyTo = sender
-      patchDocument(token, patch).foreach {
+      patchDocument(user, patch).foreach {
         case dpd: DoPatchDocument => self ! dpd.copy(request = Some(replyTo))
         case other                => replyTo ! other
       }
@@ -285,9 +304,9 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
         deleteSnapshot(lastSequenceNr - 1)
         replyTo ! evt.copy(raw = doc)
       }
-    case DeleteDocument(_, token) =>
+    case DeleteDocument(_, user) =>
       val replyTo = sender
-      check(token, DeleteDocument) { user => Future.successful(DoDeleteDocument(user)) }.foreach {
+      deleteDocument(user).foreach {
         case ddd: DoDeleteDocument => self ! ddd.copy(request = Some(replyTo))
         case other                 => replyTo ! other
       }
@@ -302,15 +321,12 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
         replyTo ! evt.copy(raw = doc)
         context.parent ! Passivate(stopMessage = PoisonPill)
       }
-    case ExecuteDocument(_, token, params, body) =>
+    case ExecuteDocument(_, user, params, body) =>
       val replyTo = sender
-      check(token, ExecuteDocument) { user => Future.successful(DoExecuteDocument(user,params, body)) }.foreach {
-        case ded: DoExecuteDocument => self ! ded.copy(request = Some(replyTo))
-        case other                 => replyTo ! other
+      executeDocument(user, params, body).foreach {
+        case DoExecuteDocument(_, _, _, Some(result)) => self ! result
+        case other                                    => replyTo ! other
       }
-    case DoExecuteDocument(user, params, body, Some(replyTo: ActorRef)) =>
-      execute(params).foreach { case jo: JsObject => replyTo ! jo }
-
     case SaveSnapshotSuccess(metadata)           =>
     case SaveSnapshotFailure(metadata, reason)   =>
     case _: CreateDocument                       => sender ! DocumentAlreadyExists
@@ -318,15 +334,17 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   }
 
   def deleted: Receive = {
-    case GetDocument(_, token) =>
+    case GetDocument(_, user) =>
       val replyTo = sender
-      check(token, GetDocument) { user => Future.successful(DoGetDocument(user)) }.foreach {
-        case dgd: DoGetDocument => self ! dgd.copy(request = Some(replyTo))
-        case other              => replyTo ! other
+      val parent = context.parent
+      getDocument(user).foreach {
+        case dgd: DoGetDocument =>
+          self ! state.document
+          parent ! Passivate(stopMessage = PoisonPill)
+        case other =>
+          replyTo ! other
+          parent ! Passivate(stopMessage = PoisonPill)
       }
-    case DoGetDocument(_, Some(replyTo: ActorRef)) =>
-      replyTo ! state.document
-      context.parent ! Passivate(stopMessage = PoisonPill)
     case _: Command => sender ! DocumentSoftDeleted
   }
 
@@ -335,45 +353,60 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
     case _              => super.unhandled(msg)
   }
 
-  private def createDocument(token: String, raw: JsObject) = validateToken(token).flatMap {
-    case Some(user) => (collectionRegion ? CheckPermission(s"${domain}~.documentsets~${collection}", user, CreateDocument)).map {
-      case Granted =>
-        val acl = s"""{
-        "get":{
-            "roles":["administrator","user"],
-            "users":["${user}"]
-        },
-        "replace":{
-            "roles":["administrator"],
-            "users":["${user}"]
-        },
-        "patch":{
-            "roles":["administrator"],
-            "users":["${user}"]
-        },
-        "delete":{
-            "roles":["administrator"],
-            "users":["${user}"]
-        },
-        "execute":{
-            "roles":["administrator","user"],
-            "users":["${user}"]
-        }
-      }""".parseJson.asJsObject
-        DoCreateDocument(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> acl))))
-      case Denied => Future.successful(Denied)
+  private def createDocument(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
+    val dcd = DoCreateDocument(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> acl(user)))))
+    initFlag match {
+      case Some(true) => Future.successful(dcd)
+      case other => (collectionRegion ? CheckPermission(s"${domain}~.collections~${collection}", user, CreateDocument)).map {
+        case Granted => dcd
+        case Denied  => Denied
+      }
     }
-    case None => Future.successful(TokenInvalid)
   }
 
-  private def patchDocument(token: String, patch: JsonPatch) = check(token, PatchDocument) { user =>
-    Try {
-      patch(state.document.raw)
-    } match {
-      case Success(_) => Future.successful(DoPatchDocument(user, patch))
-      case Failure(e) => Future.successful(PatchDocumentException(e))
-    }
-  }
+  private def getDocument(user: String) = checkPermission(user, GetDocument).map {
+    case Granted => DoGetDocument(user)
+    case other   => other
+  }.recover { case e => e }
+
+  private def replaceDocument(user: String, raw: JsObject) = checkPermission(user, ReplaceDocument).map {
+    case Granted => DoReplaceDocument(user, raw)
+    case other   => other
+  }.recover { case e => e }
+
+  private def patchDocument(user: String, patch: JsonPatch) = checkPermission(user, PatchDocument).map {
+    case Granted =>
+      Try {
+        patch(state.document.raw)
+      } match {
+        case Success(_) => DoPatchDocument(user, patch)
+        case Failure(e) => PatchDocumentException(e)
+      }
+    case other => other
+  }.recover { case e => e }
+
+  private def deleteDocument(user: String) = checkPermission(user, DeleteDocument).map {
+    case Granted => DoDeleteDocument(user)
+    case other   => other
+  }.recover { case e => e }
+
+  private def executeDocument(user: String, params: Seq[(String, String)], body: JsObject) = checkPermission(user, ExecuteDocument).flatMap {
+    case Granted =>
+      val domainId = persistenceId.split("%7E")(0)
+      val raw = state.document.raw
+      val collection = raw.fields("targets").asInstanceOf[JsArray].elements(0).asInstanceOf[JsString].value
+      val search = raw.fields("search")
+      val hb = Handlebars(search.prettyPrint)
+      val jo = JsObject(params.map(t => (t._1, JsString(t._2))): _*)
+      store.search(s"${domainId}~${collection}~all~snapshots", params, hb(jo)).map {
+        case (StatusCodes.OK, jo: JsObject) =>
+          val fields = jo.fields
+          val hitsFields = jo.fields("hits").asJsObject.fields
+          DoExecuteDocument(user, params, body, Some(JsObject(hitsFields + ("_metadata" -> JsObject((fields - "hits"))))))
+        case (code, jv) => throw new RuntimeException(s"Find documents error: $jv")
+      }
+    case other => Future.successful(other)
+  }.recover { case e => e }
 
   override def checkPermission(user: String, command: Any): Future[Permission] = (collection, id) match {
     case ("profiles", `user`) => Future.successful(Granted)
@@ -392,22 +425,6 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
         }
         if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
       case _ => Denied
-    }
-  }
-
-  private def execute(parameterSeq: Seq[(String, String)]) = {
-    val domainId = persistenceId.split("%7E")(0)
-    val raw = state.document.raw
-    val collection = raw.fields("targets").asInstanceOf[JsArray].elements(0).asInstanceOf[JsString].value
-    val search = raw.fields("search")
-    val hb = Handlebars(search.prettyPrint)
-    val jo = JsObject(parameterSeq.map(t => (t._1, JsString(t._2))): _*)
-    store.search(s"${domainId}~${collection}~all~snapshots", parameterSeq, hb(jo)).map {
-      case (StatusCodes.OK, jo: JsObject) =>
-        val fields = jo.fields
-        val hitsFields = jo.fields("hits").asJsObject.fields
-        JsObject(hitsFields + ("_metadata" -> JsObject((fields - "hits"))))
-      case (code, jv) => throw new RuntimeException(s"Find documents error: $jv")
     }
   }
 

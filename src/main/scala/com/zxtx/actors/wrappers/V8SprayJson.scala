@@ -32,8 +32,14 @@ trait V8SprayJson {
         case JsTrue       => v8Array.push(true)
         case JsFalse      => v8Array.push(false)
         case JsNull       => v8Array.pushNull()
-        case jo: JsObject => v8Array.push(toV8Object(jo, runtime))
-        case ja: JsArray  => v8Array.push(toV8Array(ja, runtime))
+        case jo: JsObject => 
+          val v8Obj = toV8Object(jo, runtime)
+          v8Array.push(v8Obj)
+          v8Obj.release()
+        case ja: JsArray  =>
+          val v8arr = toV8Array(ja, runtime)
+          v8Array.push(v8arr)
+          v8arr.release()
       }
     }
     v8Array
@@ -55,8 +61,14 @@ trait V8SprayJson {
         case JsTrue       => v8Object.add(t._1, true)
         case JsFalse      => v8Object.add(t._1, false)
         case JsNull       => v8Object.addNull(t._1)
-        case jo: JsObject => v8Object.add(t._1, toV8Object(jo, runtime))
-        case ja: JsArray  => v8Object.add(t._1, toV8Array(ja, runtime))
+        case jo: JsObject =>
+          val v8Obj = toV8Object(jo, runtime)
+          v8Object.add(t._1, v8Obj)
+          v8Obj.release()
+        case ja: JsArray  => 
+          val v8Array = toV8Array(ja, runtime)
+          v8Object.add(t._1, v8Array)
+          v8Array.release()
       }
     }
     v8Object
@@ -65,7 +77,7 @@ trait V8SprayJson {
   def toJsArray(v8Array: V8Array): JsArray = {
     import java.lang._
     var list: List[JsValue] = Nil
-    for (i <- 0 to v8Array.length) {
+    for (i <- 0 until v8Array.length) {
       val obj = v8Array.get(i)
       obj match {
         case str: String                                  => list = JsString(str) :: list
@@ -75,7 +87,7 @@ trait V8SprayJson {
         case l: Long                                      => list = JsNumber(l) :: list
         case f: Float                                     => list = JsNumber(f.floatValue()) :: list
         case d: Double                                    => list = JsNumber(d) :: list
-        case a: V8Array                                   => list = toJsObject(a) :: list
+        case a: V8Array                                   => list = toJsArray(a) :: list
         case u: V8Object if (u.toString() == "undefined") => list = JsNull :: list
         case v: V8Object                                  => list = toJsObject(v) :: list
         case null                                         => list = JsNull :: list

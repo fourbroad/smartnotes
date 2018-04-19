@@ -17,23 +17,20 @@ import akka.pattern.ask
 import akka.http.scaladsl.model.StatusCode
 import akka.http.scaladsl.model.StatusCodes
 import akka.cluster.Cluster
-import akka.cluster.ddata.DistributedData
-import akka.cluster.ddata.LWWMapKey
-import akka.cluster.ddata.LWWMap
-import akka.cluster.ddata.Replicator._
 import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion.Passivate
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{ Publish, Subscribe }
+import akka.cluster.sharding.ClusterSharding
 import akka.persistence._
 import akka.persistence.query._
 import akka.stream.scaladsl._
 import akka.stream.ActorMaterializer
 import akka.stream.ActorMaterializerSettings
-import akka.util.Timeout
 
 import gnieh.diffson.sprayJson._
 import gnieh.diffson.sprayJson.provider._
+
 import spray.json.DefaultJsonProtocol
 import spray.json.DeserializationException
 import spray.json.JsBoolean
@@ -45,7 +42,6 @@ import spray.json.RootJsonFormat
 
 import com.zxtx.actors.DocumentActor._
 import com.zxtx.persistence._
-import akka.cluster.sharding.ClusterSharding
 
 object CollectionActor {
 
@@ -56,13 +52,13 @@ object CollectionActor {
   }
   case class Collection(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, deleted: Option[Boolean], raw: JsObject)
 
-  case class CreateCollection(pid: String, token: String, raw: JsObject) extends Command
-  case class GetCollection(pid: String, token: String, path: String) extends Command
-  case class ReplaceCollection(pid: String, token: String, raw: JsObject) extends Command
-  case class PatchCollection(pid: String, token: String, patch: JsonPatch) extends Command
-  case class DeleteCollection(pid: String, token: String) extends Command
-  case class FindDocuments(pid: String, token: String, params: Seq[(String, String)], body: JsObject) extends Command
-  case class GarbageCollection(pid: String, token: String, request: Option[Any] = None) extends Command
+  case class CreateCollection(pid: String, user: String, raw: JsObject, initFlag: Option[Boolean] = None) extends Command
+  case class GetCollection(pid: String, user: String, path: String) extends Command
+  case class ReplaceCollection(pid: String, user: String, raw: JsObject) extends Command
+  case class PatchCollection(pid: String, user: String, patch: JsonPatch) extends Command
+  case class DeleteCollection(pid: String, user: String) extends Command
+  case class FindDocuments(pid: String, user: String, params: Seq[(String, String)], body: JsObject) extends Command
+  case class GarbageCollection(pid: String, user: String, request: Option[Any] = None) extends Command
 
   case class CollectionCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class CollectionReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
@@ -70,15 +66,17 @@ object CollectionActor {
   case class CollectionDeleted(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   object GarbageCollectionCompleted extends DocumentEvent
 
-  object CollectionNotFound extends Exception
-  object CollectionAlreadyExists extends Exception
-  object CollectionIsCreating extends Exception
-  object CollectionSoftDeleted extends Exception
+  case object CollectionNotFound extends Exception
+  case object CollectionAlreadyExists extends Exception
+  case object CollectionIsCreating extends Exception
+  case object CollectionSoftDeleted extends Exception
   case class PatchCollectionException(exception: Throwable) extends Exception
 
   val idExtractor: ShardRegion.ExtractEntityId = { case cmd: Command => (cmd.pid, cmd) }
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
   val shardName: String = "Collection"
+
+  def persistenceId(domain: String, collection: String) = s"${domain}~.collections~${collection}"
 
   private case class DoCreateCollection(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoGetCollection(user: String, path: String, request: Option[Any] = None)
@@ -295,9 +293,6 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
 
   implicit val materializer = ActorMaterializer(ActorMaterializerSettings(system))
 
-  private val readMajority = ReadMajority(duration)
-  private val writeMajority = WriteMajority(duration)
-
   // passivate the entity when no activity
   context.setReceiveTimeout(2.minutes)
 
@@ -333,10 +328,10 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
   override def receiveCommand: Receive = initial
 
   def initial: Receive = {
-    case CreateCollection(_, token, raw) =>
+    case CreateCollection(_, user, raw, initFlag) =>
       val replyTo = sender
       val parent = context.parent
-      createCollection(token, raw).foreach {
+      createCollection(user, raw, initFlag).foreach {
         case dcc: DoCreateCollection => self ! dcc.copy(request = Some(replyTo))
         case other =>
           replyTo ! other
@@ -359,22 +354,15 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
   }
 
   def created: Receive = {
-    case GetCollection(_, token, path) =>
+    case GetCollection(_, user, path) =>
       val replyTo = sender
-      check(token, GetCollection) { user => Future.successful(DoGetCollection(user, path)) }.foreach {
-        case dgc: DoGetCollection => self ! dgc.copy(request = Some(replyTo))
-        case other                => replyTo ! other
+      getCollection(user, path).foreach {
+        case DoGetCollection(_, _, Some(result)) => replyTo ! result
+        case other                               => replyTo ! other
       }
-    case DoGetCollection(user, path, Some(replyTo: ActorRef)) =>
-      store.indices(s"${domain}~${id}_*").foreach {
-        case (StatusCodes.OK, jv) =>
-          val jo = state.collection.toJson.asJsObject()
-          replyTo ! getJson(JsObject(jo.fields + ("indices" -> jv)), path.split("/"))
-        case (code, _) => throw new RuntimeException(s"Error get indices:$code")
-      }
-    case ReplaceCollection(_, token, raw) =>
+    case ReplaceCollection(_, user, raw) =>
       val replyTo = sender
-      check(token, ReplaceCollection) { user => Future.successful(DoReplaceCollection(user, raw)) }.foreach {
+      replaceCollection(user, raw).foreach {
         case drc: DoReplaceCollection => self ! drc.copy(request = Some(replyTo))
         case other                    => replyTo ! other
       }
@@ -386,9 +374,9 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
         deleteSnapshot(lastSequenceNr - 1)
         replyTo ! evt.copy(raw = ds)
       }
-    case PatchCollection(_, token, patch) =>
+    case PatchCollection(_, user, patch) =>
       val replyTo = sender
-      patchCollection(token, patch).foreach {
+      patchCollection(user, patch).foreach {
         case dpc: DoPatchCollection => self ! dpc.copy(request = Some(replyTo))
         case other                  => replyTo ! other
       }
@@ -400,9 +388,9 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
         deleteSnapshot(lastSequenceNr - 1)
         replyTo ! evt.copy(raw = ds)
       }
-    case DeleteCollection(_, token) =>
+    case DeleteCollection(_, user) =>
       val replyTo = sender
-      check(token, DeleteCollection) { user => Future.successful(DoDeleteCollection(user)) }.foreach {
+      deleteCollection(user).foreach {
         case ddc: DoDeleteCollection => self ! ddc.copy(request = Some(replyTo))
         case other                   => replyTo ! other
       }
@@ -420,47 +408,38 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       }
     case SaveSnapshotSuccess(metadata)         =>
     case SaveSnapshotFailure(metadata, reason) =>
-    case FindDocuments(_, token, params, body) =>
+    case FindDocuments(_, user, params, body) =>
       val replyTo = sender
-      check(token, FindDocuments) { user => Future.successful(DoFindDocuments(user, params, body)) }.foreach {
-        case dfd: DoFindDocuments => self ! dfd.copy(request = Some(replyTo))
-        case other                => replyTo ! other
+      findDocuments(user, params, body).foreach {
+        case DoFindDocuments(_, _, _, Some(result)) => self ! result
+        case other                                  => replyTo ! other
       }
-    case DoFindDocuments(user, params, body, Some(replyTo: ActorRef)) =>
-      store.search(s"${domain}~${id}~all~snapshots", params, body.compactPrint).foreach {
-        case (StatusCodes.OK, jo: JsObject) =>
-          val fields = jo.fields
-          val hitsFields = jo.fields("hits").asJsObject.fields
-          replyTo ! JsObject(hitsFields + ("_metadata" -> JsObject((fields - "hits"))))
-        case (code, jv) => throw new RuntimeException(s"Find documents error: $jv")
-      }
-    case GarbageCollection(_, token, _) =>
+    case GarbageCollection(_, user, _) =>
       val replyTo = sender
-      check(token, GarbageCollection) { user => Future.successful(DoGarbageCollection(user)) }.foreach {
-        case dgc: DoGarbageCollection => self ! dgc.copy(request = Some(replyTo))
-        case other                => replyTo ! other
+      garbageCollection(user).foreach {
+        case dgc: DoGarbageCollection => self ! GarbageCollectionCompleted
+        case other                    => replyTo ! other
       }
-    case DoGarbageCollection(user, Some(replyTo: ActorRef)) =>
-      garbageCollection.foreach { Done => replyTo ! GarbageCollectionCompleted }
-    case cds @ CreateCollection(_, _, _) => sender ! CollectionAlreadyExists
     case CheckPermission(_, user, command) =>
       val replyTo = sender
-      id match {
-        case "users" | "roles" | "profiles" => replyTo ! Granted
-        case _                              => checkPermission(user, command).foreach { replyTo ! _ }
-      }
-    case _: DomainDeleted => context.parent ! Passivate(stopMessage = PoisonPill)
+      checkPermission(user, command).foreach { replyTo ! _ }
+    case _: CreateCollection => sender ! CollectionAlreadyExists
+    case _: DomainDeleted    => context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   def deleted: Receive = {
-    case GetCollection(_, token, path) =>
+    case GetCollection(_, user, path) =>
       val replyTo = sender
-      check(token, GetCollection) { user => Future.successful(DoGetCollection(user, path)) }.foreach {
-        case dgc: DoGetCollection => self ! dgc.copy(request = Some(replyTo))
-        case other                => replyTo ! other
+      val parent = context.parent
+      getCollection(user, path).foreach {
+        case DoGetCollection(_, _, Some(result)) =>
+          replyTo ! result
+          parent ! Passivate(stopMessage = PoisonPill)
+        case other =>
+          replyTo ! other
+          parent ! Passivate(stopMessage = PoisonPill)
       }
-    case DoGetCollection(_, _, Some(replyTo: ActorRef)) => replyTo ! state.collection
-    case _: Command                                     => sender ! CollectionSoftDeleted
+    case _: Command => sender ! CollectionSoftDeleted
   }
 
   override def unhandled(msg: Any): Unit = msg match {
@@ -468,44 +447,102 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
     case _              => super.unhandled(msg)
   }
 
-  def createCollection(token: String, raw: JsObject) = validateToken(token).flatMap {
-    case Some(user) => (domainRegion ? CheckPermission(s"${rootDomain}~.domains~${domain}", token, CreateCollection)).flatMap {
-      case Granted =>
-        val eventIndexTemplate = raw.fields.get("indexTemplates") match {
-          case Some(it: JsObject) =>
-            it.fields.get("eventIndexTemplate") match {
-              case Some(eit: JsObject) => eit
-              case Some(_) | None      => defaultEventIndexTemplate(domain, id)
-            }
-          case Some(_) | None => defaultEventIndexTemplate(domain, id)
-        }
-        val snapshotIndexTemplate = raw.fields.get("indexTemplates") match {
-          case Some(it: JsObject) =>
-            it.fields.get("snapshotIndexTemplate") match {
-              case Some(sit: JsObject) => sit
-              case Some(_) | None      => defaultSnapshotIndexTemplate(domain, id)
-            }
-          case Some(_) | None => defaultSnapshotIndexTemplate(domain, id)
-        }
-        val templates = Map("event_index_template" -> eventIndexTemplate, "snapshot_index_template" -> snapshotIndexTemplate)
-        val newRaw = JsObject(raw.fields + ("indexTemplates" -> JsObject(templates)))
-        initIndices(templates).recover { case e => e }.map {
-          case Done  => DoCreateCollection(user, newRaw)
-          case other => other
-        }
-      case Denied => Future.successful(Denied)
-    }
-    case None => Future.successful(TokenInvalid)
+  private def createCollection(user: String, raw: JsObject, initFlag: Option[Boolean]) = initFlag match {
+    case Some(true) => doCreateCollection(user, raw)
+    case other =>
+      (domainRegion ? CheckPermission(DomainActor.persistenceId(rootDomain, domain), user, CreateCollection)).flatMap {
+        case Granted => doCreateCollection(user, raw)
+        case Denied  => Future.successful(Denied)
+      }.recover { case e => e }
+
   }
 
-  def patchCollection(token: String, patch: JsonPatch) = check(token, PatchCollection) { user =>
-    Try {
-      patch(state.collection.raw)
-    } match {
-      case Success(_) => Future.successful(DoPatchCollection(user, patch))
-      case Failure(e) => Future.successful(PatchCollectionException(e))
+  private def doCreateCollection(user: String, raw: JsObject) = {
+    val eventIndexTemplate = raw.fields.get("indexTemplates") match {
+      case Some(it: JsObject) =>
+        it.fields.get("eventIndexTemplate") match {
+          case Some(eit: JsObject) => eit
+          case Some(_) | None      => defaultEventIndexTemplate(domain, id)
+        }
+      case Some(_) | None => defaultEventIndexTemplate(domain, id)
+    }
+    val snapshotIndexTemplate = raw.fields.get("indexTemplates") match {
+      case Some(it: JsObject) =>
+        it.fields.get("snapshotIndexTemplate") match {
+          case Some(sit: JsObject) => sit
+          case Some(_) | None      => defaultSnapshotIndexTemplate(domain, id)
+        }
+      case Some(_) | None => defaultSnapshotIndexTemplate(domain, id)
+    }
+    val templates = Map("event_index_template" -> eventIndexTemplate, "snapshot_index_template" -> snapshotIndexTemplate)
+    val newRaw = JsObject(raw.fields + ("indexTemplates" -> JsObject(templates)))
+    initIndices(templates).map {
+      case Done  => DoCreateCollection(user, newRaw)
+      case other => other
     }
   }
+
+  private def getCollection(user: String, path: String) = checkPermission(user, GetCollection).flatMap {
+    case Granted =>
+      store.indices(s"${domain}~${id}_*").map {
+        case (StatusCodes.OK, jv) =>
+          val jo = state.collection.toJson.asJsObject()
+          DoGetCollection(user, path, Some(getJson(JsObject(jo.fields + ("indices" -> jv)), path.split("/"))));
+        case (code, _) => throw new RuntimeException(s"Error get indices:$code")
+      }
+    case other => Future.successful(other)
+  }.recover { case e => e }
+
+  private def replaceCollection(user: String, raw: JsObject) = checkPermission(user, ReplaceCollection).map {
+    case Granted => DoReplaceCollection(user, raw)
+    case other   => other
+  }.recover { case e => e }
+
+  private def deleteCollection(user: String) = checkPermission(user, DeleteCollection).map {
+    case Granted => DoDeleteCollection(user)
+    case other   => other
+  }.recover { case e => e }
+
+  private def patchCollection(user: String, patch: JsonPatch) = checkPermission(user, PatchCollection).map {
+    case Granted =>
+      Try {
+        patch(state.collection.raw)
+      } match {
+        case Success(_) => Future.successful(DoPatchCollection(user, patch))
+        case Failure(e) => Future.successful(PatchCollectionException(e))
+      }
+    case other => other
+  }.recover { case e => e }
+
+  private def findDocuments(user: String, params: Seq[(String, String)], body: JsObject) = checkPermission(user, FindDocuments).map {
+    case Granted =>
+      store.search(s"${domain}~${id}~all~snapshots", params, body.compactPrint).foreach {
+        case (StatusCodes.OK, jo: JsObject) =>
+          val fields = jo.fields
+          val hitsFields = jo.fields("hits").asJsObject.fields
+          DoFindDocuments(user, params, body, Some(JsObject(hitsFields + ("_metadata" -> JsObject((fields - "hits"))))))
+        case (code, jv) => throw new RuntimeException(s"Find documents error: $jv")
+      }
+    case other => other
+  }.recover { case e => e }
+
+  private def garbageCollection(user: String) = checkPermission(user, GarbageCollection).flatMap {
+    case Granted =>
+      val query = s"""{
+        "query":{
+          "bool":{
+            "must":[
+              {"term":{"_metadata.deleted":true}}
+            ]
+          }
+        }
+      }"""
+      store.deleteByQuery(s"${domain}~${id}*", Seq[(String, String)](), query).map {
+        case (StatusCodes.OK, jo: JsObject) => DoGarbageCollection(user)
+        case (_, jv)                        => throw new RuntimeException(jv.compactPrint)
+      }
+    case other => Future.successful(other)
+  }.recover { case e => e }
 
   private def initIndices(templates: Map[String, JsObject]): Future[Done] = {
     val source = Source.fromIterator(() => templates.iterator)
@@ -540,62 +577,10 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
         case CreateDocument    => (aclValue(aclObj, "create_document", "roles"), aclValue(aclObj, "create_document", "groups"), aclValue(aclObj, "create_document", "users"))
         case FindDocuments     => (aclValue(aclObj, "find_documents", "roles"), aclValue(aclObj, "find_documents", "groups"), aclValue(aclObj, "find_documents", "users"))
         case GarbageCollection => (aclValue(aclObj, "gc", "roles"), aclValue(aclObj, "gc", "groups"), aclValue(aclObj, "gc", "users"))
-        case _                    => (Vector[String](), Vector[String](), Vector[String]())
+        case _                 => (Vector[String](), Vector[String](), Vector[String]())
       }
       if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
     case _ => Denied
-  }
-
-  private def checkCache: Future[Boolean] = {
-    val key = s"${domain}~${id}"
-    Source.fromFuture {
-      replicator ? Get(LWWMapKey[String, Any](cacheKey), readMajority)
-    }.map {
-      case g @ GetSuccess(LWWMapKey(_), _) =>
-        g.dataValue match {
-          case data: LWWMap[_, _] => data.asInstanceOf[LWWMap[String, Any]].get(key) match {
-            case Some(_) => true
-            case None    => false
-          }
-        }
-      case NotFound(_, _) => false
-    }.runWith(Sink.last[Boolean])
-  }
-
-  private def updateCache: Future[Done] = {
-    val key = s"${domain}~${id}"
-    Source.fromFuture {
-      replicator ? Update(LWWMapKey[String, Any](cacheKey), LWWMap(), writeMajority)(_ + (key -> state.collection))
-    }.map {
-      case UpdateSuccess(LWWMapKey(_), _) => Done
-      case _: UpdateResponse[_]           =>
-    }.runWith(Sink.ignore)
-  }
-
-  private def clearCache: Future[Done] = {
-    val key = s"${domain}~${id}"
-    Source.fromFuture {
-      replicator ? Update(LWWMapKey[String, Any](cacheKey), LWWMap(), writeMajority)(_ - key)
-    }.map {
-      case UpdateSuccess(LWWMapKey(_), _) => Done
-      case _: UpdateResponse[_]           =>
-    }.runWith(Sink.ignore)
-  }
-
-  private def garbageCollection: Future[Done] = {
-    val query = s"""{
-      "query":{
-        "bool":{
-          "must":[
-            {"term":{"_metadata.deleted":true}}
-          ]
-        }
-      }
-    }"""
-    store.deleteByQuery(s"${domain}~${id}*", Seq[(String, String)](), query).map {
-      case (StatusCodes.OK, jo: JsObject) => Done
-      case (_, jv)                        => throw new RuntimeException(jv.compactPrint)
-    }
   }
 
 }

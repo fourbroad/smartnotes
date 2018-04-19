@@ -29,8 +29,7 @@ class DocumentEventAdapter extends EventAdapter {
   final val MANIFEST_DOMAIN_DELETED = classOf[DomainDeleted].getName
   final val MANIFEST_DOMAIN_USER_REGISTERED = classOf[UserRegistered].getName
   final val MANIFEST_DOMAIN_JOINED = classOf[DomainJoined].getName
-  final val MANIFEST_DOMAIN_USER_LOGGEDIN = classOf[UserLoggedIn].getName
-  final val MANIFEST_DOMAIN_USER_LOGGEDOUT = classOf[UserLoggedOut].getName
+  final val MANIFEST_DOMAIN_QUITED = classOf[DomainQuited].getName
 
   /**
    * Return the manifest (type hint) that will be provided in the `fromJournal` method.
@@ -52,24 +51,23 @@ class DocumentEventAdapter extends EventAdapter {
    * @return the adapted event object, possibly the same object if no adaptation was performed
    */
   def toJournal(event: Any): Any = event match {
-    case docc: DocumentCreated    => docc.toJson
-    case docr: DocumentReplaced   => docr.toJson
-    case docp: DocumentPatched    => docp.toJson
-    case docd: DocumentDeleted    => docd.toJson
+    case docc: DocumentCreated   => docc.toJson
+    case docr: DocumentReplaced  => docr.toJson
+    case docp: DocumentPatched   => docp.toJson
+    case docd: DocumentDeleted   => docd.toJson
     case dsc: CollectionCreated  => dsc.toJson
     case dsr: CollectionReplaced => dsr.toJson
     case dsp: CollectionPatched  => dsp.toJson
     case dsd: CollectionDeleted  => dsd.toJson
-    case dc: DomainCreated        => dc.toJson
-    case dr: DomainReplaced       => dr.toJson
-    case dp: DomainPatched        => dp.toJson
-    case da: DomainAuthorized     => da.toJson
-    case dd: DomainDeleted        => dd.toJson
-    case ur: UserRegistered       => ur.toJson
-    case dj: DomainJoined         => dj.toJson
-    case uli: UserLoggedIn        => uli.toJson
-    case ulo: UserLoggedOut       => ulo.toJson
-    case _                        => event
+    case dc: DomainCreated       => dc.toJson
+    case dr: DomainReplaced      => dr.toJson
+    case dp: DomainPatched       => dp.toJson
+    case da: DomainAuthorized    => da.toJson
+    case dd: DomainDeleted       => dd.toJson
+    case ur: UserRegistered      => ur.toJson
+    case dj: DomainJoined        => dj.toJson
+    case dq: DomainQuited        => dq.toJson
+    case _                       => event
   }
 
   /**
@@ -101,8 +99,7 @@ class DocumentEventAdapter extends EventAdapter {
     case MANIFEST_DOMAIN_DELETED         => convertTo(event)(_.convertTo[DomainDeleted])
     case MANIFEST_DOMAIN_USER_REGISTERED => convertTo(event)(_.convertTo[UserRegistered])
     case MANIFEST_DOMAIN_JOINED          => convertTo(event)(_.convertTo[DomainJoined])
-    case MANIFEST_DOMAIN_USER_LOGGEDIN   => convertTo(event)(_.convertTo[UserLoggedIn])
-    case MANIFEST_DOMAIN_USER_LOGGEDOUT  => convertTo(event)(_.convertTo[UserLoggedOut])
+    case MANIFEST_DOMAIN_QUITED          => convertTo(event)(_.convertTo[DomainQuited])
 
     case _                               => throw new IllegalArgumentException(s"Unable to handle manifest $manifest!")
   }

@@ -80,7 +80,7 @@ object HttpService2 extends App with APIStatusCodes {
     extractEntityId = DomainActor.idExtractor,
     extractShardId = DomainActor.shardResolver)
 
-  val documentSetRegion = ClusterSharding(system).start(
+  val collectionRegion = ClusterSharding(system).start(
     typeName = CollectionActor.shardName,
     entityProps = CollectionActor.props(),
     settings = ClusterShardingSettings(system),
@@ -132,8 +132,8 @@ object HttpService2 extends App with APIStatusCodes {
     }
   }
 
-  def checkDocumentSet(domainName: String, documentSetName: String): Future[Boolean] = {
-    val key = s"${domainName}~${documentSetName}"
+  def checkCollection(domainName: String, collectionName: String): Future[Boolean] = {
+    val key = s"${domainName}~${collectionName}"
     val queryCache = replicator ? Get(LWWMapKey[String, Any](cacheKey), ReadLocal)
     queryCache.map {
       case g @ GetSuccess(LWWMapKey(_), _) =>

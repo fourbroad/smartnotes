@@ -14,15 +14,17 @@ import com.eclipsesource.v8.NodeJS
 import com.eclipsesource.v8.V8Array
 import com.eclipsesource.v8.V8Object
 import com.typesafe.config.ConfigFactory
-import com.zxtx.actors.DocumentActor
 import com.zxtx.actors.CollectionActor
+import com.zxtx.actors.DocumentActor
 import com.zxtx.actors.DomainActor
 import com.zxtx.actors.DomainActor.CreateDomain
 import com.zxtx.actors.DomainActor.Domain
 import com.zxtx.actors.DomainActor.DomainCreated
 import com.zxtx.actors.DomainActor.GetDomain
-import com.zxtx.actors.wrappers.DomainWrapper
 import com.zxtx.actors.wrappers.CallbackWrapper
+import com.zxtx.actors.wrappers.CollectionWrapper
+import com.zxtx.actors.wrappers.DocumentWrapper
+import com.zxtx.actors.wrappers.DomainWrapper
 
 import akka.Done
 import akka.actor.ActorSystem
@@ -30,8 +32,8 @@ import akka.cluster.sharding.ClusterSharding
 import akka.cluster.sharding.ClusterShardingSettings
 import akka.event.LogSource
 import akka.event.Logging
-import akka.util.Timeout
 import akka.pattern.ask
+import akka.util.Timeout
 import posix.Signal
 import spray.json.JsObject
 
@@ -46,7 +48,6 @@ object Main extends App {
   }
   val log = Logging(system, this)
 
-  val rootDomain = system.settings.config.getString("domain.root-domain")
   implicit val duration = 5.seconds
   implicit val timeOut = Timeout(duration)
 
@@ -56,7 +57,7 @@ object Main extends App {
     settings = ClusterShardingSettings(system),
     extractEntityId = DomainActor.idExtractor,
     extractShardId = DomainActor.shardResolver)
-  val documentSetRegion = ClusterSharding(system).start(
+  val collectionRegion = ClusterSharding(system).start(
     typeName = CollectionActor.shardName,
     entityProps = CollectionActor.props(),
     settings = ClusterShardingSettings(system),
@@ -69,7 +70,9 @@ object Main extends App {
     extractEntityId = DocumentActor.idExtractor,
     extractShardId = DocumentActor.shardResolver)
 
+  val rootDomain = system.settings.config.getString("domain.root-domain")
   val adminName = system.settings.config.getString("domain.administrator.name")
+
   for {
     r1 <- domainRegion ? GetDomain(s"${rootDomain}~.domains~${rootDomain}", adminName)
     if !r1.isInstanceOf[Domain]
@@ -78,7 +81,9 @@ object Main extends App {
   } System.out.println("System intialize successfully!")
 
   val callbackQueue = Queue[CallbackWrapper]()
-  DomainWrapper.init(system, callbackQueue)
+  val domainWrapper = DomainWrapper(system, callbackQueue)
+  val collectionWrapper = CollectionWrapper(system, callbackQueue)
+  val documentWrapper = DocumentWrapper(system, callbackQueue)
 
   import scala.sys.process._
   val processId = Seq("sh", "-c", "echo $PPID").!!.trim.toInt
@@ -102,14 +107,15 @@ object Main extends App {
           }.foreach { cw => cw.call() }
         }
       }
-      
-//      runtime.add("__rootDomainName__",rootDomain)
+
       runtime.registerJavaMethod(callback, "asyncCallback")
-      runtime.registerJavaMethod(DomainWrapper, "bind", "__DomainWrapper__", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String]), true)
-      runtime.registerJavaMethod(DomainWrapper, "bind", "__CollectionWrapper__", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String]), true)
-      runtime.registerJavaMethod(DomainWrapper, "bind", "__DocumentWrapper__", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String]), true)
-      
-      nodeJS.exec(new File("nodejs/bin/www"))
+      runtime.registerJavaMethod(domainWrapper, "bind", "__DomainWrapper", Array[Class[_]](classOf[V8Object]), true)
+      runtime.registerJavaMethod(collectionWrapper, "bind", "__CollectionWrapper", Array[Class[_]](classOf[V8Object]), true)
+      runtime.registerJavaMethod(documentWrapper, "bind", "__DocumentWrapper", Array[Class[_]](classOf[V8Object]), true)
+
+//      nodeJS.exec(new File("nodejs/bin/www"))
+//      nodeJS.exec(new File("nodejs/node_modules/mocha/bin/_mocha"))
+      nodeJS.exec(new File("nodejs/hello-world.js"))
       while (nodeJS.isRunning() && running) {
         nodeJS.handleMessage()
       }

@@ -1,9 +1,73 @@
-var express = require('express');
-var app = express();
+const 
+  express = require('express'),
+  notes = require('./lib/notes.js'),
+  app = express();
+
+var
+  client, localhostDomain;
+
+process.on('SIGWINCH', () => {
+    asyncCallback();
+});
 
 app.get('/', function (req, res) {
-	new Domain("www.hello.com").login("fourbroad", "z4bb4z");
   res.send('Hello World!');
+});
+
+app.get('/login', function (req, res) {
+  notes.login("administrator","!QAZ)OKM", function(err, c){
+	client = c
+	res.send(err||c);
+  });
+});
+
+app.get('/registerUser', function (req, res) {
+  client.registerUser('fourbroad', 'z4bb4z', {realName: 'fourbroad'}, function(err, user){
+	res.send(err||user);
+  });
+});
+
+app.get('/joinDomain', function (req, res) {
+  client.joinDomain('localhost', 'fourbroad', {}, function(err, user){
+	res.send(err||user);
+  });
+});
+
+app.get('/quitDomain', function (req, res) {
+  client.quitDomain('localhost', 'fourbroad', function(err, user){
+	res.send(err||user);
+  });
+});
+
+app.get('/getDomain', function (req, res) {
+  client.getDomain('localhost',function(err, domain){
+	localhostDomain = domain;
+	res.send(err||domain);
+  });
+});
+
+app.get('/replaceDomain', function (req, res) {
+  client.replaceDomain('localhost',{hello:"world"},function(err, result){
+	res.send(err||result);
+  });
+});
+
+app.get('/patchDomain', function (req, res) {
+  client.patchDomain('localhost',[{op:"add",path:"/hello2",value:"world2"}],function(err, result){
+	res.send(err||result);
+  });
+});
+
+app.get('/getCollection', function (req, res) {
+  localhostDomain.getCollection('profiles',function(err, collection){
+	res.send(err||collection);
+  });
+});
+
+app.get('/logout', function (req, res) {
+  client.logout(function(err, result){
+	res.send(err||result);
+  });
 });
 
 var server = app.listen(8000, function () {

@@ -41,7 +41,6 @@ class NameService extends Actor with Timers with ActorLogging {
   implicit val cluster = Cluster(system)
   val replicator = DistributedData(system).replicator
 
-  val documentSetRegion = ClusterSharding(system).shardRegion(CollectionActor.shardName)
   val domainRegion = ClusterSharding(system).shardRegion(DomainActor.shardName)
 
   val timeout = system.settings.config.getDuration("name_service.timeout").getSeconds.seconds

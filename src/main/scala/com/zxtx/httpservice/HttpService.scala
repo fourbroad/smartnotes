@@ -117,7 +117,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     extractEntityId = DomainActor.idExtractor,
     extractShardId = DomainActor.shardResolver)
 
-  val documentSetRegion = ClusterSharding(system).start(
+  val collectionRegion = ClusterSharding(system).start(
     typeName = CollectionActor.shardName,
     entityProps = CollectionActor.props(),
     settings = ClusterShardingSettings(system),
@@ -152,7 +152,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     extractHost { domainName =>
       checkAsync(checkDomain(domainName)) { result =>
         result match {
-          case true  => documentRoutes(domainName) ~ documentSetRoutes(domainName) ~ domainRoutes(domainName)
+          case true  => documentRoutes(domainName) ~ collectionRoutes(domainName) ~ domainRoutes(domainName)
           case false => reject(AuthorizationFailedRejection)
         }
       }
@@ -160,26 +160,26 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     //    }
   }
 
-  def documentRoutes(domain: String): Route = requiredHttpSession { session => // http://www.domain.com/documentSet/document
+  def documentRoutes(domain: String): Route = requiredHttpSession { session => // http://www.domain.com/collection/document
     val username = session.username
-    pathPrefix(Segment) { documentSet =>
-      documentSet match {
+    pathPrefix(Segment) { collection =>
+      collection match {
         case ".domains" => reject
-        case _ => checkAsync(checkDocumentSet(domain, documentSet)) { result =>
+        case _ => checkAsync(checkCollection(domain, collection)) { result =>
           result match {
             case true =>
               pathPrefix(Segment) { docId =>
                 pathEnd {
-                  getDocument(domain, documentSet, docId, username) ~
-                    createDocument(domain, documentSet, docId, username) ~
-                    replaceDocument(domain, documentSet, docId, username) ~
-                    patchDocument(domain, documentSet, docId, username) ~
-                    deleteDocument(domain, documentSet, docId, username)
+                  getDocument(domain, collection, docId, username) ~
+                    createDocument(domain, collection, docId, username) ~
+                    replaceDocument(domain, collection, docId, username) ~
+                    patchDocument(domain, collection, docId, username) ~
+                    deleteDocument(domain, collection, docId, username)
                 } ~
-                  executeDocument(domain, documentSet, docId, username)
+                  executeDocument(domain, collection, docId, username)
               } ~
                 pathSingleSlash {
-                  findDocuments(domain, documentSet, username) ~ createDocument(domain, documentSet, "", username)
+                  findDocuments(domain, collection, username) ~ createDocument(domain, collection, "", username)
                 }
             case false => reject
           }
@@ -188,29 +188,29 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     }
   }
 
-  def documentSetRoutes(domain: String): Route = requiredHttpSession { session =>
+  def collectionRoutes(domain: String): Route = requiredHttpSession { session =>
     val username = session.username
-    pathPrefix(".documentsets") {
-      path(Segment) { documentSet =>
-        getDocumentSet(domain, documentSet, username)
+    pathPrefix(".collections") {
+      path(Segment) { collection =>
+        getCollection(domain, collection, username)
       }
     } ~
-      pathPrefix(Segment) { documentSet =>
-        if (documentSet.startsWith("_")) reject
-        else pathEnd { // http://www.domain.com/documentSetName
-          checkAsync(checkDocumentSet(domain, documentSet)) { result =>
+      pathPrefix(Segment) { collection =>
+        if (collection.startsWith("_")) reject
+        else pathEnd { // http://www.domain.com/collectionName
+          checkAsync(checkCollection(domain, collection)) { result =>
             result match {
               case true =>
-                getDocumentSet(domain, documentSet, username) ~ replaceDocumentSet(domain, documentSet, username) ~ patchDocumentSet(domain, documentSet, username) ~
-                  deleteDocumentSet(domain, documentSet, username) ~ post {
-                    completeJson(APIStatusCode(StatusCodes.Conflict.intValue, StatusCodes.Conflict.reason, documentSetAlreadyExists))
+                getCollection(domain, collection, username) ~ replaceCollection(domain, collection, username) ~ patchCollection(domain, collection, username) ~
+                  deleteCollection(domain, collection, username) ~ post {
+                    completeJson(APIStatusCode(StatusCodes.Conflict.intValue, StatusCodes.Conflict.reason, collectionAlreadyExists))
                   }
               case false =>
-                createDocumentSet(domain, documentSet, username)
+                createCollection(domain, collection, username)
             }
           }
         }
-      } ~ findDocumentSets(domain, username)
+      } ~ findCollections(domain, username)
   }
 
   def domainRoutes(domain: String): Route = requiredHttpSession { session =>
@@ -227,50 +227,50 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     }
   } ~ login
 
-  def findDocuments(domain: String, documentSet: String, user: String) = get { // http://www.domain.com/
+  def findDocuments(domain: String, collection: String, user: String) = get { // http://www.domain.com/
     parameterSeq { params =>
       entity(as[String]) { c =>
         val body = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-        onCompleteJson((documentSetRegion ? FindDocuments(s"${domain}~.documentsets~${documentSet}", user, params, body)).map(documentSetStatus))
+        onCompleteJson((collectionRegion ? FindDocuments(s"${domain}~.collections~${collection}", user, params, body)).map(collectionStatus))
       }
     }
   }
 
-  def createDocument(domain: String, documentSet: String, docId: String, user: String) = post {
+  def createDocument(domain: String, collection: String, docId: String, user: String) = post {
     entity(as[String]) { c =>
       val id = if (docId.isEmpty()) UUID.randomUUID().toString else docId
       val raw = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-      onCompleteJson((documentRegion ? CreateDocument(s"${domain}~${documentSet}~${id}", user, raw)).map(documentStatus))
+      onCompleteJson((documentRegion ? CreateDocument(s"${domain}~${collection}~${id}", user, raw)).map(documentStatus))
     }
   }
 
-  def getDocument(domain: String, documentSet: String, docId: String, user: String) = get {
-    onCompleteJson((documentRegion ? GetDocument(s"${domain}~${documentSet}~${docId}", user)).map(documentStatus))
+  def getDocument(domain: String, collection: String, docId: String, user: String) = get {
+    onCompleteJson((documentRegion ? GetDocument(s"${domain}~${collection}~${docId}", user)).map(documentStatus))
   }
 
-  def replaceDocument(domain: String, documentSet: String, docId: String, user: String) = put {
+  def replaceDocument(domain: String, collection: String, docId: String, user: String) = put {
     entity(as[String]) { c =>
       val raw = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-      onCompleteJson((documentRegion ? ReplaceDocument(s"${domain}~${documentSet}~${docId}", user, raw)).map(documentStatus))
+      onCompleteJson((documentRegion ? ReplaceDocument(s"${domain}~${collection}~${docId}", user, raw)).map(documentStatus))
     }
   }
 
-  def patchDocument(domain: String, documentSet: String, docId: String, user: String) = patch {
+  def patchDocument(domain: String, collection: String, docId: String, user: String) = patch {
     entity(as[JsValue]) { jv =>
-      onCompleteJson((documentRegion ? PatchDocument(s"${domain}~${documentSet}~${docId}", user, JsonPatch(jv))).map(documentStatus))
+      onCompleteJson((documentRegion ? PatchDocument(s"${domain}~${collection}~${docId}", user, JsonPatch(jv))).map(documentStatus))
     }
   }
 
-  def deleteDocument(domain: String, documentSet: String, docId: String, user: String) = delete {
-    onCompleteJson((documentRegion ? DeleteDocument(s"${domain}~${documentSet}~${docId}", user)).map(documentStatus))
+  def deleteDocument(domain: String, collection: String, docId: String, user: String) = delete {
+    onCompleteJson((documentRegion ? DeleteDocument(s"${domain}~${collection}~${docId}", user)).map(documentStatus))
   }
 
-  def executeDocument(domain: String, documentSet: String, docId: String, user: String) = pathSuffix("_exec") {
+  def executeDocument(domain: String, collection: String, docId: String, user: String) = pathSuffix("_exec") {
     get {
       parameterSeq { params =>
         entity(as[String]) { c =>
           val body = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-          onCompleteJson((documentRegion ? ExecuteDocument(s"${domain}~${documentSet}~${docId}", user, params, body)).map(documentStatus))
+          onCompleteJson((documentRegion ? ExecuteDocument(s"${domain}~${collection}~${docId}", user, params, body)).map(documentStatus))
         }
       }
     }
@@ -339,42 +339,42 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     }
   }
 
-  def getDocumentSet(domain: String, name: String, user: String) = get {
+  def getCollection(domain: String, name: String, user: String) = get {
     parameters('path ? "/") { path =>
-      onCompleteJson((documentSetRegion ? GetCollection(s"${domain}~.documentsets~${name}", user, path)).map(documentSetStatus))
+      onCompleteJson((collectionRegion ? GetCollection(s"${domain}~.collections~${name}", user, path)).map(collectionStatus))
     }
   }
 
-  def replaceDocumentSet(domain: String, name: String, user: String) = put {
+  def replaceCollection(domain: String, name: String, user: String) = put {
     entity(as[String]) { c =>
       val raw = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-      onCompleteJson((documentSetRegion ? ReplaceCollection(s"${domain}~.documentsets~${name}", user, raw)).map(documentSetStatus))
+      onCompleteJson((collectionRegion ? ReplaceCollection(s"${domain}~.collections~${name}", user, raw)).map(collectionStatus))
     }
   }
 
-  def patchDocumentSet(domain: String, name: String, user: String) = patch {
+  def patchCollection(domain: String, name: String, user: String) = patch {
     entity(as[JsValue]) { jv =>
-      onCompleteJson((documentSetRegion ? PatchCollection(s"${domain}~.documentsets~${name}", user, JsonPatch(jv))).map(documentSetStatus))
+      onCompleteJson((collectionRegion ? PatchCollection(s"${domain}~.collections~${name}", user, JsonPatch(jv))).map(collectionStatus))
     }
   }
 
-  def deleteDocumentSet(domain: String, name: String, user: String) = delete {
-    onCompleteJson((documentSetRegion ? DeleteCollection(s"${domain}~.documentsets~${name}", user)).map(documentSetStatus))
+  def deleteCollection(domain: String, name: String, user: String) = delete {
+    onCompleteJson((collectionRegion ? DeleteCollection(s"${domain}~.collections~${name}", user)).map(collectionStatus))
   }
 
-  def createDocumentSet(domain: String, name: String, user: String) = post {
+  def createCollection(domain: String, name: String, user: String) = post {
     entity(as[String]) { c =>
       val raw = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-      onCompleteJson((documentSetRegion ? CreateCollection(s"${domain}~.documentsets~${name}", user, raw)).map(documentSetStatus))
+      onCompleteJson((collectionRegion ? CreateCollection(s"${domain}~.collections~${name}", user, raw)).map(collectionStatus))
     }
   }
 
-  def findDocumentSets(domain: String, user: String) = pathSingleSlash { // http://www.domain.com/
+  def findCollections(domain: String, user: String) = pathSingleSlash { // http://www.domain.com/
     get {
       parameterSeq { params =>
         entity(as[String]) { c =>
           val body = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-          onCompleteJson((documentSetRegion ? FindDocuments(s"${domain}~.documentsets~.documentsets", user, params, body)).map(documentSetStatus))
+          onCompleteJson((collectionRegion ? FindDocuments(s"${domain}~.collections~.collections", user, params, body)).map(collectionStatus))
         }
       }
     }
@@ -414,7 +414,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
         parameterSeq { params =>
           entity(as[String]) { c =>
             val body = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-            onCompleteJson((documentSetRegion ? FindDocuments(s"${rootDomain}~.documentsets~.domains", user, params, body)).map(documentSetStatus))
+            onCompleteJson((collectionRegion ? FindDocuments(s"${rootDomain}~.collections~.domains", user, params, body)).map(collectionStatus))
           }
         }
       }
@@ -478,8 +478,8 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     }
   }
 
-  def checkDocumentSet(domainName: String, documentSetName: String): Future[Boolean] = {
-    val key = s"${domainName}~${documentSetName}"
+  def checkCollection(domainName: String, collectionName: String): Future[Boolean] = {
+    val key = s"${domainName}~${collectionName}"
     val queryCache = replicator ? Get(LWWMapKey[String, Any](cacheKey), ReadLocal)
     queryCache.map {
       case g @ GetSuccess(LWWMapKey(_), _) =>

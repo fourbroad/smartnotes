@@ -7,11 +7,8 @@ import scala.util.Success
 import scala.util.Try
 
 import com.roundeights.hasher.Implicits.stringToHasher
-import com.zxtx.actors.DocumentActor.CreateDocument
-import com.zxtx.actors.DocumentActor.Document
-import com.zxtx.actors.DocumentActor.DocumentAlreadyExists
-import com.zxtx.actors.DocumentActor.DocumentCreated
-import com.zxtx.actors.DocumentActor.GetDocument
+
+import com.zxtx.actors.DocumentActor._
 import com.zxtx.persistence.ElasticSearchStore
 
 import akka.Done
@@ -21,19 +18,15 @@ import akka.actor.ActorRef
 import akka.actor.PoisonPill
 import akka.actor.Props
 import akka.actor.ReceiveTimeout
-import akka.cluster.Cluster
-import akka.cluster.ddata.DistributedData
 import akka.cluster.ddata.LWWMap
 import akka.cluster.ddata.LWWMapKey
 import akka.cluster.ddata.Replicator.Get
 import akka.cluster.ddata.Replicator.GetSuccess
 import akka.cluster.ddata.Replicator.NotFound
-import akka.cluster.ddata.Replicator.ReadLocal
 import akka.cluster.ddata.Replicator.ReadMajority
 import akka.cluster.ddata.Replicator.Update
-import akka.cluster.ddata.Replicator.UpdateSuccess
 import akka.cluster.ddata.Replicator.UpdateFailure
-import akka.cluster.ddata.Replicator.WriteLocal
+import akka.cluster.ddata.Replicator.UpdateSuccess
 import akka.cluster.ddata.Replicator.WriteMajority
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
@@ -51,23 +44,11 @@ import akka.stream.ActorMaterializer
 import akka.stream.ActorMaterializerSettings
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
-import akka.util.Timeout
-import gnieh.diffson.sprayJson.JsonPatch
-import gnieh.diffson.sprayJson.provider.marshall
-import gnieh.diffson.sprayJson.provider.patchMarshaller
-import pdi.jwt.Jwt
-import pdi.jwt.JwtAlgorithm
-import pdi.jwt.JwtClaim
-import pdi.jwt.JwtHeader
-import spray.json.JsBoolean
-import spray.json.JsNumber
-import spray.json.JsObject
-import spray.json.JsString
-import spray.json.JsValue
-import spray.json.RootJsonFormat
-import pdi.jwt.JwtBase64
-import akka.cluster.ddata.Replicator.UpdateFailure
-import akka.cluster.ddata.Replicator.UpdateFailure
+
+import pdi.jwt._
+import spray.json._
+
+import gnieh.diffson.sprayJson._
 
 object DomainActor {
 
@@ -78,18 +59,16 @@ object DomainActor {
   }
   case class Domain(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, deleted: Option[Boolean], raw: JsObject)
 
-  case class CreateDomain(pid: String, token: String, raw: JsObject) extends Command
-  case class GetDomain(pid: String, token: String) extends Command
-  case class ReplaceDomain(pid: String, token: String, raw: JsObject) extends Command
-  case class PatchDomain(pid: String, token: String, patch: JsonPatch) extends Command
-  case class DeleteDomain(pid: String, token: String) extends Command
-  case class AuthorizeDomain(pid: String, token: String, patch: JsonPatch) extends Command
-  case class FindDocumentSets(pid: String, token: String, params: Seq[(String, String)], body: JsObject) extends Command
-  case class RegisterUser(pid: String, token: String, userName: String, password: String) extends Command
-  case class JoinDomain(pid: String, token: String, userName: String) extends Command
-  case class LoginDomain(pid: String, userName: String, password: String) extends Command
-  case class LogoutDomain(pid: String, token: String) extends Command
-  case class ValidateToken(pid: String, token: String) extends Command
+  case class CreateDomain(pid: String, user: String, raw: JsObject) extends Command
+  case class GetDomain(pid: String, user: String) extends Command
+  case class ReplaceDomain(pid: String, user: String, raw: JsObject) extends Command
+  case class PatchDomain(pid: String, user: String, patch: JsonPatch) extends Command
+  case class DeleteDomain(pid: String, user: String) extends Command
+  case class AuthorizeDomain(pid: String, user: String, patch: JsonPatch) extends Command
+  case class FindCollections(pid: String, user: String, params: Seq[(String, String)], body: JsObject) extends Command
+  case class RegisterUser(pid: String, user: String, userName: String, password: String, userInfo: Option[JsObject] = None) extends Command
+  case class JoinDomain(pid: String, user: String, userName: String, permission: Option[JsObject] = None) extends Command
+  case class QuitDomain(pid: String, user: String, userName: String) extends Command
 
   private case class DoCreateDomain(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoGetDomain(user: String, request: Option[Any] = None)
@@ -97,13 +76,10 @@ object DomainActor {
   private case class DoPatchDomain(user: String, patch: JsonPatch, request: Option[Any] = None)
   private case class DoAuthorizeDomain(user: String, patch: JsonPatch, request: Option[Any] = None)
   private case class DoDeleteDomain(user: String, request: Option[Any] = None)
-  private case class DoFindDocumentSets(user: String, params: Seq[(String, String)], body: JsObject, request: Option[Any] = None)
-  private case class DoRegisterUser(user: String, userName: String, passwordMd5: String, request: Option[Any] = None)
+  private case class DoFindCollections(user: String, params: Seq[(String, String)], body: JsObject, request: Option[Any] = None)
+  private case class DoRegisterUser(user: String, userName: String, raw: JsObject, request: Option[Any] = None)
   private case class DoJoinDomain(user: String, userName: String, request: Option[Any] = None)
-  private case class DoLoginDomain(user: String, token: String, request: Option[Any] = None)
-  private case class DoLogoutDomain(user: String, request: Option[Any] = None)
-  private case class DoGarbageCollection(user: String, request: Option[Any] = None)
-  private case class InitializeDocumentSets(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoQuitDomain(user: String, userName: String, request: Option[Any] = None)
 
   case class DomainCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class DomainReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
@@ -112,27 +88,24 @@ object DomainActor {
   case class DomainAuthorized(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends DocumentEvent
   case class UserRegistered(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class DomainJoined(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
-  case class UserLoggedIn(id: String, author: String, revision: Long, created: Long, token: String, raw: JsObject) extends DocumentEvent
-  case class UserLoggedOut(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
+  case class DomainQuited(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
 
-  object DomainNotExists extends Exception
-  object DomainAlreadyExists extends Exception
-  object DomainIsCreating extends Exception
-  object DomainSoftDeleted extends Exception
-  object UserNotExists extends Exception
-  object UserAlreadyRegistered extends Exception
-  object UserAlreadyJoined extends Exception
-  object UserNamePasswordError extends Exception
-  object UpdateSecretKeyError extends Exception
-  object DomainLogoutError extends Exception
-  object ClearCacheError extends Exception
-  object UpdateCacheError extends Exception
+  case object DomainNotFound extends Exception
+  case object DomainAlreadyExists extends Exception
+  case object DomainIsCreating extends Exception
+  case object DomainSoftDeleted extends Exception
+  case object UserAlreadyRegistered extends Exception
+  case object UserAlreadyJoined extends Exception
+  case object UserNotJoined extends Exception
+  case object UserNamePasswordError extends Exception
   case class PatchDomainException(exception: Throwable) extends Exception
   case class AuthorizeDomainException(exception: Throwable) extends Exception
 
   val idExtractor: ShardRegion.ExtractEntityId = { case cmd: Command => (cmd.pid, cmd) }
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
   val shardName: String = "Domain"
+
+  def persistenceId(rootDomain: String, domain: String): String = s"${rootDomain}~.domains~${domain}"
 
   val secretCacheKey: String = "SecretCacheKey"
 
@@ -172,6 +145,8 @@ object DomainActor {
     }
 
     implicit object DomainPatchedFormat extends RootJsonFormat[DomainPatched] {
+      import gnieh.diffson.sprayJson.provider.marshall
+      import gnieh.diffson.sprayJson.provider.patchMarshaller
       def write(dp: DomainPatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
         JsObject(("id" -> JsString(dp.id)) :: ("patch" -> marshall(dp.patch)) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
@@ -183,6 +158,8 @@ object DomainActor {
     }
 
     implicit object DomainAuthorizedFormat extends RootJsonFormat[DomainAuthorized] {
+      import gnieh.diffson.sprayJson.provider.marshall
+      import gnieh.diffson.sprayJson.provider.patchMarshaller
       def write(da: DomainAuthorized) = {
         val metaObj = newMetaObject(da.raw.getFields("_metadata"), da.author, da.revision, da.created)
         JsObject(("id" -> JsString(da.id)) :: ("patch" -> marshall(da.patch)) :: da.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
@@ -226,27 +203,16 @@ object DomainActor {
       }
     }
 
-    implicit object UserLoggedInFormat extends RootJsonFormat[UserLoggedIn] {
-      def write(uli: UserLoggedIn) = {
-        val metaObj = newMetaObject(uli.raw.getFields("_metadata"), uli.author, uli.revision, uli.created)
-        JsObject(("id" -> JsString(uli.id)) :: ("token" -> JsString(uli.token)) :: uli.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+    implicit object DomainQuitedFormat extends RootJsonFormat[DomainQuited] {
+      def write(dj: DomainQuited) = {
+        val metaObj = newMetaObject(dj.raw.getFields("_metadata"), dj.author, dj.revision, dj.created)
+        JsObject(("id" -> JsString(dj.id)) :: dj.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, token, jo) = extractFieldsWithToken(value, "UserLoggedIn event expected!")
-        UserLoggedIn(id, author, revision, created, token, jo)
+        val (id, author, revision, created, jo) = extractFields(value, "DomainQuited event expected!")
+        DomainQuited(id, author, revision, created, jo)
       }
-    }
-
-    implicit object UserLoggedOutFormat extends RootJsonFormat[UserLoggedOut] {
-      def write(ulo: UserLoggedOut) = {
-        val metaObj = newMetaObject(ulo.raw.getFields("_metadata"), ulo.author, ulo.revision, ulo.created)
-        JsObject(("id" -> JsString(ulo.id)) :: ulo.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
-      }
-      def read(value: JsValue) = {
-        val (id, author, revision, created, jo) = extractFields(value, "UserLoggedOut event expected!")
-        UserLoggedOut(id, author, revision, created, jo)
-      }
-    }
+    }    
   }
 
   private case class State(domain: Domain, deleted: Boolean) {
@@ -280,7 +246,6 @@ object DomainActor {
     }
   }
 
-  import spray.json._
   def defaultACL(user: String) = s"""{
         "login":{
             "roles":["administrator","user"],
@@ -313,6 +278,18 @@ object DomainActor {
         "create_domain":{
             "roles":["administrator"]
         },
+        "register_user":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "join_domain":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "quit_domain":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
         "authorize":{
             "roles":["administrator"],
             "users":["${user}"]
@@ -329,19 +306,17 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
   import CollectionActor._
   import DomainActor._
   import DomainActor.JsonProtocol._
-  import spray.json._
-
-  override def persistenceId: String = self.path.name
-
-  override def journalPluginId = "akka.persistence.elasticsearch.journal"
-  override def snapshotPluginId = "akka.persistence.elasticsearch-snapshot-store"
 
   val rootDomain = system.settings.config.getString("domain.root-domain")
   val adminName = system.settings.config.getString("domain.administrator.name")
   val cacheKey = system.settings.config.getString("domain.cache-key")
   val domainRegion = ClusterSharding(system).shardRegion(DomainActor.shardName)
-  val documentSetRegion = ClusterSharding(system).shardRegion(CollectionActor.shardName)
-  val documentRegion = ClusterSharding(system).shardRegion(DocumentActor.shardName)
+  val collectionRegion = ClusterSharding(system).shardRegion(CollectionActor.shardName)
+
+  override def persistenceId: String = self.path.name
+
+  override def journalPluginId = "akka.persistence.elasticsearch.journal"
+  override def snapshotPluginId = "akka.persistence.elasticsearch-snapshot-store"
 
   implicit val materializer = ActorMaterializer(ActorMaterializerSettings(system))
 
@@ -391,7 +366,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
           parent ! Passivate(stopMessage = PoisonPill)
       }
       context.become(creating)
-    case _: Command => sender ! DomainNotExists
+    case _: Command => sender ! DomainNotFound
   }
 
   def creating: Receive = {
@@ -400,26 +375,27 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         state = state.updated(evt)
         val d = state.domain.toJson.asJsObject
         saveSnapshot(d)
+        context.become(created)
         replyTo ! evt.copy(raw = d)
       }
-    case CheckPermission(_, _, _) => sender ! Granted
-    case _: Command               => sender ! DomainIsCreating
+    case CheckPermission(_, _, CreateCollection) => sender ! Granted
+    case _: Command                              => sender ! DomainIsCreating
   }
 
   def created: Receive = {
-    case RegisterUser(_, token, userName, password) =>
+    case RegisterUser(_, user, userName, password, userInfo) =>
       val replyTo = sender
-      registerUser(token, userName, password).foreach {
+      registerUser(user, userName, password, userInfo).foreach {
         case dru: DoRegisterUser => self ! dru.copy(request = Some(replyTo))
         case other               => replyTo ! other
       }
-    case DoRegisterUser(user, userName, passwordMd5, Some(replyTo: ActorRef)) =>
-      persist(UserRegistered(id, user, 0, System.currentTimeMillis, JsObject("name" -> JsString(userName), "password" -> JsString(passwordMd5)))) { evt =>
+    case DoRegisterUser(user, userName, raw, Some(replyTo: ActorRef)) =>
+      persist(UserRegistered(id, user, 0, System.currentTimeMillis, JsObject(raw.fields + ("name" -> JsString(userName))))) { evt =>
         replyTo ! evt
       }
-    case JoinDomain(_, token, userName) =>
+    case JoinDomain(_, user, userName, permission) =>
       val replyTo = sender
-      joinDomain(token, userName).foreach {
+      joinDomain(user, userName, permission).foreach {
         case djd: DoJoinDomain => self ! djd.copy(request = Some(replyTo))
         case other             => replyTo ! other
       }
@@ -427,43 +403,25 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
       persist(DomainJoined(id, user, 0, System.currentTimeMillis, JsObject("name" -> JsString(userName)))) { evt =>
         replyTo ! evt
       }
-    case LoginDomain(_, userName, password) =>
+    case QuitDomain(_, user, userName) =>
       val replyTo = sender
-      loginDomain(userName, password).foreach {
-        case dld: DoLoginDomain => self ! dld.copy(request = Some(replyTo))
-        case other              => replyTo ! other
+      quitDomain(user, userName).foreach {
+        case dqd: DoQuitDomain => self ! dqd.copy(request = Some(replyTo))
+        case other             => replyTo ! other
       }
-    case DoLoginDomain(user, token, Some(replyTo: ActorRef)) =>
-      persist(UserLoggedIn(id, user, 0, System.currentTimeMillis(), token, JsObject())) { evt =>
+    case DoQuitDomain(user, userName, Some(replyTo: ActorRef)) =>
+      persist(DomainQuited(id, user, 0, System.currentTimeMillis, JsObject())) { evt =>
         replyTo ! evt
       }
-    case ValidateToken(_, token) =>
+    case GetDomain(_, user) =>
       val replyTo = sender
-      validateToken(token).foreach {
-        case Some(_) => replyTo ! TokenValid
-        case None    => replyTo ! TokenInvalid
-      }
-    case LogoutDomain(_, token) =>
-      val replyTo = sender
-      logoutDomain(token).foreach {
-        case dld: DoLogoutDomain => self ! dld.copy(request = Some(replyTo))
-        case other               => replyTo ! other
-      }
-    case DoLogoutDomain(user, Some(replyTo: ActorRef)) =>
-      persist(UserLoggedOut(id, user, 0, System.currentTimeMillis(), JsObject())) { evt =>
-        replyTo ! evt
-      }
-    case GetDomain(_, token) =>
-      val replyTo = sender
-      check(token, GetDomain) { user => Future.successful(DoGetDomain(user)) }.foreach {
-        case dgd: DoGetDomain => self ! dgd.copy(request = Some(replyTo))
+      getDomain(user).foreach {
+        case dgd: DoGetDomain => replyTo ! state.domain
         case other            => replyTo ! other
       }
-    case DoGetDomain(_, Some(replyTo: ActorRef)) =>
-      replyTo ! state.domain
-    case ReplaceDomain(_, token, raw) =>
+    case ReplaceDomain(_, user, raw) =>
       val replyTo = sender
-      check(token, ReplaceDomain) { user => Future.successful(DoReplaceDomain(user, raw)) }.foreach {
+      replaceDomain(user, raw).foreach {
         case drd: DoReplaceDomain => self ! drd.copy(request = Some(replyTo))
         case other                => replyTo ! other
       }
@@ -475,9 +433,9 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         deleteSnapshot(lastSequenceNr - 1)
         replyTo ! evt.copy(raw = ds)
       }
-    case PatchDomain(_, token, patch) =>
+    case PatchDomain(_, user, patch) =>
       val replyTo = sender
-      patchDomain(token, patch).foreach {
+      patchDomain(user, patch).foreach {
         case dpd: DoPatchDomain => self ! dpd.copy(request = Some(replyTo))
         case other              => replyTo ! other
       }
@@ -489,9 +447,9 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         deleteSnapshot(lastSequenceNr - 1)
         replyTo ! evt.copy(raw = d)
       }
-    case DeleteDomain(_, token) =>
+    case DeleteDomain(_, user) =>
       val replyTo = sender
-      deleteDomain(token).foreach {
+      deleteDomain(user).foreach {
         case ddd: DoDeleteDomain => self ! ddd.copy(request = Some(replyTo))
         case other               => replyTo ! other
       }
@@ -513,9 +471,9 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         mediator ! Publish(id, evt.copy(raw = d))
         context.parent ! Passivate(stopMessage = PoisonPill)
       }
-    case AuthorizeDomain(_, token, patch) =>
+    case AuthorizeDomain(_, user, patch) =>
       val replyTo = sender
-      authorizeDomain(token, patch).foreach {
+      authorizeDomain(user, patch).foreach {
         case dad: DoAuthorizeDomain => self ! dad.copy(request = Some(replyTo))
         case other                  => replyTo ! other
       }
@@ -529,14 +487,12 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
       }
     case SaveSnapshotSuccess(metadata)         =>
     case SaveSnapshotFailure(metadata, reason) =>
-    case GarbageCollection(_, token, _) =>
+    case GarbageCollection(_, user, _) =>
       val replyTo = sender
-      check(token, GarbageCollection) { user => Future.successful(DoGarbageCollection(user)) }.foreach {
-        case dgc: DoGarbageCollection => self ! dgc.copy(request = Some(replyTo))
-        case other                    => replyTo ! other
+      garbageCollection(user).foreach {
+        case Done  => replyTo ! GarbageCollectionCompleted
+        case other => replyTo ! other
       }
-    case DoGarbageCollection(user, Some(replyTo: ActorRef)) =>
-      garbageCollection(user).foreach { Done => replyTo ! GarbageCollectionCompleted }
     case CreateDomain(_, _, _) => sender ! DomainAlreadyExists
     case CheckPermission(_, user, command) =>
       val replyTo = sender
@@ -544,15 +500,17 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
   }
 
   def deleted: Receive = {
-    case GetDomain(_, token) =>
+    case GetDomain(_, user) =>
       val replyTo = sender
-      check(token, GetDomain) { user => Future.successful(DoGetDomain(user)) }.foreach {
-        case dgd: DoGetDomain => self ! dgd.copy(request = Some(replyTo))
-        case other            => replyTo ! other
+      val parent = context.parent
+      getDomain(user).foreach {
+        case dgd: DoGetDomain =>
+          self ! state.domain
+          parent ! Passivate(stopMessage = PoisonPill)
+        case other =>
+          replyTo ! other
+          parent ! Passivate(stopMessage = PoisonPill)
       }
-    case DoGetDomain(_, Some(replyTo: ActorRef)) =>
-      replyTo ! state.domain
-      context.parent ! Passivate(stopMessage = PoisonPill)
     case _: Command => sender ! DomainSoftDeleted
   }
 
@@ -561,123 +519,156 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     case _              => super.unhandled(msg)
   }
 
-  private def createDomain(token: String, raw: JsObject) = validateToken(token).flatMap {
-    case Some(user) => id match {
-      case `rootDomain` => initDocumentSets(user).recover { case e => e }.flatMap {
-        case Done => updateCache.map {
-          case true  => DoCreateDomain(user, raw)
-          case false => UpdateCacheError
-        }
-        case other => Future.successful(other)
-      }
-      case _ => (domainRegion ? CheckPermission(s"${rootDomain}~.domains~${rootDomain}", user, CreateDomain)).flatMap {
-        case Granted => initDocumentSets(user).recover { case e => e }.flatMap {
-          case Done => updateCache.map {
-            case true  => DoCreateDomain(user, raw)
-            case false => UpdateCacheError
-          }
-          case other => Future.successful(other)
-        }
-        case Denied => Future.successful(Denied)
-      }
-    }
-    case None => Future.successful(TokenInvalid)
-  }
-
-  private def registerUser(token: String, userName: String, password: String) = check(token, RegisterUser) { user =>
-    val passwordMd5 = password.md5.hex
-    val userInfo = JsObject("name" -> JsString(userName), "password" -> JsString(passwordMd5))
-    (documentRegion ? CreateDocument(s"${rootDomain}~users~${userName}", user, userInfo)).map {
-      case _: DocumentCreated    => DoRegisterUser(user, userName, passwordMd5)
-      case DocumentAlreadyExists => DocumentAlreadyExists
-    }
-  }
-
-  private def joinDomain(token: String, userName: String) = check(token, JoinDomain) { user =>
-    val profile = JsObject("roles" -> JsArray(JsString("user")))
-    (documentRegion ? CreateDocument(s"${id}~profiles~${userName}", user, profile)).map {
-      case _: DocumentCreated    => DoJoinDomain(user, userName)
-      case DocumentAlreadyExists => UserAlreadyJoined
-    }
-  }
-
-  private def loginDomain(user: String, password: String) = checkPermission(user, LoginDomain).flatMap {
-    case Granted => (documentRegion ? GetDocument(s"${rootDomain}~users~${user}", user)).flatMap {
-      case doc: Document =>
-        val hexMd5 = doc.raw.fields("password").asInstanceOf[JsString].value
-        if (hexMd5 == password.md5.hex) {
-          val secretKey = (hexMd5 + System.currentTimeMillis).md5.hex
-          val token = Jwt.encode(JwtHeader(JwtAlgorithm.HS256), JwtClaim(s"""{"id":"${user}"}"""), secretKey)
-          updateSecretKey(user, secretKey).map {
-            case true  => DoLoginDomain(user, token)
-            case false => UpdateSecretKeyError
-          }
-        } else Future.successful(UserNamePasswordError)
-      case _ => Future.successful(UserNotExists)
-    }
-    case Denied => Future.successful(Denied)
-  }
-
-  private def logoutDomain(token: String) = validateToken(token).flatMap {
-    case Some(user) => clearSecretKey(user).map {
-      case true  => DoLogoutDomain(user)
-      case false => DomainLogoutError
-    }
-    case None => Future.successful(TokenInvalid)
-  }
-
-  private def patchDomain(token: String, patch: JsonPatch) = check(token, PatchDomain) { user =>
-    Try {
-      patch(state.domain.raw)
-    } match {
-      case Success(_) => Future.successful(DoPatchDomain(user, patch))
-      case Failure(e) => Future.successful(PatchDomainException(e))
-    }
-  }
-
-  private def deleteDomain(token: String) = check(token, DeleteDomain) { user =>
-    clearCache.flatMap {
-      case true =>
-        val source = Source.fromFuture(documentSetRegion ? FindDocuments(s"${id}~.documentsets~.documentsets", user, Seq[(String, String)](), JsObject()))
-          .mapConcat(extractElements).filter { t => !t._2 }.mapAsync(1) { t =>
-            documentSetRegion ? DeleteCollection(s"${id}~.documentsets~${t._1}", user)
-          }.map { case _: CollectionDeleted => Done }
-
-        id match {
-          case `rootDomain` =>
-            val domainRegion = ClusterSharding(system).shardRegion(DomainActor.shardName)
-            for {
-              r1 <- Source.fromFuture(documentSetRegion ? FindDocuments(s"${rootDomain}~.documentsets~.domains", user, Seq[(String, String)](), JsObject()))
-                .mapConcat(extractElements).filter {
-                  case (`rootDomain`, _) => false
-                  case (_, false)        => true
-                  case (_, true)         => false
-                }.mapAsync(1) { t =>
-                  domainRegion ? DeleteDomain(s"${rootDomain}~.domains~${t._1}", user)
-                }.map { case _: DomainDeleted => Done }.runWith(Sink.ignore)
-              r2 <- { Thread.sleep(1000); garbageCollection(user) }
-              r3 <- source.runWith(Sink.ignore)
-            } yield Done
-          case _ =>
-            source.runWith(Sink.ignore)
-        }
-      case false => Future.successful(ClearCacheError)
-    }.map {
-      case Done  => DoDeleteDomain(user)
+  private def createDomain(user: String, raw: JsObject) = id match {
+    case `rootDomain` => initRootDomainCollections(user).map {
+      case Done  => DoCreateDomain(user, raw)
       case other => other
-    }
+    }.recover { case e => e }
+    case _ => (domainRegion ? CheckPermission(s"${rootDomain}~.domains~${rootDomain}", user, CreateDomain)).flatMap {
+      case Granted => initCollections(user).map {
+        case Done  => DoCreateDomain(user, raw)
+        case other => other
+      }
+      case Denied => Future.successful(Denied)
+    }.recover { case e => e }
   }
 
-  private def authorizeDomain(token: String, patch: JsonPatch) = check(token, AuthorizeDomain) { user =>
-    Try {
-      patch(state.domain.raw.fields("_metadata").asJsObject.fields("acl"))
-    } match {
-      case Success(_) => Future.successful(DoAuthorizeDomain(user, patch))
-      case Failure(e) => Future.successful(AuthorizeDomainException(e))
-    }
-  }
+  private def getDomain(user: String) = checkPermission(user, GetDomain).map {
+    case Granted => DoGetDomain(user)
+    case other   => other
+  }.recover { case e => e }
 
-  override def checkPermission(user: String, command: Any): Future[Permission] = fetchProfile(id, user).map {
+  private def registerUser(user: String, userName: String, password: String, userInfo: Option[JsObject] = None) = checkPermission(user, RegisterUser).flatMap {
+    case Granted =>
+      val passwordMd5 = password.md5.hex
+      val info = userInfo match {
+        case Some(jo) => JsObject(jo.fields + ("name" -> JsString(userName)) + ("password" -> JsString(passwordMd5)))
+        case None     => JsObject("name" -> JsString(userName), "password" -> JsString(passwordMd5))
+      }
+      (documentRegion ? CreateDocument(s"${rootDomain}~users~${userName}", user, info)).map {
+        case DocumentCreated(_, _, _, _, raw) => DoRegisterUser(user, userName, raw)
+        case DocumentAlreadyExists            => UserAlreadyRegistered
+      }
+    case Denied => Future.successful(Denied)
+  }.recover { case e => e }
+
+  private def joinDomain(user: String, userName: String, permission: Option[JsObject] = None) = checkPermission(user, JoinDomain).flatMap {
+    case Granted =>
+      val profile = permission match {
+        case Some(jo) => JsObject(jo.fields + ("roles" -> JsArray(JsString("user"))))
+        case None     => JsObject("roles" -> JsArray(JsString("user")))
+      }
+      (documentRegion ? CreateDocument(DocumentActor.persistenceId(id, "profiles", userName), user, profile)).map {
+        case _: DocumentCreated    => DoJoinDomain(user, userName)
+        case DocumentAlreadyExists => UserAlreadyJoined
+      }
+    case Denied => Future.successful(Denied)
+  }.recover { case e => e }
+
+  private def quitDomain(user: String, userName: String) = checkPermission(user, QuitDomain).flatMap {
+    case Granted =>
+      (documentRegion ? DeleteDocument(DocumentActor.persistenceId(id, "profiles", userName), user)).map {
+        case _: DocumentDeleted => DoQuitDomain(user, userName)
+        case other              => other
+      }
+    case Denied => Future.successful(Denied)
+  }.recover { case e => e }
+
+  private def replaceDomain(user: String, raw: JsObject) = checkPermission(user, ReplaceDomain).map {
+    case Granted => DoReplaceDomain(user, raw)
+    case Denied  => Denied
+  }.recover { case e => e }
+
+  private def patchDomain(user: String, patch: JsonPatch) = checkPermission(user, PatchDomain).map {
+    case Granted =>
+      Try {
+        patch(state.domain.raw)
+      } match {
+        case Success(_) => DoPatchDomain(user, patch)
+        case Failure(e) => PatchDomainException(e)
+      }
+    case Denied => Denied
+  }.recover { case e => e }
+
+  private def deleteDomain(user: String) = checkPermission(user, DeleteDomain).flatMap {
+    case Granted =>
+      val source = Source.fromFuture(collectionRegion ? FindDocuments(CollectionActor.persistenceId(id, ".collection"), user, Seq[(String, String)](), JsObject()))
+        .mapConcat(extractElements).filter { t => !t._2 }.mapAsync(1) { t =>
+          collectionRegion ? DeleteCollection(s"${id}~.collections~${t._1}", user)
+        }.map { case _: CollectionDeleted => Done }
+
+      val result = id match {
+        case `rootDomain` =>
+          val domainRegion = ClusterSharding(system).shardRegion(DomainActor.shardName)
+          for {
+            r1 <- Source.fromFuture(collectionRegion ? FindDocuments(CollectionActor.persistenceId(rootDomain, ".domains"), user, Seq[(String, String)](), JsObject()))
+              .mapConcat(extractElements).filter {
+                case (`rootDomain`, _) => false
+                case (_, false)        => true
+                case (_, true)         => false
+              }.mapAsync(1) { t =>
+                domainRegion ? DeleteDomain(s"${rootDomain}~.domains~${t._1}", user)
+              }.map { case _: DomainDeleted => Done }.runWith(Sink.ignore)
+            r2 <- { Thread.sleep(1000); garbageCollection(user) }
+            r3 <- source.runWith(Sink.ignore)
+          } yield Done
+        case _ =>
+          source.runWith(Sink.ignore)
+      }
+      result.map {
+        case Done  => DoDeleteDomain(user)
+        case other => other
+      }
+    case Denied => Future.successful(Denied)
+  }.recover { case e => e }
+
+  private def authorizeDomain(user: String, patch: JsonPatch) = checkPermission(user, AuthorizeDomain).map {
+    case Granted =>
+      Try {
+        patch(state.domain.raw.fields("_metadata").asJsObject.fields("acl"))
+      } match {
+        case Success(_) => DoAuthorizeDomain(user, patch)
+        case Failure(e) => AuthorizeDomainException(e)
+      }
+    case Denied => Denied
+  }.recover { case e => e }
+
+  private def garbageCollection(user: String) = checkPermission(user, GarbageCollection).flatMap {
+    case Granted =>
+      Thread.sleep(1000) // Bugfix: delay for deleting document in ElasticSearch.
+
+      val source = Source.fromFuture(collectionRegion ? FindDocuments(s"${id}~.collections~.collections", user, Seq[(String, String)](), JsObject()))
+        .mapConcat(extractElements).mapAsync(1) {
+          case (dsId: String, true)  => store.deleteIndices(s"${id}~${dsId}*")
+          case (dsId: String, false) => collectionRegion ? GarbageCollection(s"${id}~.collections~${dsId}", user)
+        }.map {
+          case (StatusCodes.OK, _)          => Done
+          case (_: StatusCode, jv: JsValue) => throw new RuntimeException(jv.compactPrint)
+          case GarbageCollectionCompleted   => Done
+        }
+      id match {
+        case `rootDomain` =>
+          for {
+            r1 <- Source.fromFuture(collectionRegion ? FindDocuments(s"${rootDomain}~.collections~.domains", user, Seq[(String, String)](), JsObject()))
+              .mapConcat(extractElements).filter { t =>
+                t._1 != rootDomain
+              }.mapAsync(1) {
+                case (domain, true)  => store.deleteIndices(s"${domain}*")
+                case (domain, false) => domainRegion ? GarbageCollection(s"${rootDomain}~.domains~${domain}", user)
+              }.map {
+                case (StatusCodes.OK, _)          => Done
+                case (_: StatusCode, jv: JsValue) => throw new RuntimeException(jv.compactPrint)
+                case GarbageCollectionCompleted   => Done
+              }.runWith(Sink.ignore)
+            r2 <- source.runWith(Sink.ignore)
+          } yield Done
+        case _ =>
+          source.runWith(Sink.ignore)
+      }
+    case Denied => Future.successful(Denied)
+  }.recover { case e => e }
+
+  override def checkPermission(user: String, command: Any) = fetchProfile(id, user).map {
     case profile: Document =>
       val aclObj = state.domain.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
       val userRoles = profileValue(profile.raw, "roles")
@@ -689,120 +680,59 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         case PatchDomain       => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
         case AuthorizeDomain   => (aclValue(aclObj, "authorize", "roles"), aclValue(aclObj, "authorize", "groups"), aclValue(aclObj, "authorize", "users"))
         case DeleteDomain      => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
-        case LoginDomain       => (aclValue(aclObj, "login", "roles"), aclValue(aclObj, "login", "groups"), aclValue(aclObj, "login", "users"))
+        case RegisterUser      => (aclValue(aclObj, "register_user", "roles"), aclValue(aclObj, "register_user", "groups"), aclValue(aclObj, "register_user", "users"))
+        case JoinDomain        => (aclValue(aclObj, "join_domain", "roles"), aclValue(aclObj, "join_domain", "groups"), aclValue(aclObj, "join_domain", "users"))
+        case QuitDomain        => (aclValue(aclObj, "quit_domain", "roles"), aclValue(aclObj, "quit_domain", "groups"), aclValue(aclObj, "quit_domain", "users"))
         case CreateCollection  => (aclValue(aclObj, "create_document_set", "roles"), aclValue(aclObj, "create_document_set", "groups"), aclValue(aclObj, "create_document_set", "users"))
-        case FindDocumentSets  => (aclValue(aclObj, "find_document_sets", "roles"), aclValue(aclObj, "find_document_sets", "groups"), aclValue(aclObj, "find_document_sets", "users"))
+        case FindCollections   => (aclValue(aclObj, "find_document_sets", "roles"), aclValue(aclObj, "find_document_sets", "groups"), aclValue(aclObj, "find_document_sets", "users"))
         case GarbageCollection => (aclValue(aclObj, "gc", "roles"), aclValue(aclObj, "gc", "groups"), aclValue(aclObj, "gc", "users"))
         case _                 => (Vector[String](), Vector[String](), Vector[String]())
       }
-      //      System.out.println(s"~~~~~~~~~~~~aclRoles~~~~~${aclRoles}")
-      //      System.out.println(s"~~~~~~~~~~~~userRoles~~~~~${userRoles}")
-      //      System.out.println(s"~~~~~~~~~~~~aclGroups~~~~~${aclGroups}")
-      //      System.out.println(s"~~~~~~~~~~~~userGroups~~~~~${userGroups}")
-      //      System.out.println(s"~~~~~~~~~~~~aclUsers~~~~~${aclUsers}")
-      //      System.out.println(s"~~~~~~~~~~~~user~~~~~${user}")
+      //            System.out.println(s"~~~~~~~~~~~~aclRoles~~~~~${aclRoles}")
+      //            System.out.println(s"~~~~~~~~~~~~userRoles~~~~~${userRoles}")
+      //            System.out.println(s"~~~~~~~~~~~~aclGroups~~~~~${aclGroups}")
+      //            System.out.println(s"~~~~~~~~~~~~userGroups~~~~~${userGroups}")
+      //            System.out.println(s"~~~~~~~~~~~~aclUsers~~~~~${aclUsers}")
+      //            System.out.println(s"~~~~~~~~~~~~user~~~~~${user}")
       if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
     case _ => Denied
   }
 
-  private def initDocumentSets(user: String): Future[Done] = {
+  private def initCollections(user: String): Future[Done] = {
     val adminRole = JsObject("description" -> JsString("The administrator role of current domain."))
     val userRole = JsObject("description" -> JsString("The user role of current domain."))
     val profile = JsObject("roles" -> JsArray(JsString("administrator"), JsString("user")))
-    id match {
-      case `rootDomain` =>
-        import com.roundeights.hasher.Implicits._
-        val adminName = system.settings.config.getString("domain.administrator.name")
-        val password = system.settings.config.getString("domain.administrator.password")
-        val adminUser = JsObject("password" -> JsString(password.md5.hex))
-        for {
-          r1 <- Source(".documentsets" :: ".domains" :: "users" :: "roles" :: "profiles" :: Nil)
-            .mapAsync(1) { ds => (documentSetRegion ? CreateCollection(s"${id}~.documentsets~${ds}", user, JsObject())) }
-            .map { case _: CollectionCreated => Done }.runWith(Sink.last[Done])
-          r2 <- Source.fromFuture {
-            documentRegion ? CreateDocument(s"${rootDomain}~users~${adminName}", adminName, adminUser)
-          }.map { case _: DocumentCreated => Done }.runWith(Sink.ignore)
-          r3 <- Source.fromFuture {
-            documentRegion ? CreateDocument(s"${rootDomain}~roles~administrator", adminName, adminRole)
-          }.map { case _: DocumentCreated => Done }.runWith(Sink.ignore)
-          r4 <- Source.fromFuture {
-            documentRegion ? CreateDocument(s"${rootDomain}~roles~user", adminName, userRole)
-          }.map { case _: DocumentCreated => Done }.runWith(Sink.ignore)
-          r5 <- Source.fromFuture {
-            documentRegion ? CreateDocument(s"${rootDomain}~profiles~${adminName}", adminName, profile)
-          }.map { case _: DocumentCreated => Done }.runWith(Sink.ignore)
-        } yield Done
-      case _ =>
-        for {
-          r1 <- Source(".documentsets" :: "roles" :: "profiles" :: Nil)
-            .mapAsync(1) { ds => documentSetRegion ? CreateCollection(s"${id}~.documentsets~${ds}", user, JsObject()) }
-            .map { case _: CollectionCreated => Done }.runWith(Sink.last[Done])
-          r2 <- Source.fromFuture {
-            documentRegion ? CreateDocument(s"${id}~roles~administrator", user, adminRole)
-          }.map { case _: DocumentCreated => Done }.runWith(Sink.ignore)
-          r3 <- Source.fromFuture {
-            documentRegion ? CreateDocument(s"${id}~roles~user", user, userRole)
-          }.map { case _: DocumentCreated => Done }.runWith(Sink.ignore)
-          r4 <- Source.fromFuture {
-            documentRegion ? CreateDocument(s"${id}~profiles~${user}", user, profile)
-          }.map { case _: DocumentCreated => Done }.runWith(Sink.ignore)
-        } yield Done
-    }
+    for {
+      r1 <- collectionRegion ? CreateCollection(CollectionActor.persistenceId(id, ".collections"), user, JsObject(), Some(true))
+      r2 <- collectionRegion ? CreateCollection(CollectionActor.persistenceId(id, "roles"), user, JsObject(), Some(true))
+      r3 <- collectionRegion ? CreateCollection(CollectionActor.persistenceId(id, "profiles"), user, JsObject(), Some(true))
+      r4 <- documentRegion ? CreateDocument(DocumentActor.persistenceId(id, "roles", "administrator"), user, adminRole, Some(true))
+      r5 <- documentRegion ? CreateDocument(DocumentActor.persistenceId(id, "roles", "user"), user, userRole, Some(true))
+      r6 <- documentRegion ? CreateDocument(DocumentActor.persistenceId(id, "profiles", user), user, profile, Some(true))
+    } yield Done
   }
 
-  private def checkCache: Future[Boolean] =
-    (replicator ? Get(LWWMapKey[String, Any](cacheKey), readMajority)).map {
-      case g @ GetSuccess(LWWMapKey(_), _) =>
-        g.dataValue match {
-          case data: LWWMap[_, _] => data.asInstanceOf[LWWMap[String, Any]].get(id) match {
-            case Some(_) => true
-            case None    => false
-          }
-        }
-      case NotFound(_, _) => false
-    }
+  private def initRootDomainCollections(user: String): Future[Done] = {
+    import com.roundeights.hasher.Implicits._
+    val adminRole = JsObject("description" -> JsString("The administrator role of current domain."))
+    val userRole = JsObject("description" -> JsString("The user role of current domain."))
+    val profile = JsObject("roles" -> JsArray(JsString("administrator"), JsString("user")))
 
-  private def updateCache = (replicator ? Update(LWWMapKey[String, Any](cacheKey), LWWMap(), writeMajority)(_ + (id -> state.domain))).map {
-    case UpdateSuccess(LWWMapKey(_), _)    => true
-    case _: UpdateFailure[LWWMapKey[_, _]] => false
-  }
+    val adminName = system.settings.config.getString("domain.administrator.name")
+    val password = system.settings.config.getString("domain.administrator.password")
+    val adminUser = JsObject("password" -> JsString(password.md5.hex))
 
-  private def clearCache = (replicator ? Update(LWWMapKey[String, Any](cacheKey), LWWMap(), writeMajority)(_ - id)).map {
-    case UpdateSuccess(LWWMapKey(_), _)    => true
-    case _: UpdateFailure[LWWMapKey[_, _]] => false
-  }
-
-  private def garbageCollection(user: String): Future[Done] = {
-    Thread.sleep(1000) // Bugfix: delay for deleting document in ElasticSearch.
-
-    val source = Source.fromFuture(documentSetRegion ? FindDocuments(s"${id}~.documentsets~.documentsets", user, Seq[(String, String)](), JsObject()))
-      .mapConcat(extractElements).mapAsync(1) {
-        case (dsId: String, true)  => store.deleteIndices(s"${id}~${dsId}*")
-        case (dsId: String, false) => documentSetRegion ? GarbageCollection(s"${id}~.documentsets~${dsId}", user)
-      }.map {
-        case (StatusCodes.OK, _)          => Done
-        case (_: StatusCode, jv: JsValue) => throw new RuntimeException(jv.compactPrint)
-        case GarbageCollectionCompleted   => Done
-      }
-    id match {
-      case `rootDomain` =>
-        for {
-          r1 <- Source.fromFuture(documentSetRegion ? FindDocuments(s"${rootDomain}~.documentsets~.domains", user, Seq[(String, String)](), JsObject()))
-            .mapConcat(extractElements).filter { t =>
-              t._1 != rootDomain
-            }.mapAsync(1) {
-              case (domain, true)  => store.deleteIndices(s"${domain}*")
-              case (domain, false) => domainRegion ? GarbageCollection(s"${rootDomain}~.domains~${domain}", user)
-            }.map {
-              case (StatusCodes.OK, _)          => Done
-              case (_: StatusCode, jv: JsValue) => throw new RuntimeException(jv.compactPrint)
-              case GarbageCollectionCompleted   => Done
-            }.runWith(Sink.ignore)
-          r2 <- source.runWith(Sink.ignore)
-        } yield Done
-      case _ =>
-        source.runWith(Sink.ignore)
-    }
+    for {
+      r1 <- collectionRegion ? CreateCollection(CollectionActor.persistenceId(rootDomain, ".collections"), adminName, JsObject(), Some(true))
+      r2 <- collectionRegion ? CreateCollection(CollectionActor.persistenceId(rootDomain, ".domains"), adminName, JsObject(), Some(true))
+      r3 <- collectionRegion ? CreateCollection(CollectionActor.persistenceId(rootDomain, "users"), adminName, JsObject(), Some(true))
+      r4 <- collectionRegion ? CreateCollection(CollectionActor.persistenceId(rootDomain, "roles"), adminName, JsObject(), Some(true))
+      r5 <- collectionRegion ? CreateCollection(CollectionActor.persistenceId(rootDomain, "profiles"), adminName, JsObject(), Some(true))
+      r6 <- documentRegion ? CreateDocument(DocumentActor.persistenceId(rootDomain, "users", adminName), adminName, adminUser, Some(true))
+      r7 <- documentRegion ? CreateDocument(DocumentActor.persistenceId(rootDomain, "roles", "administrator"), adminName, adminRole, Some(true))
+      r8 <- documentRegion ? CreateDocument(DocumentActor.persistenceId(rootDomain, "roles", "user"), adminName, userRole, Some(true))
+      r9 <- documentRegion ? CreateDocument(DocumentActor.persistenceId(rootDomain, "profiles", adminName), adminName, profile, Some(true))
+    } yield Done
   }
 
   private def extractElements(any: Any) = any match {

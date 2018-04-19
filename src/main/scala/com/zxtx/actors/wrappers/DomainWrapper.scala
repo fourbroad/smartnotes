@@ -1,8 +1,7 @@
 package com.zxtx.actors.wrappers
 
 import scala.collection.mutable.Queue
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Success
 
@@ -15,55 +14,41 @@ import com.zxtx.actors.DomainActor
 import com.zxtx.actors.DomainActor._
 import com.zxtx.actors.DomainActor.JsonProtocol._
 
+import com.roundeights.hasher.Implicits.stringToHasher
+
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import akka.cluster.sharding.ClusterSharding
 import akka.pattern.ask
-import akka.util.Timeout
-import posix.Signal
-import spray.json._
 
 import gnieh.diffson.sprayJson.JsonPatch
+import spray.json._
+import pdi.jwt._
 
-object DomainWrapper extends V8SprayJson {
+class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) extends Wrapper(system, callbackQueue) with V8SprayJson {
+  import Wrapper._
   import CallbackWrapper._
+  import DocumentActor._
 
-  var domainRegion: ActorRef = _
-  var documentRegion: ActorRef = _
-  var rootDomain: String = _
-  var callbackQueue: Queue[CallbackWrapper] = _
-  implicit var ec: ExecutionContext = _
-
-  implicit val duration = 5.seconds
-  implicit val timeOut = Timeout(duration)
-
-  import scala.sys.process._
-  val processId = Seq("sh", "-c", "echo $PPID").!!.trim.toInt
-  val sigal = Signal.SIGWINCH
-
-  def init(system: ActorSystem, cq: Queue[CallbackWrapper]) = {
-    domainRegion = ClusterSharding(system).shardRegion(DomainActor.shardName)
-    documentRegion = ClusterSharding(system).shardRegion(DocumentActor.shardName)
-    rootDomain = system.settings.config.getString("domain.root-domain")
-    callbackQueue = cq
-    ec = system.dispatcher
-  }
+  val domainRegion: ActorRef = ClusterSharding(system).shardRegion(DomainActor.shardName)
+  val documentRegion: ActorRef = ClusterSharding(system).shardRegion(DocumentActor.shardName)
 
   def domainId(domainName: String) = s"${rootDomain}~.domains~${domainName}"
 
-  def bind(receiver: V8Object, domainName: String, token: String) = {
+  def bind(receiver: V8Object) = {
     val runtime = receiver.getRuntime
-    val dw = runtime.getObject("__DomainWrapper__")
-    val prototype = runtime.executeObjectScript("__DomainWrapper__.prototype")
+    val dw = runtime.getObject("__DomainWrapper")
+    val prototype = runtime.executeObjectScript("__DomainWrapper.prototype")
 
-    prototype.registerJavaMethod(this, "registerUser", "registerUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "registerUser", "registerUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "login", "login", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "isValidToken", "isValidToken", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "logout", "logout", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Function]), true)
 
-    prototype.registerJavaMethod(this, "joinDomain", "joinDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "joinDomain", "joinDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "quitDomain", "quitDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "createDomain", "createDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "getDomain", "getDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "getDomain", "getDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "replaceDomain", "replaceDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "patchDomain", "patchDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "deleteDomain", "deleteDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
@@ -74,52 +59,35 @@ object DomainWrapper extends V8SprayJson {
     dw.release
   }
 
-  def registerUser(receiver: V8Object, token: String, userName: String, password: String, callback: V8Function) = {
+  def registerUser(receiver: V8Object, token: String, userName: String, password: String, userInfo: V8Object, callback: V8Function) = {
+    val jsObj = toJsObject(userInfo)
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? RegisterUser(domainId(rootDomain), token, userName, password)).onComplete {
-      case Success(uli: UserLoggedIn) =>
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? RegisterUser(domainId(rootDomain), user, userName, password, Some(jsObj))
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case ur: UserRegistered =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {
-            val v8Object = new V8Object(runtime)
-            v8Object.add("token", uli.token)
+            val v8Object = toV8Object(ur.raw, cbw.runtime)
             toBeReleased += v8Object
             params.pushNull()
             params.push(v8Object)
           }
         })
         enqueueCallback(cbw)
-      case Success(e) =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = new V8Object(runtime)
-            e match {
-              case Denied =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "User is not allowed to login!")
-              case DomainNotExists =>
-                v8Object.add("code", 404)
-                v8Object.add("message", "Domain is not exists!")
-              case UserNamePasswordError =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "Username or password error!")
-              case e =>
-                v8Object.add("code", 500)
-                v8Object.add("message", "System error!")
-            }
-            toBeReleased += v8Object
-            params.push(v8Object)
-            params.pushNull()
-          }
-        })
-        enqueueCallback(cbw)
-      case Failure(e) => failureCallback(cbw, e)
+      case other => failureCallback(cbw, other)
     }
   }
 
-  def joinDomain(receiver: V8Object, domainName: String, token: String, userName: String, callback: V8Function) = {
+  def joinDomain(receiver: V8Object, domainName: String, token: String, userName: String, permission: V8Object, callback: V8Function) = {
+    val jsObj = toJsObject(permission)
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? JoinDomain(domainId(domainName), token, userName)).onComplete {
-      case Success(dj: DomainJoined) =>
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? JoinDomain(domainId(domainName), user, userName, Some(jsObj))
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case _: DomainJoined =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {
             params.pushNull()
@@ -127,123 +95,82 @@ object DomainWrapper extends V8SprayJson {
           }
         })
         enqueueCallback(cbw)
-      case Success(e) =>
+      case other => failureCallback(cbw, other)
+    }
+  }
+
+  def quitDomain(receiver: V8Object, domainName: String, token: String, userName: String, callback: V8Function) = {
+    val cbw = CallbackWrapper(receiver, callback)
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? QuitDomain(domainId(domainName), user, userName)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case _: DomainQuited =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {
-            val v8Object = new V8Object(runtime)
-            e match {
-              case TokenInvalid =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "Token is invalid!")
-              case Denied =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "User have no permission to join domain!")
-              case DomainNotExists =>
-                v8Object.add("code", 404)
-                v8Object.add("message", "Domain is not exists!")
-              case UserAlreadyJoined =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "User is already joined!")
-              case e =>
-                v8Object.add("code", 500)
-                v8Object.add("message", "System error!")
-            }
-            toBeReleased += v8Object
-            params.push(v8Object)
             params.pushNull()
+            params.push(true)
           }
         })
         enqueueCallback(cbw)
-      case Failure(e) => failureCallback(cbw, e)
+      case other => failureCallback(cbw, other)
     }
   }
 
   def login(receiver: V8Object, userName: String, password: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? LoginDomain(domainId(rootDomain), userName, password)).onComplete {
-      case Success(uli: UserLoggedIn) =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = new V8Object(runtime)
-            v8Object.add("token", uli.token)
-            toBeReleased += v8Object
-            params.pushNull()
-            params.push(v8Object)
+    (documentRegion ? GetDocument(DocumentActor.persistenceId(rootDomain, "users", userName), userName)).flatMap {
+      case doc: Document =>
+        val hexMd5 = doc.raw.fields("password").asInstanceOf[JsString].value
+        if (hexMd5 == password.md5.hex) {
+          val secretKey = (hexMd5 + System.currentTimeMillis).md5.hex
+          val token = Jwt.encode(JwtHeader(JwtAlgorithm.HS256), JwtClaim(s"""{"id":"${userName}"}"""), secretKey)
+          updateSecretKey(userName, secretKey).map {
+            case SecretKeyUpdated => token
+            case other            => other
           }
-        })
-        enqueueCallback(cbw)
-      case Success(e) =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = new V8Object(runtime)
-            e match {
-              case TokenInvalid =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "Token is invalid!")
-              case Denied =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "User is not allowed to login!")
-              case DomainNotExists =>
-                v8Object.add("code", 404)
-                v8Object.add("message", "Domain is not exists!")
-              case UserNamePasswordError =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "Username or password error!")
-              case e =>
-                v8Object.add("code", 500)
-                v8Object.add("message", "System error!")
-            }
-            toBeReleased += v8Object
-            params.push(v8Object)
-            params.pushNull()
-          }
-        })
-        enqueueCallback(cbw)
-      case Failure(e) => failureCallback(cbw, e)
-    }
-  }
-
-  def isValidToken(receiver: V8Object, token: String, callback: V8Function) = {
-    val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? ValidateToken(domainId(rootDomain), token)).onComplete {
-      case Success(r) =>
+        } else Future.successful(UserNamePasswordError)
+      case DocumentNotFound => Future.successful(UserNotExists)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case token: String =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {
             params.pushNull()
-            params.push(r match {
-              case TokenValid   => true
-              case TokenInvalid => false
-            })
+            params.push(token)
           }
         })
         enqueueCallback(cbw)
-      case Failure(e) => failureCallback(cbw, e)
+      case other => failureCallback(cbw, other)
     }
   }
 
   def logout(receiver: V8Object, token: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? LogoutDomain(domainId(rootDomain), token)).onComplete {
-      case Success(r) =>
+    validateToken(token).flatMap {
+      case TokenValid(user) => clearSecretKey(user)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case SecretKeyCleared =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {
             params.pushNull()
-            params.push(r match {
-              case _: UserLoggedOut => true
-              case _                => false
-            })
+            params.push(true)
           }
         })
         enqueueCallback(cbw)
-      case Failure(e) => failureCallback(cbw, e)
+      case other => failureCallback(cbw, other)
     }
   }
 
   def createDomain(receiver: V8Object, domainName: String, token: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? CreateDomain(domainId(domainName), token, jsRaw)).onComplete {
-      case Success(dc: DomainCreated) =>
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? CreateDomain(domainId(domainName), user, jsRaw)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case dc: DomainCreated =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {
             val v8Object = toV8Object(dc.toJson.asJsObject, cbw.runtime)
@@ -253,95 +180,136 @@ object DomainWrapper extends V8SprayJson {
           }
         })
         enqueueCallback(cbw)
-      case Success(e) =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = new V8Object(runtime)
-            e match {
-              case TokenInvalid =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "Token is invalid!")
-              case Denied =>
-                v8Object.add("code", 401)
-                v8Object.add("message", "It's no permission to create domain!")
-              case DomainAlreadyExists =>
-                v8Object.add("code", 409)
-                v8Object.add("message", "Domain is already exists!")
-              case e =>
-                v8Object.add("code", 500)
-                v8Object.add("message", "System error!")
-            }
-            toBeReleased += v8Object
-            params.push(v8Object)
-            params.pushNull()
-          }
-        })
-        enqueueCallback(cbw)
-      case Failure(e) => failureCallback(cbw, e)
+      case other => failureCallback(cbw, other)
     }
   }
 
   def getDomain(receiver: V8Object, domainName: String, token: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? GetDomain(domainId(domainName), token)).onComplete {
-      case Success(d: Domain) =>
-
-      case Failure(e)         => failureCallback(cbw, e)
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? GetDomain(domainId(domainName), user)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case d: Domain =>
+        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+          def prepare(params: V8Array) = {
+            val v8Object = toV8Object(d.toJson.asJsObject, cbw.runtime)
+            toBeReleased += v8Object
+            params.pushNull()
+            params.push(v8Object)
+          }
+        })
+        enqueueCallback(cbw)
+      case other => failureCallback(cbw, other)
     }
   }
 
   def replaceDomain(receiver: V8Object, domainName: String, token: String, content: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? ReplaceDomain(domainId(domainName), token, toJsObject(content))).onComplete {
-      case Success(d: Domain) =>
-      case Failure(e)         => failureCallback(cbw, e)
+    val jsContent = toJsObject(content)
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? ReplaceDomain(domainId(domainName), user, jsContent)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case dr: DomainReplaced =>
+        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+          def prepare(params: V8Array) = {
+            val v8Object = toV8Object(dr.toJson.asJsObject, cbw.runtime)
+            toBeReleased += v8Object
+            params.pushNull()
+            params.push(v8Object)
+          }
+        })
+        enqueueCallback(cbw)
+      case other => failureCallback(cbw, other)
     }
   }
 
   def patchDomain(receiver: V8Object, domainName: String, token: String, v8Patch: V8Array, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? PatchDomain(domainId(domainName), token, JsonPatch(toJsArray(v8Patch)))).onComplete {
-      case Success(d: Domain) =>
-      case Failure(e)         => failureCallback(cbw, e)
+    val jsArray = toJsArray(v8Patch)
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? PatchDomain(domainId(domainName), user, JsonPatch(jsArray))
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case dp: DomainPatched =>
+        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+          def prepare(params: V8Array) = {
+            val v8Object = toV8Object(dp.toJson.asJsObject, cbw.runtime)
+            toBeReleased += v8Object
+            params.pushNull()
+            params.push(v8Object)
+          }
+        })
+        enqueueCallback(cbw)
+      case other => failureCallback(cbw, other)
     }
   }
 
   def deleteDomain(receiver: V8Object, domainName: String, token: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? DeleteDomain(domainId(domainName), token)).onComplete {
-      case Success(d: Domain) =>
-      case Failure(e)         => failureCallback(cbw, e)
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? DeleteDomain(domainId(domainName), user)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case d: Domain =>
+        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+          def prepare(params: V8Array) = {
+            val v8Object = toV8Object(d.toJson.asJsObject, cbw.runtime)
+            toBeReleased += v8Object
+            params.pushNull()
+            params.push(v8Object)
+          }
+        })
+        enqueueCallback(cbw)
+      case other => failureCallback(cbw, other)
     }
   }
 
   def authorizeDomain(receiver: V8Object, domainName: String, token: String, auth: V8Array, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
-    (domainRegion ? AuthorizeDomain(domainId(domainName), token, JsonPatch(toJsArray(auth)))).onComplete {
-      case Success(d: Domain) =>
-      case Failure(e)         => failureCallback(cbw, e)
+    val jsArray = toJsArray(auth)
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? AuthorizeDomain(domainId(domainName), user, JsonPatch(jsArray))
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case d: Domain =>
+        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+          def prepare(params: V8Array) = {
+            val v8Object = toV8Object(d.toJson.asJsObject, cbw.runtime)
+            toBeReleased += v8Object
+            params.pushNull()
+            params.push(v8Object)
+          }
+        })
+        enqueueCallback(cbw)
+      case other => failureCallback(cbw, other)
     }
   }
 
-  def documentSets(receiver: V8Object, domainName: String, token: String, callback: V8Function) = {
+  def collections(receiver: V8Object, domainName: String, token: String, callback: V8Function) = {
 
   }
 
-  def enqueueCallback(cbw: CallbackWrapper) = {
-    callbackQueue.synchronized { callbackQueue.enqueue(cbw) }
-    sigal.kill(processId)
+  def isValidToken(receiver: V8Object, token: String, callback: V8Function) = {
+    val cbw = CallbackWrapper(receiver, callback)
+    validateToken(token).recover { case e => e }.foreach {
+      case result: ValidateResult =>
+        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+          def prepare(params: V8Array) = {
+            params.pushNull()
+            params.push(result match {
+              case TokenValid(_) => true
+              case TokenInvalid  => false
+            })
+          }
+        })
+        enqueueCallback(cbw)
+      case other => failureCallback(cbw, other)
+    }
   }
+}
 
-  def failureCallback(cbw: CallbackWrapper, e: Throwable) = {
-    cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-      def prepare(params: V8Array) = {
-        val v8Object = new V8Object(runtime)
-        v8Object.add("code", 500)
-        v8Object.add("message", e.toString())
-        toBeReleased += v8Object
-        params.push(v8Object)
-        params.pushNull()
-      }
-    })
-    enqueueCallback(cbw)
-  }
+object DomainWrapper {
+  def apply(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) = new DomainWrapper(system, callbackQueue)
 }

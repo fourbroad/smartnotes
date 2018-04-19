@@ -21,11 +21,11 @@ trait APIStatusCodes {
   val documentDeleted = JsString("Document is deleted successfully!")
   val documentSoftDeleted = JsString("Document has been soft deleted!")
 
-  val documentSetNotFound = JsString("DocumentSet is not found!")
-  val documentSetAlreadyExists = JsString("DocumentSet already exists!")
-  val documentSetIsCreating = JsString("DocumentSet is creating!")
-  val documentSetDeleted = JsString("DocumentSet is deleted successfully!")
-  val documentSetSoftDeleted = JsString("DocumentSet has been soft deleted!")
+  val collectionNotFound = JsString("Collection is not found!")
+  val collectionAlreadyExists = JsString("Collection already exists!")
+  val collectionIsCreating = JsString("Collection is creating!")
+  val collectionDeleted = JsString("Collection is deleted successfully!")
+  val collectionSoftDeleted = JsString("Collection has been soft deleted!")
 
   val domainNotFound = JsString("Domain is not found!")
   val domainAlreadyExists = JsString("Domain already exists!")
@@ -54,19 +54,19 @@ trait APIStatusCodes {
   }
 
   import com.zxtx.actors.CollectionActor.JsonProtocol._
-  def documentSetStatus: Any => APIStatusCode = {
+  def collectionStatus: Any => APIStatusCode = {
     case CollectionCreated(_, _, _, _, raw)    => APIStatusCode(Created.intValue, Created.reason, raw)
     case CollectionReplaced(_, _, _, _, raw)   => APIStatusCode(OK.intValue, OK.reason, raw)
     case CollectionPatched(_, _, _, _, _, raw) => APIStatusCode(OK.intValue, OK.reason, raw)
-    case CollectionDeleted(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, documentSetDeleted)
-    case documentSet: Collection               => APIStatusCode(OK.intValue, OK.reason, documentSet.toJson)
-    case documentSets: JsObject                 => APIStatusCode(OK.intValue, OK.reason, documentSets)
+    case CollectionDeleted(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, collectionDeleted)
+    case collection: Collection               => APIStatusCode(OK.intValue, OK.reason, collection.toJson)
+    case collections: JsObject                 => APIStatusCode(OK.intValue, OK.reason, collections)
     case Denied                                 => APIStatusCode(Unauthorized.intValue, Unauthorized.reason, unauthorizedAccess)
     case GarbageCollectionCompleted             => APIStatusCode(OK.intValue, OK.reason, garbageCollectionCompleted)
-    case CollectionNotFound                    => APIStatusCode(NotFound.intValue, NotFound.reason, documentSetNotFound)
-    case CollectionAlreadyExists               => APIStatusCode(Conflict.intValue, Conflict.reason, documentSetAlreadyExists)
-    case CollectionIsCreating                  => APIStatusCode(Conflict.intValue, Conflict.reason, documentSetIsCreating)
-    case CollectionSoftDeleted                 => APIStatusCode(Conflict.intValue, Conflict.reason, documentSetSoftDeleted)
+    case CollectionNotFound                    => APIStatusCode(NotFound.intValue, NotFound.reason, collectionNotFound)
+    case CollectionAlreadyExists               => APIStatusCode(Conflict.intValue, Conflict.reason, collectionAlreadyExists)
+    case CollectionIsCreating                  => APIStatusCode(Conflict.intValue, Conflict.reason, collectionIsCreating)
+    case CollectionSoftDeleted                 => APIStatusCode(Conflict.intValue, Conflict.reason, collectionSoftDeleted)
     case PatchCollectionException(e)           => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
   }
 
@@ -81,7 +81,7 @@ trait APIStatusCodes {
     case domains: JsObject                    => APIStatusCode(OK.intValue, OK.reason, domains)
     case Denied                               => APIStatusCode(Unauthorized.intValue, Unauthorized.reason, unauthorizedAccess)
     case GarbageCollectionCompleted           => APIStatusCode(OK.intValue, OK.reason, garbageCollectionCompleted)
-    case DomainNotExists                      => APIStatusCode(NotFound.intValue, NotFound.reason, domainNotFound)
+    case DomainNotFound                      => APIStatusCode(NotFound.intValue, NotFound.reason, domainNotFound)
     case DomainAlreadyExists                  => APIStatusCode(Conflict.intValue, Conflict.reason, domainAlreadyExists)
     case DomainIsCreating                     => APIStatusCode(Conflict.intValue, Conflict.reason, domainIsCreating)
     case DomainSoftDeleted                    => APIStatusCode(Conflict.intValue, Conflict.reason, domainSoftDeleted)

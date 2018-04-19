@@ -45,7 +45,7 @@ class RootDomainAPISpec extends AsyncFlatSpec with Matchers {
   }
 
   it should "create a document set with content" in {
-    apiClient.post(uri = "http://localhost:8080/document_set2", headers = List(Cookie(adminCookies)), entity = """{"name":"documentSet"}""").map {
+    apiClient.post(uri = "http://localhost:8080/document_set2", headers = List(Cookie(adminCookies)), entity = """{"name":"collection"}""").map {
       case (code, _, jv) =>
         assert(code == StatusCodes.Created)
         assert("document_set2" == jv.asJsObject.fields("result").asJsObject.fields("id").asInstanceOf[JsString].value)
