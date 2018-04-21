@@ -42,7 +42,7 @@ domainProto = {
 	collectionWrapper.getCollection(domainName, collectionName, token, function(err, collectionData){
 	  if(err) return callback(err);
 	  Collection.newCollection(domainName, collectionName, token, function(err2, collection){
-		callback(err2, extend(true, collection, collectionData));  
+		callback(err2, extend(true, collection, collectionData, {collectionWrapper: collectionWrapper}));  
 	  });
 	});
   },
@@ -64,6 +64,11 @@ domainProto = {
   authorizeCollection: function(collectionName, acl, callback){
 	collectionWrapper.authorizeCollection(this.name, collectionName, this.token, acl, function(err, result){
 	  callback(err, result);	  
+	});
+  },
+  listCollections: function(callback){
+	this.domainWrapper.listCollections(this.name, this.token, function(err, collections){
+	  callback(err, collections);	  
 	});
   }
 };

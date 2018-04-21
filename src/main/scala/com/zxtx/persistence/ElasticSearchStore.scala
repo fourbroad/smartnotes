@@ -56,10 +56,7 @@ class ElasticSearchStore(system: ActorSystem) {
   def indices(pattern: String): Future[(StatusCode, JsValue)] = get(s"${host}/${pattern}")
   def deleteIndices(pattern: String): Future[(StatusCode, JsValue)] = delete(s"${host}/${pattern}")
 
-  def search(index: String, parameterSeq: Seq[(String, String)], entity: RequestEntity): Future[(StatusCode, JsValue)] = {
-    val params = parameterSeq.map { case (k, v) => s"$k=$v" }.mkString("&")
-    get(s"${host}/${index}/_search?$params", entity)
-  }
+  def search(index: String, entity: RequestEntity): Future[(StatusCode, JsValue)] = get(s"${host}/${index}/_search", entity)
 
   def deleteByQuery(index: String, parameterSeq: Seq[(String, String)], entity: RequestEntity): Future[(StatusCode, JsValue)] = {
     val params = parameterSeq.map { case (k, v) => s"$k=$v" }.mkString("&")

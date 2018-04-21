@@ -65,7 +65,7 @@ object DomainActor {
   case class PatchDomain(pid: String, user: String, patch: JsonPatch) extends Command
   case class DeleteDomain(pid: String, user: String) extends Command
   case class AuthorizeDomain(pid: String, user: String, patch: JsonPatch) extends Command
-  case class FindCollections(pid: String, user: String, params: Seq[(String, String)], body: JsObject) extends Command
+  case class ListCollections(pid: String, user: String) extends Command
   case class RegisterUser(pid: String, user: String, userName: String, password: String, userInfo: Option[JsObject] = None) extends Command
   case class JoinDomain(pid: String, user: String, userName: String, permission: Option[JsObject] = None) extends Command
   case class QuitDomain(pid: String, user: String, userName: String) extends Command
@@ -76,9 +76,9 @@ object DomainActor {
   private case class DoPatchDomain(user: String, patch: JsonPatch, request: Option[Any] = None)
   private case class DoAuthorizeDomain(user: String, patch: JsonPatch, request: Option[Any] = None)
   private case class DoDeleteDomain(user: String, request: Option[Any] = None)
-  private case class DoFindCollections(user: String, params: Seq[(String, String)], body: JsObject, request: Option[Any] = None)
+  private case class DoListCollections(user: String, request: Option[Any] = None)
   private case class DoRegisterUser(user: String, userName: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoJoinDomain(user: String, userName: String, request: Option[Any] = None)
+  private case class DoJoinDomain(user: String, userName: String, raw: JsObject, request: Option[Any] = None)
   private case class DoQuitDomain(user: String, userName: String, request: Option[Any] = None)
 
   case class DomainCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
@@ -96,7 +96,9 @@ object DomainActor {
   case object DomainSoftDeleted extends Exception
   case object UserAlreadyRegistered extends Exception
   case object UserAlreadyJoined extends Exception
+  case object UserAlreadyQuited extends Exception
   case object UserNotJoined extends Exception
+  case object UserProfileIsSoftDeleted extends Exception
   case object UserNamePasswordError extends Exception
   case class PatchDomainException(exception: Throwable) extends Exception
   case class AuthorizeDomainException(exception: Throwable) extends Exception
@@ -212,7 +214,7 @@ object DomainActor {
         val (id, author, revision, created, jo) = extractFields(value, "DomainQuited event expected!")
         DomainQuited(id, author, revision, created, jo)
       }
-    }    
+    }
   }
 
   private case class State(domain: Domain, deleted: Boolean) {
@@ -267,11 +269,11 @@ object DomainActor {
             "roles":["administrator"],
             "users":["${user}"]
         },
-        "create_document_set":{
+        "create_collection":{
             "roles":["administrator"],
             "users":["${user}"]
         },
-        "find_document_sets":{
+        "list_collections":{
             "roles":["administrator","user"],
             "users":["${user}"]
         },
@@ -399,8 +401,8 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         case djd: DoJoinDomain => self ! djd.copy(request = Some(replyTo))
         case other             => replyTo ! other
       }
-    case DoJoinDomain(user, userName, Some(replyTo: ActorRef)) =>
-      persist(DomainJoined(id, user, 0, System.currentTimeMillis, JsObject("name" -> JsString(userName)))) { evt =>
+    case DoJoinDomain(user, userName, raw, Some(replyTo: ActorRef)) =>
+      persist(DomainJoined(id, user, 0, System.currentTimeMillis, JsObject(raw.fields + ("name" -> JsString(userName))))) { evt =>
         replyTo ! evt
       }
     case QuitDomain(_, user, userName) =>
@@ -485,6 +487,12 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         deleteSnapshot(lastSequenceNr - 1)
         replyTo ! evt.copy(raw = d)
       }
+    case ListCollections(_, user) =>
+      val replyTo = sender
+      listCollections(user).foreach {
+        case DoListCollections(_, Some(collections)) => replyTo ! collections
+        case other                                   => replyTo ! other
+      }
     case SaveSnapshotSuccess(metadata)         =>
     case SaveSnapshotFailure(metadata, reason) =>
     case GarbageCollection(_, user, _) =>
@@ -559,8 +567,10 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         case None     => JsObject("roles" -> JsArray(JsString("user")))
       }
       (documentRegion ? CreateDocument(DocumentActor.persistenceId(id, "profiles", userName), user, profile)).map {
-        case _: DocumentCreated    => DoJoinDomain(user, userName)
-        case DocumentAlreadyExists => UserAlreadyJoined
+        case DocumentCreated(_, _, _, _, raw) => DoJoinDomain(user, userName, raw)
+        case DocumentAlreadyExists            => UserAlreadyJoined
+        case DocumentSoftDeleted              => UserProfileIsSoftDeleted
+        case other                            => other
       }
     case Denied => Future.successful(Denied)
   }.recover { case e => e }
@@ -568,8 +578,10 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
   private def quitDomain(user: String, userName: String) = checkPermission(user, QuitDomain).flatMap {
     case Granted =>
       (documentRegion ? DeleteDocument(DocumentActor.persistenceId(id, "profiles", userName), user)).map {
-        case _: DocumentDeleted => DoQuitDomain(user, userName)
-        case other              => other
+        case _: DocumentDeleted  => DoQuitDomain(user, userName)
+        case DocumentSoftDeleted => UserAlreadyQuited
+        case DocumentNotFound    => UserNotJoined
+        case other               => other
       }
     case Denied => Future.successful(Denied)
   }.recover { case e => e }
@@ -592,7 +604,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
 
   private def deleteDomain(user: String) = checkPermission(user, DeleteDomain).flatMap {
     case Granted =>
-      val source = Source.fromFuture(collectionRegion ? FindDocuments(CollectionActor.persistenceId(id, ".collection"), user, Seq[(String, String)](), JsObject()))
+      val source = Source.fromFuture(collectionRegion ? FindDocuments(CollectionActor.persistenceId(id, ".collection"), user, JsObject()))
         .mapConcat(extractElements).filter { t => !t._2 }.mapAsync(1) { t =>
           collectionRegion ? DeleteCollection(s"${id}~.collections~${t._1}", user)
         }.map { case _: CollectionDeleted => Done }
@@ -601,7 +613,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         case `rootDomain` =>
           val domainRegion = ClusterSharding(system).shardRegion(DomainActor.shardName)
           for {
-            r1 <- Source.fromFuture(collectionRegion ? FindDocuments(CollectionActor.persistenceId(rootDomain, ".domains"), user, Seq[(String, String)](), JsObject()))
+            r1 <- Source.fromFuture(collectionRegion ? FindDocuments(CollectionActor.persistenceId(rootDomain, ".domains"), user, JsObject()))
               .mapConcat(extractElements).filter {
                 case (`rootDomain`, _) => false
                 case (_, false)        => true
@@ -633,11 +645,20 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     case Denied => Denied
   }.recover { case e => e }
 
+  private def listCollections(user: String) = checkPermission(user, ListCollections).flatMap {
+    case Granted =>
+      (collectionRegion ? FindDocuments(CollectionActor.persistenceId(id, ".collections"), user, JsObject())).map {
+        case jo: JsObject => DoListCollections(user, Some(jo))
+        case jv: JsValue  => throw new RuntimeException(jv.compactPrint)
+      }
+    case Denied => Future.successful(Denied)
+  }
+
   private def garbageCollection(user: String) = checkPermission(user, GarbageCollection).flatMap {
     case Granted =>
       Thread.sleep(1000) // Bugfix: delay for deleting document in ElasticSearch.
 
-      val source = Source.fromFuture(collectionRegion ? FindDocuments(s"${id}~.collections~.collections", user, Seq[(String, String)](), JsObject()))
+      val source = Source.fromFuture(collectionRegion ? FindDocuments(s"${id}~.collections~.collections", user, JsObject()))
         .mapConcat(extractElements).mapAsync(1) {
           case (dsId: String, true)  => store.deleteIndices(s"${id}~${dsId}*")
           case (dsId: String, false) => collectionRegion ? GarbageCollection(s"${id}~.collections~${dsId}", user)
@@ -649,7 +670,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
       id match {
         case `rootDomain` =>
           for {
-            r1 <- Source.fromFuture(collectionRegion ? FindDocuments(s"${rootDomain}~.collections~.domains", user, Seq[(String, String)](), JsObject()))
+            r1 <- Source.fromFuture(collectionRegion ? FindDocuments(s"${rootDomain}~.collections~.domains", user, JsObject()))
               .mapConcat(extractElements).filter { t =>
                 t._1 != rootDomain
               }.mapAsync(1) {
@@ -684,7 +705,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         case JoinDomain        => (aclValue(aclObj, "join_domain", "roles"), aclValue(aclObj, "join_domain", "groups"), aclValue(aclObj, "join_domain", "users"))
         case QuitDomain        => (aclValue(aclObj, "quit_domain", "roles"), aclValue(aclObj, "quit_domain", "groups"), aclValue(aclObj, "quit_domain", "users"))
         case CreateCollection  => (aclValue(aclObj, "create_document_set", "roles"), aclValue(aclObj, "create_document_set", "groups"), aclValue(aclObj, "create_document_set", "users"))
-        case FindCollections   => (aclValue(aclObj, "find_document_sets", "roles"), aclValue(aclObj, "find_document_sets", "groups"), aclValue(aclObj, "find_document_sets", "users"))
+        case ListCollections   => (aclValue(aclObj, "list_collections", "roles"), aclValue(aclObj, "list_collections", "groups"), aclValue(aclObj, "list_collections", "users"))
         case GarbageCollection => (aclValue(aclObj, "gc", "roles"), aclValue(aclObj, "gc", "groups"), aclValue(aclObj, "gc", "users"))
         case _                 => (Vector[String](), Vector[String](), Vector[String]())
       }

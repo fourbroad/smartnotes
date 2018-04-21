@@ -59,7 +59,7 @@ clientProto = {
 	domainWrapper.getDomain(domainName, token, function(err, domainData){
 	  if(err) return callback(err);
 	  Domain.newDomain(domainName, token, function(err2, domain){
-		callback(err2, extend(true, domain, domainData));
+		callback(err2, extend(true, domain, domainData, {domainWrapper: domainWrapper}));
 	  });
 	});
   },
@@ -80,6 +80,11 @@ clientProto = {
   },
   authorizeDomain: function(domainName, acl, callback){
 	domainWrapper.authorizeDomain(domainName, this.token, acl, function(err, result){
+	  callback(err, result);	  
+	});
+  },
+  garbageCollection: function(domainName, callback){
+	domainWrapper.garbageCollection(domainName, this.token, function(err, result){
 	  callback(err, result);	  
 	});
   }

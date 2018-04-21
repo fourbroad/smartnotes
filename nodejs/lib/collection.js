@@ -26,33 +26,38 @@ var
 
 collectionProto = {
   createDocument: function(docId, callback){
-	documentWrapper.createDocument(this.name, docId, this.token, function(err, collection){
-	  callback(err, collection);	  
+	documentWrapper.createDocument(this.domainName, this.name, docId, this.token, function(err, document){
+	  callback(err, document);	  
 	});
   },
   getDocument: function(docId, callback){
-	documentWrapper.getDocument(this.name, docId, this.token, function(err, collection){
-	  callback(err, collection);	  
+	documentWrapper.getDocument(this.domainName, this.name, docId, this.token, function(err, document){
+	  callback(err, document);	  
 	});
   },
   replaceDocument: function(docId, content, callback){
-	documentWrapper.replaceDocument(this.name, docId, this.token, content, function(err, collection){
-	  callback(err, collection);	  
+	documentWrapper.replaceDocument(this.domainName, this.name, docId, this.token, content, function(err, document){
+	  callback(err, document);	  
 	});
   },
   patchDocument: function(docId, patch, callback){
-	documentWrapper.patchDocument(this.name, docId, this.token, patch, function(err, collection){
-	  callback(err, collection);	  
+	documentWrapper.patchDocument(this.domainName, this.name, docId, this.token, patch, function(err, document){
+	  callback(err, document);	  
 	});
   },
   deleteDocument: function(docId, callback){
-	documentWrapper.deleteDocument(this.name, docId, this.token, function(err, result){
+	documentWrapper.deleteDocument(this.domainName, this.name, docId, this.token, function(err, result){
 	  callback(err, result);	  
 	});
   },
   authorizeDocument: function(docId, acl, callback){
-	documentWrapper.authorizeDocument(this.name, docId, this.token, acl, function(err, result){
+	documentWrapper.authorizeDocument(this.domainName, this.name, docId, this.token, acl, function(err, result){
 	  callback(err, result);	  
+	});
+  },
+  findDocuments: function(query, callback){
+	  this.collectionWrapper.findDocuments(this.domainName, this.name, this.token, query, function(err,result){
+	  callback(err, result);
 	});
   }
 };

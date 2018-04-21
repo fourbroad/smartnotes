@@ -57,14 +57,14 @@ object CollectionActor {
   case class ReplaceCollection(pid: String, user: String, raw: JsObject) extends Command
   case class PatchCollection(pid: String, user: String, patch: JsonPatch) extends Command
   case class DeleteCollection(pid: String, user: String) extends Command
-  case class FindDocuments(pid: String, user: String, params: Seq[(String, String)], body: JsObject) extends Command
+  case class FindDocuments(pid: String, user: String, query: JsObject) extends Command
   case class GarbageCollection(pid: String, user: String, request: Option[Any] = None) extends Command
 
   case class CollectionCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class CollectionReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class CollectionPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends DocumentEvent
   case class CollectionDeleted(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
-  object GarbageCollectionCompleted extends DocumentEvent
+  case object GarbageCollectionCompleted extends DocumentEvent
 
   case object CollectionNotFound extends Exception
   case object CollectionAlreadyExists extends Exception
@@ -83,7 +83,7 @@ object CollectionActor {
   private case class DoReplaceCollection(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoPatchCollection(user: String, patch: JsonPatch, request: Option[Any] = None)
   private case class DoDeleteCollection(user: String, request: Option[Any] = None)
-  private case class DoFindDocuments(user: String, params: Seq[(String, String)], body: JsObject, request: Option[Any] = None)
+  private case class DoFindDocuments(user: String, query: JsObject, request: Option[Any] = None)
   private case class DoGarbageCollection(user: String, request: Option[Any] = None)
   private case class ClearCacheSuccess(user: String, request: Option[Any] = None)
   private case class InitializeIndices(user: String, raw: JsObject, request: Option[Any] = None)
@@ -408,16 +408,16 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       }
     case SaveSnapshotSuccess(metadata)         =>
     case SaveSnapshotFailure(metadata, reason) =>
-    case FindDocuments(_, user, params, body) =>
+    case FindDocuments(_, user, query) =>
       val replyTo = sender
-      findDocuments(user, params, body).foreach {
-        case DoFindDocuments(_, _, _, Some(result)) => self ! result
-        case other                                  => replyTo ! other
+      findDocuments(user, query).foreach {
+        case DoFindDocuments(_, _, Some(result)) => replyTo ! result
+        case other                               => replyTo ! other
       }
     case GarbageCollection(_, user, _) =>
       val replyTo = sender
       garbageCollection(user).foreach {
-        case dgc: DoGarbageCollection => self ! GarbageCollectionCompleted
+        case dgc: DoGarbageCollection => replyTo ! GarbageCollectionCompleted
         case other                    => replyTo ! other
       }
     case CheckPermission(_, user, command) =>
@@ -514,16 +514,16 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
     case other => other
   }.recover { case e => e }
 
-  private def findDocuments(user: String, params: Seq[(String, String)], body: JsObject) = checkPermission(user, FindDocuments).map {
+  private def findDocuments(user: String, query: JsObject) = checkPermission(user, FindDocuments).flatMap {
     case Granted =>
-      store.search(s"${domain}~${id}~all~snapshots", params, body.compactPrint).foreach {
+      store.search(s"${domain}~${id}~all~snapshots", query.compactPrint).map {
         case (StatusCodes.OK, jo: JsObject) =>
           val fields = jo.fields
           val hitsFields = jo.fields("hits").asJsObject.fields
-          DoFindDocuments(user, params, body, Some(JsObject(hitsFields + ("_metadata" -> JsObject((fields - "hits"))))))
+          DoFindDocuments(user, query, Some(JsObject(hitsFields + ("_metadata" -> JsObject((fields - "hits"))))))
         case (code, jv) => throw new RuntimeException(s"Find documents error: $jv")
       }
-    case other => other
+    case other => Future.successful(other)
   }.recover { case e => e }
 
   private def garbageCollection(user: String) = checkPermission(user, GarbageCollection).flatMap {

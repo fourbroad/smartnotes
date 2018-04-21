@@ -231,7 +231,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     parameterSeq { params =>
       entity(as[String]) { c =>
         val body = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-        onCompleteJson((collectionRegion ? FindDocuments(s"${domain}~.collections~${collection}", user, params, body)).map(collectionStatus))
+        onCompleteJson((collectionRegion ? FindDocuments(s"${domain}~.collections~${collection}", user, body)).map(collectionStatus))
       }
     }
   }
@@ -374,7 +374,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
       parameterSeq { params =>
         entity(as[String]) { c =>
           val body = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-          onCompleteJson((collectionRegion ? FindDocuments(s"${domain}~.collections~.collections", user, params, body)).map(collectionStatus))
+          onCompleteJson((collectionRegion ? FindDocuments(s"${domain}~.collections~.collections", user, body)).map(collectionStatus))
         }
       }
     }
@@ -414,7 +414,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
         parameterSeq { params =>
           entity(as[String]) { c =>
             val body = if (c.isEmpty) JsObject() else c.parseJson.asJsObject
-            onCompleteJson((collectionRegion ? FindDocuments(s"${rootDomain}~.collections~.domains", user, params, body)).map(collectionStatus))
+            onCompleteJson((collectionRegion ? FindDocuments(s"${rootDomain}~.collections~.domains", user, body)).map(collectionStatus))
           }
         }
       }

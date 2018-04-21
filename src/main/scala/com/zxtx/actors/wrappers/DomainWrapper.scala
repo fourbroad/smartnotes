@@ -10,6 +10,8 @@ import com.eclipsesource.v8.V8Function
 import com.eclipsesource.v8.V8Object
 import com.zxtx.actors.ACL._
 import com.zxtx.actors.DocumentActor
+import com.zxtx.actors.DocumentActor._
+import com.zxtx.actors.CollectionActor._
 import com.zxtx.actors.DomainActor
 import com.zxtx.actors.DomainActor._
 import com.zxtx.actors.DomainActor.JsonProtocol._
@@ -28,7 +30,6 @@ import pdi.jwt._
 class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) extends Wrapper(system, callbackQueue) with V8SprayJson {
   import Wrapper._
   import CallbackWrapper._
-  import DocumentActor._
 
   val domainRegion: ActorRef = ClusterSharding(system).shardRegion(DomainActor.shardName)
   val documentRegion: ActorRef = ClusterSharding(system).shardRegion(DocumentActor.shardName)
@@ -53,6 +54,8 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     prototype.registerJavaMethod(this, "patchDomain", "patchDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "deleteDomain", "deleteDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "authorizeDomain", "authorizeDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "garbageCollection", "garbageCollection", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "listCollections", "listCollections", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
 
     dw.setPrototype(prototype)
     prototype.release
@@ -87,11 +90,13 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
       case TokenValid(user) => domainRegion ? JoinDomain(domainId(domainName), user, userName, Some(jsObj))
       case other            => Future.successful(other)
     }.recover { case e => e }.foreach {
-      case _: DomainJoined =>
+      case dj: DomainJoined =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {
+            val v8Object = toV8Object(dj.raw, cbw.runtime)
+            toBeReleased += v8Object
             params.pushNull()
-            params.push(true)
+            params.push(v8Object)
           }
         })
         enqueueCallback(cbw)
@@ -286,9 +291,43 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
       case other => failureCallback(cbw, other)
     }
   }
+  
+  def garbageCollection(receiver:V8Object, domainName: String, token: String, callback: V8Function) = {
+    val cbw = CallbackWrapper(receiver, callback)
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? GarbageCollection(domainId(domainName), user)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case GarbageCollectionCompleted =>
+        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+          def prepare(params: V8Array) = {
+            params.pushNull()
+            params.push(true)
+          }
+        })
+        enqueueCallback(cbw)
+      case other => failureCallback(cbw, other)
+    }
+  }
 
-  def collections(receiver: V8Object, domainName: String, token: String, callback: V8Function) = {
-
+  def listCollections(receiver: V8Object, domainName: String, token: String, callback: V8Function) = {
+    val cbw = CallbackWrapper(receiver, callback)
+    validateToken(token).flatMap {
+      case TokenValid(user) => domainRegion ? ListCollections(domainId(domainName), user)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case ja:JsObject =>
+        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+          def prepare(params: V8Array) = {
+            val v8Array = toV8Object(ja, cbw.runtime)
+            toBeReleased += v8Array
+            params.pushNull()
+            params.push(v8Array)
+          }
+        })
+        enqueueCallback(cbw)
+      case other => failureCallback(cbw, other)
+    }
   }
 
   def isValidToken(receiver: V8Object, token: String, callback: V8Function) = {

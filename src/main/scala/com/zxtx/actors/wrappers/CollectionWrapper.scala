@@ -42,6 +42,7 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
     prototype.registerJavaMethod(this, "replaceCollection", "replaceCollection", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "patchCollection", "patchCollection", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "deleteCollection", "deleteCollection", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "findDocuments", "findDocuments", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     dw.setPrototype(prototype)
     prototype.release
     dw.release
@@ -140,6 +141,27 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {
             val v8Object = toV8Object(c.toJson.asJsObject, cbw.runtime)
+            toBeReleased += v8Object
+            params.pushNull()
+            params.push(v8Object)
+          }
+        })
+        enqueueCallback(cbw)
+      case other => failureCallback(cbw, other)
+    }
+  }
+
+  def findDocuments(receiver: V8Object, domainName: String, collectionName: String, token: String, query: V8Object, callback: V8Function) = {
+    val cbw = CallbackWrapper(receiver, callback)
+    val jsQuery = toJsObject(query)
+    validateToken(token).flatMap {
+      case TokenValid(user) => collectionRegion ? FindDocuments(collectionId(domainName, collectionName), user, jsQuery)
+      case other            => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case jo: JsObject =>
+        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+          def prepare(params: V8Array) = {
+            val v8Object = toV8Object(jo, cbw.runtime)
             toBeReleased += v8Object
             params.pushNull()
             params.push(v8Object)

@@ -339,13 +339,15 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
       val parent = context.parent
       getDocument(user).foreach {
         case dgd: DoGetDocument =>
-          self ! state.document
+          replyTo ! state.document
           parent ! Passivate(stopMessage = PoisonPill)
         case other =>
           replyTo ! other
           parent ! Passivate(stopMessage = PoisonPill)
       }
-    case _: Command => sender ! DocumentSoftDeleted
+    case _: Command => 
+      sender ! DocumentSoftDeleted
+      context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   override def unhandled(msg: Any): Unit = msg match {
@@ -398,7 +400,7 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
       val search = raw.fields("search")
       val hb = Handlebars(search.prettyPrint)
       val jo = JsObject(params.map(t => (t._1, JsString(t._2))): _*)
-      store.search(s"${domainId}~${collection}~all~snapshots", params, hb(jo)).map {
+      store.search(s"${domainId}~${collection}~all~snapshots", hb(jo)).map {
         case (StatusCodes.OK, jo: JsObject) =>
           val fields = jo.fields
           val hitsFields = jo.fields("hits").asJsObject.fields

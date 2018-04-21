@@ -145,10 +145,16 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
             v8Object.add("message", "User already registered!")
           case UserAlreadyJoined =>
             v8Object.add("code", 401)
-            v8Object.add("message", "User is already joined!")
+            v8Object.add("message", "User already joined!")
           case UserNotJoined =>
             v8Object.add("code", 404)
-            v8Object.add("message", "User is not joined!")
+            v8Object.add("message", "User not joined!")
+          case UserAlreadyQuited =>
+            v8Object.add("code", 410)
+            v8Object.add("message", "User already quited!")
+          case UserProfileIsSoftDeleted =>
+            v8Object.add("code", 409)
+            v8Object.add("message", "User profile is soft deleted, please run garbage collection!")
           case UpdateSecretKeyError =>
             v8Object.add("code", 500)
             v8Object.add("message", "Update secret key error!")

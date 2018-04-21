@@ -58,9 +58,39 @@ app.get('/patchDomain', function (req, res) {
   });
 });
 
+app.get('/gc', function (req, res) {
+  client.garbageCollection('localhost',function(err, result){
+	res.send(err||result);
+  });
+});
+
+app.get('/listCollections', function (req, res) {
+  localhostDomain.listCollections(function(err, collections){
+	res.send(err||collections);
+  });
+});
+
 app.get('/getCollection', function (req, res) {
   localhostDomain.getCollection('profiles',function(err, collection){
 	res.send(err||collection);
+  });
+});
+
+app.get('/getDocument', function (req, res) {
+  localhostDomain.getCollection('profiles',function(err, collection){
+	if(err) return callback(err)
+	collection.getDocument("fourbroad", function(err2, doc){
+		res.send(err2||doc)
+	});
+  });
+});
+
+app.get('/findDocuments', function (req, res) {
+  localhostDomain.getCollection('profiles',function(err, collection){
+	if(err) return callback(err)
+	collection.findDocuments({}, function(err2, docs){
+	  res.send(err2||docs)
+	});
   });
 });
 
