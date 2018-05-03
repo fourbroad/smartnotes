@@ -28,6 +28,7 @@ import com.eclipsesource.v8.V8Array
 
 import com.zxtx.actors.DomainActor._
 import com.zxtx.actors.DocumentActor._
+import com.zxtx.actors.UserActor._
 import com.zxtx.actors.CollectionActor._
 import com.zxtx.actors.ACL._
 
@@ -143,6 +144,12 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
           case UserAlreadyRegistered =>
             v8Object.add("code", 409)
             v8Object.add("message", "User already registered!")
+          case UserNameNotExists =>
+            v8Object.add("code", 400)
+            v8Object.add("message", "User name not exists!")
+          case PasswordNotExists =>
+            v8Object.add("code", 400)
+            v8Object.add("message", "Password not exists!")
           case UserAlreadyJoined =>
             v8Object.add("code", 401)
             v8Object.add("message", "User already joined!")

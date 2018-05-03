@@ -1,28 +1,41 @@
 const
   notes = require('../lib/notes.js'),
-  assert = require('assert');
+  expect = require('chai').expect;
 
-process.on('SIGWINCH', () => {
+process.on('SIGWINCH', function(){
     asyncCallback();
 });
 
-var client;
-
-describe('#notes.js', () => {
-  describe('#login()', () => {
-	it('login() should return true', () => {
-	  notes.login("administrator","!QAZ)OKM", function(err, c){
-	    client = c
-	    console.log("========>"+c)
-	    assert.strictEqual(c, true);			
-	  });
-    });
+describe('#notes.js', function(){
+  var
+	client;
   
-    it('logout() should return true', () => {
-   	  client.logout(function(error, result){
-  	    assert.strictEqual(sum(1), 1);
-      });
+  before(function(done){
+    notes.login("administrator","!QAZ)OKM", function(err, c){
+      client = c;
+      done();
     });
-    
   });
+
+  it('getDomain() should return domain', function(done){
+    client.getDomain('localhost',function(err, domain){
+  	  expect(domain).to.be.an('object');
+      done();
+    });
+  });
+  
+  it('replaceDomain() should return domain', function(done){
+    client.replaceDomain('localhost',{hello:"world"},function(err, domain){
+   	  expect(domain).to.be.an('object');
+      done();
+	});
+  });
+
+  it('patchDomain() should return domain', function(done){
+    client.patchDomain('localhost',[{op:"add",path:"/hello2",value:"world2"}],function(err, domain){
+   	  expect(domain).to.be.an('object');
+      done();
+	});
+  });
+
 });

@@ -6,30 +6,43 @@ import spray.json.JsArray
 import spray.json.JsObject
 import spray.json.enrichAny
 
+import ACL._
+import ACL.JsonProtocol._
+import DocumentActor._
+import DocumentActor.JsonProtocol._
+import CollectionActor._
+import CollectionActor.JsonProtocol._
+import DomainActor._
+import DomainActor.JsonProtocol._
+import UserActor._
+import UserActor.JsonProtocol._
+
 class DocumentEventAdapter extends EventAdapter {
-  import DocumentActor._
-  import DocumentActor.JsonProtocol._
-  import CollectionActor._
-  import CollectionActor.JsonProtocol._
-  import DomainActor._
-  import DomainActor.JsonProtocol._
 
   final val MANIFEST_DOCUMENT_CREATED = classOf[DocumentCreated].getName
   final val MANIFEST_DOCUMENT_REPLACED = classOf[DocumentReplaced].getName
   final val MANIFEST_DOCUMENT_PATCHED = classOf[DocumentPatched].getName
   final val MANIFEST_DOCUMENT_DELETED = classOf[DocumentDeleted].getName
-  final val MANIFEST_DOCUMENT_SET_CREATED = classOf[CollectionCreated].getName
-  final val MANIFEST_DOCUMENT_SET_REPLACED = classOf[CollectionReplaced].getName
-  final val MANIFEST_DOCUMENT_SET_PATCHED = classOf[CollectionPatched].getName
-  final val MANIFEST_DOCUMENT_SET_DELETED = classOf[CollectionDeleted].getName
+
+  final val MANIFEST_COLLECTION_CREATED = classOf[CollectionCreated].getName
+  final val MANIFEST_COLLECTION_REPLACED = classOf[CollectionReplaced].getName
+  final val MANIFEST_COLLECTION_PATCHED = classOf[CollectionPatched].getName
+  final val MANIFEST_COLLECTION_DELETED = classOf[CollectionDeleted].getName
+
   final val MANIFEST_DOMAIN_CREATED = classOf[DomainCreated].getName
   final val MANIFEST_DOMAIN_REPLACED = classOf[DomainReplaced].getName
   final val MANIFEST_DOMAIN_PATCHED = classOf[DomainPatched].getName
-  final val MANIFEST_DOMAIN_AUTHORIZED = classOf[DomainAuthorized].getName
   final val MANIFEST_DOMAIN_DELETED = classOf[DomainDeleted].getName
-  final val MANIFEST_DOMAIN_USER_REGISTERED = classOf[UserRegistered].getName
   final val MANIFEST_DOMAIN_JOINED = classOf[DomainJoined].getName
   final val MANIFEST_DOMAIN_QUITED = classOf[DomainQuited].getName
+
+  final val MANIFEST_USER_CREATED = classOf[UserCreated].getName
+  final val MANIFEST_USER_REPLACED = classOf[UserReplaced].getName
+  final val MANIFEST_USER_PATCHED = classOf[UserPatched].getName
+  final val MANIFEST_USER_DELETED = classOf[UserDeleted].getName
+  final val MANIFEST_PASSWORD_RESETED = classOf[PasswordReseted].getName
+
+  final val MANIFEST_ACL_SET = classOf[ACLSet].getName
 
   /**
    * Return the manifest (type hint) that will be provided in the `fromJournal` method.
@@ -62,11 +75,15 @@ class DocumentEventAdapter extends EventAdapter {
     case dc: DomainCreated       => dc.toJson
     case dr: DomainReplaced      => dr.toJson
     case dp: DomainPatched       => dp.toJson
-    case da: DomainAuthorized    => da.toJson
     case dd: DomainDeleted       => dd.toJson
-    case ur: UserRegistered      => ur.toJson
     case dj: DomainJoined        => dj.toJson
     case dq: DomainQuited        => dq.toJson
+    case uc: UserCreated         => uc.toJson
+    case ur: UserReplaced        => ur.toJson
+    case up: UserPatched         => up.toJson
+    case ud: UserDeleted         => ud.toJson
+    case pr: PasswordReseted     => pr.toJson
+    case as: ACLSet              => as.toJson
     case _                       => event
   }
 
@@ -84,24 +101,28 @@ class DocumentEventAdapter extends EventAdapter {
    * @return sequence containing the adapted events (possibly zero) which will be delivered to the PersistentActor
    */
   def fromJournal(event: Any, manifest: String): EventSeq = manifest match {
-    case MANIFEST_DOCUMENT_CREATED       => convertTo(event)(_.convertTo[DocumentCreated])
-    case MANIFEST_DOCUMENT_REPLACED      => convertTo(event)(_.convertTo[DocumentReplaced])
-    case MANIFEST_DOCUMENT_PATCHED       => convertTo(event)(_.convertTo[DocumentPatched])
-    case MANIFEST_DOCUMENT_DELETED       => convertTo(event)(_.convertTo[DocumentDeleted])
-    case MANIFEST_DOCUMENT_SET_CREATED   => convertTo(event)(_.convertTo[CollectionCreated])
-    case MANIFEST_DOCUMENT_SET_REPLACED  => convertTo(event)(_.convertTo[CollectionReplaced])
-    case MANIFEST_DOCUMENT_SET_PATCHED   => convertTo(event)(_.convertTo[CollectionPatched])
-    case MANIFEST_DOCUMENT_SET_DELETED   => convertTo(event)(_.convertTo[CollectionDeleted])
-    case MANIFEST_DOMAIN_CREATED         => convertTo(event)(_.convertTo[DomainCreated])
-    case MANIFEST_DOMAIN_REPLACED        => convertTo(event)(_.convertTo[DomainReplaced])
-    case MANIFEST_DOMAIN_PATCHED         => convertTo(event)(_.convertTo[DomainPatched])
-    case MANIFEST_DOMAIN_AUTHORIZED      => convertTo(event)(_.convertTo[DomainAuthorized])
-    case MANIFEST_DOMAIN_DELETED         => convertTo(event)(_.convertTo[DomainDeleted])
-    case MANIFEST_DOMAIN_USER_REGISTERED => convertTo(event)(_.convertTo[UserRegistered])
-    case MANIFEST_DOMAIN_JOINED          => convertTo(event)(_.convertTo[DomainJoined])
-    case MANIFEST_DOMAIN_QUITED          => convertTo(event)(_.convertTo[DomainQuited])
+    case MANIFEST_DOCUMENT_CREATED    => convertTo(event)(_.convertTo[DocumentCreated])
+    case MANIFEST_DOCUMENT_REPLACED   => convertTo(event)(_.convertTo[DocumentReplaced])
+    case MANIFEST_DOCUMENT_PATCHED    => convertTo(event)(_.convertTo[DocumentPatched])
+    case MANIFEST_DOCUMENT_DELETED    => convertTo(event)(_.convertTo[DocumentDeleted])
+    case MANIFEST_COLLECTION_CREATED  => convertTo(event)(_.convertTo[CollectionCreated])
+    case MANIFEST_COLLECTION_REPLACED => convertTo(event)(_.convertTo[CollectionReplaced])
+    case MANIFEST_COLLECTION_PATCHED  => convertTo(event)(_.convertTo[CollectionPatched])
+    case MANIFEST_COLLECTION_DELETED  => convertTo(event)(_.convertTo[CollectionDeleted])
+    case MANIFEST_DOMAIN_CREATED      => convertTo(event)(_.convertTo[DomainCreated])
+    case MANIFEST_DOMAIN_REPLACED     => convertTo(event)(_.convertTo[DomainReplaced])
+    case MANIFEST_DOMAIN_PATCHED      => convertTo(event)(_.convertTo[DomainPatched])
+    case MANIFEST_DOMAIN_DELETED      => convertTo(event)(_.convertTo[DomainDeleted])
+    case MANIFEST_DOMAIN_JOINED       => convertTo(event)(_.convertTo[DomainJoined])
+    case MANIFEST_DOMAIN_QUITED       => convertTo(event)(_.convertTo[DomainQuited])
+    case MANIFEST_USER_CREATED        => convertTo(event)(_.convertTo[UserCreated])
+    case MANIFEST_USER_REPLACED       => convertTo(event)(_.convertTo[UserReplaced])
+    case MANIFEST_USER_PATCHED        => convertTo(event)(_.convertTo[UserPatched])
+    case MANIFEST_USER_DELETED        => convertTo(event)(_.convertTo[UserDeleted])
+    case MANIFEST_PASSWORD_RESETED    => convertTo(event)(_.convertTo[PasswordReseted])
+    case MANIFEST_ACL_SET             => convertTo(event)(_.convertTo[ACLSet])
 
-    case _                               => throw new IllegalArgumentException(s"Unable to handle manifest $manifest!")
+    case _                            => throw new IllegalArgumentException(s"Unable to handle manifest $manifest!")
   }
 
   private def convertTo(event: Any)(converter: (JsObject) => DocumentEvent): EventSeq = event match {

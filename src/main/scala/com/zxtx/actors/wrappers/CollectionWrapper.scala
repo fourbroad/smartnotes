@@ -48,7 +48,7 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
     dw.release
   }
 
-  def createCollection(receiver: V8Object, domainName: String, collectionName: String, token: String, v8Raw: V8Object, callback: V8Function) = {
+  def createCollection(receiver: V8Object, token: String, domainName: String, collectionName: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
@@ -69,7 +69,7 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
     }
   }
 
-  def getCollection(receiver: V8Object, domainName: String, collectionName: String, token: String, callback: V8Function) = {
+  def getCollection(receiver: V8Object, token: String, domainName: String, collectionName: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => collectionRegion ? GetCollection(collectionId(domainName, collectionName), user, "/")
@@ -89,7 +89,7 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
     }
   }
 
-  def replaceCollection(receiver: V8Object, domainName: String, collectionName: String, token: String, content: V8Object, callback: V8Function) = {
+  def replaceCollection(receiver: V8Object, token: String, domainName: String, collectionName: String, content: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsContent = toJsObject(content)
     validateToken(token).flatMap {
@@ -110,7 +110,7 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
     }
   }
 
-  def patchCollection(receiver: V8Object, domainName: String, collectionName: String, token: String, v8Patch: V8Array, callback: V8Function) = {
+  def patchCollection(receiver: V8Object, token: String, domainName: String, collectionName: String, v8Patch: V8Array, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsArray = toJsArray(v8Patch)
     validateToken(token).flatMap {
@@ -131,7 +131,7 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
     }
   }
 
-  def deleteCollection(receiver: V8Object, domainName: String, collectionName: String, token: String, callback: V8Function) = {
+  def deleteCollection(receiver: V8Object, token: String, domainName: String, collectionName: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => collectionRegion ? DeleteCollection(collectionId(domainName, collectionName), user)
@@ -151,7 +151,7 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
     }
   }
 
-  def findDocuments(receiver: V8Object, domainName: String, collectionName: String, token: String, query: V8Object, callback: V8Function) = {
+  def findDocuments(receiver: V8Object, token: String, domainName: String, collectionName: String, query: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsQuery = toJsObject(query)
     validateToken(token).flatMap {

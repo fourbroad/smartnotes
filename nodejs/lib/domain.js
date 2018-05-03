@@ -30,7 +30,7 @@ var
 
 domainProto = {
   createCollection: function(collectionName, callback){
-	collectionWrapper.createCollection(this.name, collectionName, this.token, function(err, collection){
+	collectionWrapper.createCollection(this.token, this.name, collectionName, function(err, collection){
 	  callback(err, collection);	  
 	});
   },
@@ -39,35 +39,35 @@ domainProto = {
 	  domainName = this.name,
 	  token = this.token;
 
-	collectionWrapper.getCollection(domainName, collectionName, token, function(err, collectionData){
+	collectionWrapper.getCollection(token, domainName, collectionName, function(err, collectionData){
 	  if(err) return callback(err);
-	  Collection.newCollection(domainName, collectionName, token, function(err2, collection){
+	  Collection.newCollection(token, domainName, collectionName, function(err2, collection){
 		callback(err2, extend(true, collection, collectionData, {collectionWrapper: collectionWrapper}));  
 	  });
 	});
   },
   replaceCollection: function(collectionName, content, callback){
-	collectionWrapper.replaceCollection(this.name, collectionName, this.token, content, function(err, collection){
+	collectionWrapper.replaceCollection(this.token, this.name, collectionName, content, function(err, collection){
 	  callback(err, collection);	  
 	});
   },
   patchCollection: function(collectionName, patch, callback){
-	collectionWrapper.patchCollection(this.name, collectionName, this.token, patch, function(err, collection){
+	collectionWrapper.patchCollection(this.token, this.name, collectionName, patch, function(err, collection){
 	  callback(err, collection);	  
 	});
   },
   deleteCollection: function(collectionName, callback){
-	collectionWrapper.deleteCollection(this.name, collectionName, this.token, function(err, result){
+	collectionWrapper.deleteCollection(this.token, this.name, collectionName, function(err, result){
 	  callback(err, result);	  
 	});
   },
   authorizeCollection: function(collectionName, acl, callback){
-	collectionWrapper.authorizeCollection(this.name, collectionName, this.token, acl, function(err, result){
+	collectionWrapper.authorizeCollection(this.token, this.name, collectionName, acl, function(err, result){
 	  callback(err, result);	  
 	});
   },
   listCollections: function(callback){
-	this.domainWrapper.listCollections(this.name, this.token, function(err, collections){
+	this.domainWrapper.listCollections(this.token, this.name, function(err, collections){
 	  callback(err, collections);	  
 	});
   }

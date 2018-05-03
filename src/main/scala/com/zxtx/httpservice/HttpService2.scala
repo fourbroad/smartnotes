@@ -109,7 +109,7 @@ object HttpService2 extends App with APIStatusCodes {
    */
   val systemReference = new AtomicReference[ActorSystem](system)
 
-  def checkPassword(user: User) = {
+  def checkPassword(user: SessionUser) = {
     Source.fromFuture {
       documentRegion ? GetDocument(s"${rootDomain}~users~${user.name}", user.name)
     }.map {

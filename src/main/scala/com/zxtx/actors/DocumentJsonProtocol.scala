@@ -22,8 +22,8 @@ trait DocumentJsonProtocol extends DefaultJsonProtocol {
     })
   }
 
-  def newMetaObject(jsValues: Seq[JsValue], author: String, revision: Long, created: Long): JsObject = {
-    val metaFields = jsValues match {
+  def newMetaObject(jvs: Seq[JsValue], author: String, revision: Long, created: Long): JsObject = {
+    val metaFields = jvs match {
       case Seq(metadata: JsObject) => metadata.fields
       case _                       => Map[String, JsValue]()
     }
@@ -64,18 +64,6 @@ trait DocumentJsonProtocol extends DefaultJsonProtocol {
       val meta = jo.fields("_metadata").asJsObject
       meta.getFields("author", "revision", "created") match {
         case Seq(JsString(author), JsNumber(revision), JsNumber(created)) => (id, author, revision.toLong, created.toLong, JsonPatch(patch), JsObject())
-        case _ => throw new DeserializationException(errorMsg)
-      }
-    case _ => throw new DeserializationException(errorMsg)
-  }
-
-  def extractFieldsWithToken(jv: JsValue, errorMsg: String) = jv match {
-    case jo: JsObject =>
-      val id = jo.fields("id").asInstanceOf[JsString].value
-      val token = jo.fields("token").asInstanceOf[JsString].value
-      val meta = jo.fields("_metadata").asJsObject
-      meta.getFields("author", "revision", "created") match {
-        case Seq(JsString(author), JsNumber(revision), JsNumber(created)) => (id, author, revision.toLong, created.toLong, token, JsObject())
         case _ => throw new DeserializationException(errorMsg)
       }
     case _ => throw new DeserializationException(errorMsg)

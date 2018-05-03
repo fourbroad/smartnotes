@@ -41,7 +41,7 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
     dw.release
   }
 
-  def createDocument(receiver: V8Object, domainName: String, collectionName: String, docId: String, token: String, v8Raw: V8Object, callback: V8Function) = {
+  def createDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
@@ -63,7 +63,7 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
 
   }
 
-  def getDocument(receiver: V8Object, domainName: String, collectionName: String, docId: String, token: String, callback: V8Function) = {
+  def getDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => documentRegion ? GetDocument(documentId(domainName, collectionName, docId), user)
@@ -83,7 +83,7 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
     }
   }
 
-  def replaceDocument(receiver: V8Object, domainName: String, collectionName: String, docId: String, token: String, content: V8Object, callback: V8Function) = {
+  def replaceDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, content: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsContent = toJsObject(content)
     validateToken(token).flatMap {
@@ -104,7 +104,7 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
     }
   }
 
-  def patchDocument(receiver: V8Object, domainName: String, collectionName: String, docId: String, token: String, v8Patch: V8Array, callback: V8Function) = {
+  def patchDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, v8Patch: V8Array, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsArray = toJsArray(v8Patch)
     validateToken(token).flatMap {
@@ -125,7 +125,7 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
     }
   }
 
-  def deleteDocument(receiver: V8Object, domainName: String, collectionName: String, docId: String, token: String, callback: V8Function) = {
+  def deleteDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => documentRegion ? DeleteDocument(documentId(domainName, collectionName, docId), user)

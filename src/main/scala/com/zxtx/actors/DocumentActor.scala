@@ -10,6 +10,7 @@ import com.gilt.handlebars.scala.Handlebars
 import com.gilt.handlebars.scala.binding.sprayjson._
 
 import com.zxtx.persistence._
+import com.zxtx.actors.ACL._
 
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
@@ -51,6 +52,13 @@ object DocumentActor {
   case class PatchDocument(pid: String, user: String, patch: JsonPatch) extends Command
   case class DeleteDocument(pid: String, user: String) extends Command
 
+  private case class DoGetDocument(user: String, request: Option[Any] = None)
+  private case class DoExecuteDocument(user: String, params: Seq[(String, String)], body: JsObject, request: Option[Any] = None)
+  private case class DoCreateDocument(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoReplaceDocument(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoPatchDocument(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
+  private case class DoDeleteDocument(user: String, raw: JsObject, request: Option[Any] = None)
+
   case class DocumentCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class DocumentReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class DocumentPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends DocumentEvent
@@ -68,13 +76,6 @@ object DocumentActor {
   val shardName: String = "Document"
 
   def persistenceId(domain: String, collection: String, docId: String) = s"${domain}~${collection}~${docId}"
-
-  private case class DoGetDocument(user: String, request: Option[Any] = None)
-  private case class DoExecuteDocument(user: String, params: Seq[(String, String)], body: JsObject, request: Option[Any] = None)
-  private case class DoCreateDocument(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoReplaceDocument(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoPatchDocument(user: String, patch: JsonPatch, request: Option[Any] = None)
-  private case class DoDeleteDocument(user: String, request: Option[Any] = None)
 
   object JsonProtocol extends DocumentJsonProtocol {
     implicit object DocumentFormat extends RootJsonFormat[Document] {
@@ -134,6 +135,7 @@ object DocumentActor {
         DocumentDeleted(id, author, revision, created, raw)
       }
     }
+
   }
 
   def acl(user: String) = s"""{
@@ -162,7 +164,7 @@ object DocumentActor {
   private case class State(document: Document) {
     def updated(evt: DocumentEvent): State = evt match {
       case DocumentCreated(id, author, revision, created, raw) =>
-        val metadata = JsObject(raw.fields("_metadata").asJsObject.fields + ("updated" -> JsNumber(created)))
+        val metadata = JsObject("author" -> JsString(author), "revision" -> JsNumber(revision), "created" -> JsNumber(created), "updated" -> JsNumber(created), "acl" -> acl(author))
         copy(document = Document(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
       case DocumentReplaced(_, _, revision, created, raw) =>
         val oldMetaFields = document.raw.fields("_metadata").asJsObject.fields
@@ -177,6 +179,12 @@ object DocumentActor {
         val oldMetaFields = document.raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("deleted" -> JsBoolean(true)))
         copy(document = document.copy(revision = revision, updated = created, deleted = Some(true), raw = JsObject(document.raw.fields + ("_metadata" -> metadata))))
+      case ACLSet(_, _, revision, created, patch, _) =>
+        val oldMetadata = document.raw.fields("_metadata").asJsObject
+        val patchedAuth = patch(oldMetadata.fields("acl"))
+        val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedAuth))
+        copy(document = document.copy(revision = revision, updated = created, raw = JsObject(document.raw.fields + ("_metadata" -> metadata))))
+      case _ => copy(document = document)
     }
 
     def updated(doc: Document): State = doc match {
@@ -186,7 +194,6 @@ object DocumentActor {
 }
 
 class DocumentActor extends PersistentActor with ACL with ActorLogging {
-  import ACL._
   import CollectionActor._
   import DocumentActor._
   import DocumentActor.JsonProtocol._
@@ -219,7 +226,6 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   mediator ! Subscribe(s"${domain}~${collection}", self)
 
   private var state = State(Document.empty)
-  private val store = ElasticSearchStore(system)
 
   override def receiveRecover: Receive = {
     case evt: DocumentCreated =>
@@ -296,8 +302,8 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
         case dpd: DoPatchDocument => self ! dpd.copy(request = Some(replyTo))
         case other                => replyTo ! other
       }
-    case DoPatchDocument(user, patch, Some(replyTo: ActorRef)) =>
-      persist(DocumentPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, JsObject())) { evt =>
+    case DoPatchDocument(user, patch, raw, Some(replyTo: ActorRef)) =>
+      persist(DocumentPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
         state = state.updated(evt)
         val doc = state.document.toJson.asJsObject
         saveSnapshot(doc)
@@ -310,8 +316,8 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
         case ddd: DoDeleteDocument => self ! ddd.copy(request = Some(replyTo))
         case other                 => replyTo ! other
       }
-    case DoDeleteDocument(user, Some(replyTo: ActorRef)) =>
-      persist(DocumentDeleted(id, user, lastSequenceNr + 1, System.currentTimeMillis(), JsObject())) { evt =>
+    case DoDeleteDocument(user, raw, Some(replyTo: ActorRef)) =>
+      persist(DocumentDeleted(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
         state = state.updated(evt)
         deleteMessages(lastSequenceNr)
         deleteSnapshot(lastSequenceNr - 1)
@@ -320,6 +326,30 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
         context.become(deleted)
         replyTo ! evt.copy(raw = doc)
         context.parent ! Passivate(stopMessage = PoisonPill)
+      }
+    case SetACL(_, user, patch) =>
+      val replyTo = sender
+      setACL(user, state.document.raw.fields("_metadata").asJsObject.fields("acl"), patch).foreach {
+        case dsa: DoSetACL => self ! dsa.copy(request = Some(replyTo))
+        case other         => replyTo ! other
+      }
+    case DoSetACL(user, patch, raw, Some(replyTo: ActorRef)) =>
+      persist(ACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
+        state = state.updated(evt)
+        val d = state.document.toJson.asJsObject
+        saveSnapshot(d)
+        deleteSnapshot(lastSequenceNr - 1)
+        replyTo ! evt.copy(raw = d)
+      }
+    case SetEventACL(pid, user, patch) =>
+      val replyTo = sender
+      setEventACL(user, pid, patch).foreach {
+        case dsea: DoSetEventACL => self ! dsea.copy(request = Some(replyTo))
+        case other               => replyTo ! other
+      }
+    case DoSetEventACL(user, patch, raw, Some(replyTo: ActorRef)) =>
+      persist(EventACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
+        replyTo ! evt
       }
     case ExecuteDocument(_, user, params, body) =>
       val replyTo = sender
@@ -345,7 +375,7 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
           replyTo ! other
           parent ! Passivate(stopMessage = PoisonPill)
       }
-    case _: Command => 
+    case _: Command =>
       sender ! DocumentSoftDeleted
       context.parent ! Passivate(stopMessage = PoisonPill)
   }
@@ -356,7 +386,7 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   }
 
   private def createDocument(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
-    val dcd = DoCreateDocument(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> acl(user)))))
+    val dcd = DoCreateDocument(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
     initFlag match {
       case Some(true) => Future.successful(dcd)
       case other => (collectionRegion ? CheckPermission(s"${domain}~.collections~${collection}", user, CreateDocument)).map {
@@ -372,7 +402,7 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   }.recover { case e => e }
 
   private def replaceDocument(user: String, raw: JsObject) = checkPermission(user, ReplaceDocument).map {
-    case Granted => DoReplaceDocument(user, raw)
+    case Granted => DoReplaceDocument(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
     case other   => other
   }.recover { case e => e }
 
@@ -381,14 +411,14 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
       Try {
         patch(state.document.raw)
       } match {
-        case Success(_) => DoPatchDocument(user, patch)
+        case Success(_) => DoPatchDocument(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
         case Failure(e) => PatchDocumentException(e)
       }
     case other => other
   }.recover { case e => e }
 
   private def deleteDocument(user: String) = checkPermission(user, DeleteDocument).map {
-    case Granted => DoDeleteDocument(user)
+    case Granted => DoDeleteDocument(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
     case other   => other
   }.recover { case e => e }
 
@@ -413,16 +443,18 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   override def checkPermission(user: String, command: Any): Future[Permission] = (collection, id) match {
     case ("profiles", `user`) => Future.successful(Granted)
     case _ => fetchProfile(domain, user).map {
-      case profile: Document =>
+      case Document(_, _, _, _, _, _, profile) =>
         val aclObj = state.document.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
-        val userRoles = profileValue(profile.raw, "roles")
-        val userGroups = profileValue(profile.raw, "groups")
+        val userRoles = profileValue(profile, "roles")
+        val userGroups = profileValue(profile, "groups")
         val (aclRoles, aclGroups, aclUsers) = command match {
           case GetDocument     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
           case ReplaceDocument => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
           case PatchDocument   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
           case DeleteDocument  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
           case ExecuteDocument => (aclValue(aclObj, "execute", "roles"), aclValue(aclObj, "execute", "groups"), aclValue(aclObj, "execute", "users"))
+          case SetACL          => (aclValue(aclObj, "set_acl", "roles"), aclValue(aclObj, "set_acl", "groups"), aclValue(aclObj, "set_acl", "users"))
+          case SetEventACL       => (aclValue(aclObj, "set_event_acl", "roles"), aclValue(aclObj, "set_event_acl", "groups"), aclValue(aclObj, "set_event_acl", "users"))          
           case _               => (Vector[String](), Vector[String](), Vector[String]())
         }
         if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted

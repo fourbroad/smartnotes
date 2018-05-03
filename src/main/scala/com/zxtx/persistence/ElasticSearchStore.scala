@@ -75,13 +75,9 @@ class ElasticSearchStore(system: ActorSystem) {
     request.addHeader(Accept(MediaRange(MediaTypes.`application/json`)))
     http.singleRequest(request).flatMap {
       case resp @ HttpResponse(StatusCodes.OK | StatusCodes.Created, headers, respEntity, _) =>
-        respEntity.dataBytes.runFold(ByteString.empty)(_ ++ _).map { body =>
-          (resp.status, body.utf8String.parseJson)
-        }
+        respEntity.dataBytes.runFold(ByteString.empty)(_ ++ _).map { body => (resp.status, body.utf8String.parseJson) }
       case HttpResponse(code, _, respEntity, _) =>
-        respEntity.dataBytes.runFold(ByteString.empty)(_ ++ _).map { body =>
-          (code, body.utf8String.parseJson)
-        }
+        respEntity.dataBytes.runFold(ByteString.empty)(_ ++ _).map { body => (code, body.utf8String.parseJson) }
     }
   }
 

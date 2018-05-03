@@ -72,7 +72,7 @@ import com.softwaremill.session._
 import com.roundeights.hasher.Implicits._
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val userFormat = jsonFormat2(User)
+  implicit val userFormat = jsonFormat2(SessionUser)
 }
 
 object HttpService extends App with Directives with JsonSupport with APIStatusCodes {
@@ -215,7 +215,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
 
   def domainRoutes(domain: String): Route = requiredHttpSession { session =>
     val username = session.username
-    registerUser ~ authorizeDomain(domain, username) ~ logout ~ gc(domain, username) ~ {
+    registerUser ~ logout ~ gc(domain, username) ~ {
       domain match {
         case `rootDomain` => pathPrefix(".domains") {
           findDomains(username) ~ pathPrefix(Segment) { name =>
@@ -278,7 +278,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
 
   def registerUser = path("_register") {
     post {
-      entity(as[User]) { ud =>
+      entity(as[SessionUser]) { ud =>
         val raw = JsObject("name" -> JsString(ud.name), "password" -> JsString(ud.password.md5.hex))
         val userProfile = JsObject("roles" -> JsArray(JsString("user")))
         onCompleteJson {
@@ -297,17 +297,9 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
     }
   }
 
-  def authorizeDomain(domain: String, user: String) = pathSuffix("_authorize") {
-    patch {
-      entity(as[JsValue]) { jv =>
-        onCompleteJson((domainRegion ? AuthorizeDomain(s"${rootDomain}~.domains~${domain}", user, JsonPatch(jv))).map(domainStatus))
-      }
-    }
-  }
-
   def login = path("_login") {
     post {
-      entity(as[User]) { user =>
+      entity(as[SessionUser]) { user =>
         checkAsync(checkPassword(user)) { result =>
           result match {
             case true =>
@@ -455,7 +447,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
       }
     }
 
-  def checkPassword(user: User) = {
+  def checkPassword(user: SessionUser) = {
     Source.fromFuture {
       documentRegion ? GetDocument(s"${rootDomain}~users~${user.name}", user.name)
     }.map {

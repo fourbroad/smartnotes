@@ -3,27 +3,20 @@ package com.zxtx.persistence
 import com.typesafe.config.Config
 
 import akka.NotUsed
-import akka.actor._
-import akka.persistence._
-import akka.persistence.query.scaladsl.{ ReadJournal, _ }
-import akka.stream.scaladsl.Source
-import spray.json._
-import akka.stream.scaladsl.RestartSource
-import scala.concurrent._
-import scala.concurrent.duration._
+import akka.actor.ExtendedActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpMethods
-import akka.http.scaladsl.model.headers.Accept
-import akka.http.scaladsl.model.MediaRange
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.MediaTypes
-import akka.util.ByteString
-import akka.stream.ActorMaterializer
-import akka.stream.ActorMaterializerSettings
-import akka.http.scaladsl.Http
+import akka.persistence.query.EventEnvelope
+import akka.persistence.query.scaladsl.CurrentEventsByPersistenceIdQuery
+import akka.persistence.query.scaladsl.ReadJournal
+import akka.stream.scaladsl.Source
+import spray.json.JsArray
+import spray.json.JsNumber
+import spray.json.JsString
+import spray.json.JsValue
+import java.util.UUID
+import akka.persistence.query.TimeBasedUUID
 
-class ElasticSearchReadJournal(system: ExtendedActorSystem, config: Config) extends ReadJournal with IndexMappingQuery {
+class ElasticSearchReadJournal(system: ExtendedActorSystem, config: Config) extends ReadJournal with IndexMappingQuery with CurrentEventsByPersistenceIdQuery {
   import ElasticSearchStore._
 
   private val writeJournalPluginId: String = config.getString("write-plugin")
@@ -46,6 +39,56 @@ class ElasticSearchReadJournal(system: ExtendedActorSystem, config: Config) exte
       }
     }
     //    }
+  }
+
+  /**
+   * Same type of query as [[EventsByPersistenceIdQuery#eventsByPersistenceId]]
+   * but the event stream is completed immediately when it reaches the end of
+   * the "result set". Events that are stored after the query is completed are
+   * not included in the event stream.
+   */
+  override def currentEventsByPersistenceId(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long): Source[EventEnvelope, NotUsed] = {
+    val segments = persistenceId.split("%7E")
+    val id = segments(2)
+    val alias = s"${segments(0)}~${segments(1)}~all~events"
+    val search = s"""{
+      "query":{
+        "bool":{
+          "must":[
+            {"term":{"id.keyword":"${id}"}}
+          ],
+          "must_not":[
+            {"term":{"_metadata.deleted":true}}
+          ],
+          "filter":{
+            "range":{"_metadata.revision":{"gte":"${fromSequenceNr}","lte":"${toSequenceNr}"}}
+          }
+        }
+      },
+      "sort":[{
+        "_metadata.revision":{"order":"asc"}
+      }]
+    }"""
+
+    val uri = s"http://localhost:9200/${alias}/_search"
+    Source.fromFuture {
+      store.get(uri = uri, entity = search).map {
+        case (StatusCodes.OK, jv) =>
+          jv.asJsObject.fields("hits").asJsObject.fields("hits").asInstanceOf[JsArray].elements.map { jv =>
+            val jo = jv.asJsObject.fields("_source").asJsObject
+            val meta = jo.fields("_metadata").asJsObject()
+            jo.fields.get("_id") match {
+              case Some(JsString(id)) =>
+                meta.fields.get("revision") match {
+                  case Some(JsNumber(revision)) => EventEnvelope(TimeBasedUUID(UUID.fromString(id)), persistenceId, revision.toLong, jo)
+                  case None                     => throw new RuntimeException(s"Event has no revision!")
+                }
+              case None => throw new RuntimeException(s"Event has no id!")
+            }
+          }
+        case (code, _) => throw new RuntimeException(s"Get current events by persistence id error: $code!")
+      }
+    }.mapConcat(v=>v)
   }
 
 }

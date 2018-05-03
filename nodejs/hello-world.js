@@ -16,7 +16,7 @@ app.get('/', function (req, res) {
 
 app.get('/login', function (req, res) {
   notes.login("administrator","!QAZ)OKM", function(err, c){
-	client = c
+	client = c;
 	res.send(err||c);
   });
 });

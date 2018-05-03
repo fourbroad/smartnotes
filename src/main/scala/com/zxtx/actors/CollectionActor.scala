@@ -40,6 +40,7 @@ import spray.json.JsString
 import spray.json.JsValue
 import spray.json.RootJsonFormat
 
+import com.zxtx.actors.ACL._
 import com.zxtx.actors.DocumentActor._
 import com.zxtx.persistence._
 
@@ -60,10 +61,21 @@ object CollectionActor {
   case class FindDocuments(pid: String, user: String, query: JsObject) extends Command
   case class GarbageCollection(pid: String, user: String, request: Option[Any] = None) extends Command
 
+  private case class DoCreateCollection(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoGetCollection(user: String, path: String, request: Option[Any] = None)
+  private case class DoReplaceCollection(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoPatchCollection(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
+  private case class DoDeleteCollection(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoFindDocuments(user: String, query: JsObject, request: Option[Any] = None)
+  private case class DoGarbageCollection(user: String, request: Option[Any] = None)
+  private case class ClearCacheSuccess(user: String, request: Option[Any] = None)
+  private case class InitializeIndices(user: String, raw: JsObject, request: Option[Any] = None)
+
   case class CollectionCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class CollectionReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
   case class CollectionPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends DocumentEvent
   case class CollectionDeleted(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
+
   case object GarbageCollectionCompleted extends DocumentEvent
 
   case object CollectionNotFound extends Exception
@@ -77,16 +89,6 @@ object CollectionActor {
   val shardName: String = "Collection"
 
   def persistenceId(domain: String, collection: String) = s"${domain}~.collections~${collection}"
-
-  private case class DoCreateCollection(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoGetCollection(user: String, path: String, request: Option[Any] = None)
-  private case class DoReplaceCollection(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoPatchCollection(user: String, patch: JsonPatch, request: Option[Any] = None)
-  private case class DoDeleteCollection(user: String, request: Option[Any] = None)
-  private case class DoFindDocuments(user: String, query: JsObject, request: Option[Any] = None)
-  private case class DoGarbageCollection(user: String, request: Option[Any] = None)
-  private case class ClearCacheSuccess(user: String, request: Option[Any] = None)
-  private case class InitializeIndices(user: String, raw: JsObject, request: Option[Any] = None)
 
   object JsonProtocol extends DocumentJsonProtocol {
     implicit object CollectionFormat extends RootJsonFormat[Collection] {
@@ -143,12 +145,13 @@ object CollectionActor {
         CollectionDeleted(id, author, revision, created, jo)
       }
     }
+
   }
 
   private case class State(collection: Collection, deleted: Boolean) {
     def updated(evt: DocumentEvent): State = evt match {
       case CollectionCreated(id, author, revision, created, raw) =>
-        val metadata = JsObject(raw.fields("_metadata").asJsObject.fields + ("updated" -> JsNumber(created)))
+        val metadata = JsObject("author" -> JsString(author), "revision" -> JsNumber(revision), "created" -> JsNumber(created), "updated" -> JsNumber(created), "acl" -> acl(author))
         copy(collection = Collection(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
       case CollectionReplaced(_, _, revision, created, raw) =>
         val oldMetaFields = collection.raw.fields("_metadata").asJsObject.fields
@@ -163,6 +166,12 @@ object CollectionActor {
         val oldMetaFields = collection.raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("deleted" -> JsBoolean(true)))
         copy(collection = collection.copy(revision = revision, updated = created, deleted = Some(true), raw = JsObject(collection.raw.fields + ("_metadata" -> metadata))))
+      case ACLSet(_, _, revision, created, patch, _) =>
+        val oldMetadata = collection.raw.fields("_metadata").asJsObject
+        val patchedAuth = patch(oldMetadata.fields("acl"))
+        val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedAuth))
+        copy(collection = collection.copy(revision = revision, updated = created, raw = JsObject(collection.raw.fields + ("_metadata" -> metadata))))
+      case _ => copy(collection = collection)
     }
 
     def updated(ds: Collection): State = ds match {
@@ -229,7 +238,7 @@ object CollectionActor {
       }
     }""".parseJson.asJsObject
 
-  def defaultACL(user: String) = s"""{
+  def acl(user: String) = s"""{
         "get":{
             "roles":["administrator","user"],
             "users":["${user}"]
@@ -279,7 +288,6 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
   import spray.json._
   import DomainActor._
   import ElasticSearchStore._
-  import ACL._
 
   override def persistenceId: String = self.path.name
 
@@ -297,7 +305,6 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
   context.setReceiveTimeout(2.minutes)
 
   private var state = State(Collection.empty, false)
-  private val store = ElasticSearchStore(system)
 
   def domain = persistenceId.split("%7E")(0)
   def id = persistenceId.split("%7E")(2)
@@ -343,7 +350,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
 
   def creating: Receive = {
     case DoCreateCollection(user, raw, Some(replyTo: ActorRef)) =>
-      persist(CollectionCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> CollectionActor.defaultACL(user)))))) { evt =>
+      persist(CollectionCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         state = state.updated(evt)
         val ds = state.collection.toJson.asJsObject
         saveSnapshot(ds)
@@ -380,8 +387,8 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
         case dpc: DoPatchCollection => self ! dpc.copy(request = Some(replyTo))
         case other                  => replyTo ! other
       }
-    case DoPatchCollection(user, patch, Some(replyTo: ActorRef)) =>
-      persist(CollectionPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, JsObject())) { evt =>
+    case DoPatchCollection(user, patch, raw, Some(replyTo: ActorRef)) =>
+      persist(CollectionPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
         state = state.updated(evt)
         val ds = state.collection.toJson.asJsObject
         saveSnapshot(ds)
@@ -394,8 +401,8 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
         case ddc: DoDeleteCollection => self ! ddc.copy(request = Some(replyTo))
         case other                   => replyTo ! other
       }
-    case DoDeleteCollection(user, Some(replyTo: ActorRef)) =>
-      persist(CollectionDeleted(id, user, lastSequenceNr + 1, System.currentTimeMillis(), JsObject())) { evt =>
+    case DoDeleteCollection(user, raw, Some(replyTo: ActorRef)) =>
+      persist(CollectionDeleted(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
         state = state.updated(evt)
         deleteMessages(lastSequenceNr)
         deleteSnapshot(lastSequenceNr - 1)
@@ -413,6 +420,30 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       findDocuments(user, query).foreach {
         case DoFindDocuments(_, _, Some(result)) => replyTo ! result
         case other                               => replyTo ! other
+      }
+    case SetACL(_, user, patch) =>
+      val replyTo = sender
+      setACL(user, state.collection.raw.fields("_metadata").asJsObject.fields("acl"), patch).foreach {
+        case dsa: DoSetACL => self ! dsa.copy(request = Some(replyTo))
+        case other         => replyTo ! other
+      }
+    case DoSetACL(user, patch, raw, Some(replyTo: ActorRef)) =>
+      persist(ACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
+        state = state.updated(evt)
+        val d = state.collection.toJson.asJsObject
+        saveSnapshot(d)
+        deleteSnapshot(lastSequenceNr - 1)
+        replyTo ! evt.copy(raw = d)
+      }
+    case SetEventACL(pid, user, patch) =>
+      val replyTo = sender
+      setEventACL(user, pid, patch).foreach {
+        case dsea: DoSetEventACL => self ! dsea.copy(request = Some(replyTo))
+        case other               => replyTo ! other
+      }
+    case DoSetEventACL(user, patch, raw, Some(replyTo: ActorRef)) =>
+      persist(EventACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
+        replyTo ! evt
       }
     case GarbageCollection(_, user, _) =>
       val replyTo = sender
@@ -475,9 +506,8 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       case Some(_) | None => defaultSnapshotIndexTemplate(domain, id)
     }
     val templates = Map("event_index_template" -> eventIndexTemplate, "snapshot_index_template" -> snapshotIndexTemplate)
-    val newRaw = JsObject(raw.fields + ("indexTemplates" -> JsObject(templates)))
     initIndices(templates).map {
-      case Done  => DoCreateCollection(user, newRaw)
+      case Done  => DoCreateCollection(user, JsObject(raw.fields + ("indexTemplates" -> JsObject(templates)) + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
       case other => other
     }
   }
@@ -494,12 +524,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
   }.recover { case e => e }
 
   private def replaceCollection(user: String, raw: JsObject) = checkPermission(user, ReplaceCollection).map {
-    case Granted => DoReplaceCollection(user, raw)
-    case other   => other
-  }.recover { case e => e }
-
-  private def deleteCollection(user: String) = checkPermission(user, DeleteCollection).map {
-    case Granted => DoDeleteCollection(user)
+    case Granted => DoReplaceCollection(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
     case other   => other
   }.recover { case e => e }
 
@@ -508,10 +533,15 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       Try {
         patch(state.collection.raw)
       } match {
-        case Success(_) => Future.successful(DoPatchCollection(user, patch))
+        case Success(_) => Future.successful(DoPatchCollection(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user)))))
         case Failure(e) => Future.successful(PatchCollectionException(e))
       }
     case other => other
+  }.recover { case e => e }
+
+  private def deleteCollection(user: String) = checkPermission(user, DeleteCollection).map {
+    case Granted => DoDeleteCollection(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+    case other   => other
   }.recover { case e => e }
 
   private def findDocuments(user: String, query: JsObject) = checkPermission(user, FindDocuments).flatMap {
@@ -565,16 +595,18 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
   }
 
   override def checkPermission(user: String, command: Any) = fetchProfile(domain, user).map {
-    case profile: Document =>
+    case Document(_, _, _, _, _, _, profile) =>
       val aclObj = state.collection.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
-      val userRoles = profileValue(profile.raw, "roles")
-      val userGroups = profileValue(profile.raw, "groups")
+      val userRoles = profileValue(profile, "roles")
+      val userGroups = profileValue(profile, "groups")
       val (aclRoles, aclGroups, aclUsers) = command match {
         case GetCollection     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
         case ReplaceCollection => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
         case PatchCollection   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
         case DeleteCollection  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
         case CreateDocument    => (aclValue(aclObj, "create_document", "roles"), aclValue(aclObj, "create_document", "groups"), aclValue(aclObj, "create_document", "users"))
+        case SetACL            => (aclValue(aclObj, "set_acl", "roles"), aclValue(aclObj, "set_acl", "groups"), aclValue(aclObj, "set_acl", "users"))
+        case SetEventACL       => (aclValue(aclObj, "set_event_acl", "roles"), aclValue(aclObj, "set_event_acl", "groups"), aclValue(aclObj, "set_event_acl", "users"))
         case FindDocuments     => (aclValue(aclObj, "find_documents", "roles"), aclValue(aclObj, "find_documents", "groups"), aclValue(aclObj, "find_documents", "users"))
         case GarbageCollection => (aclValue(aclObj, "gc", "roles"), aclValue(aclObj, "gc", "groups"), aclValue(aclObj, "gc", "users"))
         case _                 => (Vector[String](), Vector[String](), Vector[String]())

@@ -143,10 +143,8 @@ class ElasticSearchJournal extends AsyncWriteJournal with AsyncRecovery with Act
 
   override def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(replayCallback: (PersistentRepr) => Unit): Future[Unit] = {
     val end = toSequenceNr - fromSequenceNr match {
-      case num if num < max =>
-        toSequenceNr
-      case _ =>
-        fromSequenceNr + max - 1
+      case num if num < max => toSequenceNr
+      case _ => fromSequenceNr + max - 1
     }
 
     val segments = persistenceId.split("%7E")
@@ -259,8 +257,6 @@ object ElasticSearchJournal {
    * `fromSequenceNr` is exclusive
    * `toSequenceNr` is inclusive
    */
-  final case class ReplayTaggedMessages(fromSequenceNr: Long, toSequenceNr: Long, max: Long,
-      tag: String, replyTo: ActorRef) extends SubscriptionCommand
-  final case class ReplayedTaggedMessage(persistent: PersistentRepr, tag: String, offset: Long)
-    extends DeadLetterSuppression with NoSerializationVerificationNeeded
+  final case class ReplayTaggedMessages(fromSequenceNr: Long, toSequenceNr: Long, max: Long, tag: String, replyTo: ActorRef) extends SubscriptionCommand
+  final case class ReplayedTaggedMessage(persistent: PersistentRepr, tag: String, offset: Long) extends DeadLetterSuppression with NoSerializationVerificationNeeded
 }

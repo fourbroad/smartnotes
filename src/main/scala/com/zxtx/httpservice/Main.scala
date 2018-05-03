@@ -15,6 +15,7 @@ import com.eclipsesource.v8.V8Array
 import com.eclipsesource.v8.V8Object
 import com.typesafe.config.ConfigFactory
 import com.zxtx.actors.CollectionActor
+import com.zxtx.actors.UserActor
 import com.zxtx.actors.DocumentActor
 import com.zxtx.actors.DomainActor
 import com.zxtx.actors.DomainActor.CreateDomain
@@ -69,6 +70,12 @@ object Main extends App {
     settings = ClusterShardingSettings(system),
     extractEntityId = DocumentActor.idExtractor,
     extractShardId = DocumentActor.shardResolver)
+  val userRegion = ClusterSharding(system).start(
+    typeName = UserActor.shardName,
+    entityProps = UserActor.props(),
+    settings = ClusterShardingSettings(system),
+    extractEntityId = UserActor.idExtractor,
+    extractShardId = UserActor.shardResolver)
 
   val rootDomain = system.settings.config.getString("domain.root-domain")
   val adminName = system.settings.config.getString("domain.administrator.name")
@@ -114,8 +121,8 @@ object Main extends App {
       runtime.registerJavaMethod(documentWrapper, "bind", "__DocumentWrapper", Array[Class[_]](classOf[V8Object]), true)
 
 //      nodeJS.exec(new File("nodejs/bin/www"))
-//      nodeJS.exec(new File("nodejs/node_modules/mocha/bin/_mocha"))
-      nodeJS.exec(new File("nodejs/hello-world.js"))
+      nodeJS.exec(new File("nodejs/node_modules/mocha/bin/_mocha"))
+//      nodeJS.exec(new File("nodejs/hello-world.js"))
       while (nodeJS.isRunning() && running) {
         nodeJS.handleMessage()
       }
