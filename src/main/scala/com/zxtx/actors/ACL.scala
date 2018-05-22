@@ -48,7 +48,7 @@ trait ACL { this: Actor =>
   import ACL._
 
   val replicator = DistributedData(context.system).replicator
-  val secretCacheKey: String = "SecretCacheKey"
+  val cacheKey: String = "CacheKey"
 
   val system = context.system
   implicit val executionContext = context.dispatcher
@@ -74,7 +74,26 @@ trait ACL { this: Actor =>
 
   def fetchProfile(domain: String, user: String) = user match {
     case "anonymous" => Future.successful(Document("", "anonymous", 0L, 0L, 0L, None, JsObject()))
-    case _           => documentRegion ? GetDocument(s"${domain}~profiles~${user}", user)
+    case _           => documentRegion ? GetDocument(s"${domain}~.profiles~${user}", user)
+  }
+
+  def hitCache(user: String): Future[Option[Boolean]] = (replicator ? Get(LWWMapKey[String, Boolean](cacheKey), ReadLocal)).map {
+    case g @ GetSuccess(LWWMapKey(_), _) =>
+      g.dataValue match {
+        case data: LWWMap[_, _] => data.asInstanceOf[LWWMap[String, Boolean]].get(user)
+        case _                  => None
+      }
+    case NotFound(_, _) => None
+  }
+
+  def setCache(user: String, exist: Boolean) = (replicator ? Update(LWWMapKey[String, Boolean](cacheKey), LWWMap(), WriteLocal)(_ + (user -> exist))).map {
+    case UpdateSuccess(LWWMapKey(_), _)    => CacheUpdated
+    case _: UpdateFailure[LWWMapKey[_, _]] => UpdateCacheError
+  }
+
+  def clearCache(user: String) = (replicator ? Update(LWWMapKey[String, Boolean](cacheKey), LWWMap(), WriteLocal)(_ - user)).map {
+    case UpdateSuccess(LWWMapKey(_), _)    => CacheCleared
+    case _: UpdateFailure[LWWMapKey[_, _]] => ClearCacheError
   }
 
   def checkPermission(user: String, command: Any): Future[Permission]
@@ -107,13 +126,58 @@ trait ACL { this: Actor =>
             op + "\n" + JsObject(jo.fields + ("_metadata" -> JsObject(meta.fields + ("acl" -> acl)))).compactPrint
           case Failure(e) => throw SetEventACLException(e)
         }
-      }.fold("") { (b, o) => b + "\n" + o }.mapAsync(1) {
-        case b: String =>
-          store.post(uri = "http://localhost:9200/_bulk?refresh", entity = (b + "\n")) map {
-            case (StatusCodes.OK, _) => DoSetEventACL(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
-            case (code, jv)          => throw new RuntimeException(s"Set event acl error: $jv")
-          }
+      }.reduce { _ + "\n" + _ }.mapAsync(1) { b =>
+        store.post(uri = "http://localhost:9200/_bulk?refresh", entity = (b + "\n")) map {
+          case (StatusCodes.OK, _) => DoSetEventACL(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+          case (code, jv)          => throw new RuntimeException(s"Set event acl error: $jv")
+        }
       }.runWith(Sink.last)
+    case Denied => Future.successful(Denied)
+  }.recover { case e => e }
+
+  def removePermissionSubject(user: String, operation: String, kind: String, subject: String) = checkPermission(user, RemovePermissionSubject).map {
+    case Granted => DoRemovePermissionSubject(user, operation, kind, subject,
+      JsObject("operation" -> JsString(operation), "kind" -> JsString(kind), "subject" -> JsString(subject), "metadata" -> JsObject("acl" -> eventACL(user))))
+    case Denied => Denied
+  }.recover { case e => e }
+
+  def removeEventPermissionSubject(user: String, pid: String, operation: String, kind: String, subject: String) = checkPermission(user, RemoveEventPermissionSubject).flatMap {
+    case Granted =>
+      val source = operation match {
+        case "*" => s"""
+          def acl = ctx._source._metadata.acl;
+          if(acl.containsKey("get") && acl.get.containsKey("${kind}")) { acl.get.${kind}.removeIf(item->item == "params.subject")};
+          if(acl.containsKey("delete") && acl.delete.containsKey("${kind}")) { acl.delete.${kind}.removeIf(item->item == "params.subject")};
+        """
+        case other => s"""
+          def acl = ctx._source._metadata.acl;
+          if(acl.containsKey("${operation}") && acl.${operation}.containsKey("${kind}")) { acl.${operation}.${kind}.removeIf(item->item == "params.subject")};
+        """
+      }
+      val segments = pid.split("%7E")
+      val id = segments(2)
+      val alias = s"${segments(0)}~${segments(1)}~all~events"
+      val removeByQeury = s"""{
+        "query":{
+          "bool":{
+            "must":[
+              {"term":{"id.keyword":"${id}"}}
+            ]
+          }
+        },
+        "script":{
+          "lang": "painless",
+          "source": "${source}"
+          "params": {"subject": "${subject}"}
+        }
+      }"""
+
+      val uri = s"http://localhost:9200/${alias}/_update_by_query"
+      store.post(uri = uri, entity = removeByQeury).map {
+        case (StatusCodes.OK, _) => DoRemoveEventPermissionSubject(user, operation, kind, subject,
+          JsObject("operation" -> JsString(operation), "kind" -> JsString(kind), "subject" -> JsString(subject), "metadata" -> JsObject("acl" -> eventACL(user))))
+        case (code, _) => throw new RuntimeException(s"Error remove event permission subject: $code")
+      }
     case Denied => Future.successful(Denied)
   }.recover { case e => e }
 }
@@ -124,10 +188,20 @@ object ACL {
   case class ACLSet(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends DocumentEvent
   case class SetACLException(exception: Throwable) extends Exception
 
+  case class RemovePermissionSubject(pid: String, user: String, operation: String, kind: String, subject: String) extends Command
+  case class DoRemovePermissionSubject(user: String, operation: String, kind: String, subject: String, raw: JsObject, request: Option[Any] = None)
+  case class PermissionSubjectRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
+  case class RemovePermissionSubjectException(exception: Throwable) extends Exception
+
   case class SetEventACL(pid: String, user: String, patch: JsonPatch) extends Command
   case class DoSetEventACL(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
   case class EventACLSet(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends DocumentEvent
   case class SetEventACLException(exception: Throwable) extends Exception
+
+  case class RemoveEventPermissionSubject(pid: String, user: String, operation: String, kind: String, subject: String) extends Command
+  case class DoRemoveEventPermissionSubject(user: String, operation: String, kind: String, subject: String, raw: JsObject, request: Option[Any] = None)
+  case class EventPermissionSubjectRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
+  case class RemoveEventPermissionSubjectException(exception: Throwable) extends Exception
 
   def eventACL(user: String) = s"""{
         "get":{
@@ -149,7 +223,7 @@ object ACL {
         JsObject(("id" -> JsString(acls.id)) :: ("patch" -> marshall(acls.patch)) :: acls.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "DomainAuthorized event expected!")
+        val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "ACLSet event expected!")
         ACLSet(id, author, revision, created, patch, jo)
       }
     }
@@ -162,10 +236,52 @@ object ACL {
         JsObject(("id" -> JsString(acls.id)) :: ("patch" -> marshall(acls.patch)) :: acls.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "DomainAuthorized event expected!")
+        val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "EventACLSet event expected!")
         EventACLSet(id, author, revision, created, patch, jo)
       }
     }
+
+    implicit object PermissionSubjectRemovedFormat extends RootJsonFormat[PermissionSubjectRemoved] {
+      def write(psr: PermissionSubjectRemoved) = {
+        val metaObj = newMetaObject(psr.raw.getFields("_metadata"), psr.author, psr.revision, psr.created)
+        JsObject(("id" -> JsString(psr.id)) :: psr.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+      }
+      def read(value: JsValue) = {
+        val (id, author, revision, created, jo) = extractFields(value, "PermissionSubjectRemoved event expected!")
+        PermissionSubjectRemoved(id, author, revision, created, jo)
+      }
+    }
+
+    implicit object EventPermissionSubjectRemovedFormat extends RootJsonFormat[EventPermissionSubjectRemoved] {
+      def write(epsr: EventPermissionSubjectRemoved) = {
+        val metaObj = newMetaObject(epsr.raw.getFields("_metadata"), epsr.author, epsr.revision, epsr.created)
+        JsObject(("id" -> JsString(epsr.id)) :: epsr.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+      }
+      def read(value: JsValue) = {
+        val (id, author, revision, created, jo) = extractFields(value, "EventPermissionSubjectRemoved event expected!")
+        EventPermissionSubjectRemoved(id, author, revision, created, jo)
+      }
+    }
+
+  }
+
+  def doRemovePermissionSubject(acl: JsObject, operation: String, kind: String, subject: String) = {
+    var aclFields: List[(String, JsValue)] = Nil
+    acl.fields.foreach { op =>
+      op._1 match {
+        case name if (operation == "*" || name == operation) =>
+          var opFields: List[(String, JsValue)] = Nil
+          op._2.asJsObject.fields.foreach { k =>
+            k._1 match {
+              case `kind` => opFields = (kind, JsArray(k._2.asInstanceOf[JsArray].elements.filter(jv => jv.asInstanceOf[JsString].value != subject))) :: opFields
+              case other  => opFields = k :: opFields
+            }
+          }
+          aclFields = (operation, JsObject(opFields: _*)) :: aclFields
+        case other => aclFields = op :: aclFields
+      }
+    }
+    JsObject(aclFields: _*)
   }
 
   trait Permission
@@ -174,4 +290,10 @@ object ACL {
 
   case class CheckPermission(pid: String, user: String, command: Any) extends Command
   case class CheckPermissionException(exception: Throwable) extends Exception
+
+  sealed trait CacheResult
+  case object CacheUpdated extends CacheResult
+  case object UpdateCacheError extends CacheResult
+  case object CacheCleared extends CacheResult
+  case object ClearCacheError extends CacheResult
 }

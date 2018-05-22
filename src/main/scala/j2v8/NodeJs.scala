@@ -34,9 +34,9 @@ object NodeJs extends App {
   }
 
   val nodeJS = NodeJS.createNodeJS()
-  
-  System.out.println("Node version = "+nodeJS.getNodeVersion())
-  
+
+  System.out.println("Node version = " + nodeJS.getNodeVersion())
+
   val callback = new JavaCallback() {
     def invoke(receiver: V8Object, parameters: V8Array): Object = {
       "Hello, JavaWorld!";
@@ -44,7 +44,7 @@ object NodeJs extends App {
   };
 
   val runtime = nodeJS.getRuntime
-  
+
   runtime.registerJavaMethod(DomainWrapper, "bind", "Domain", Array[Class[_]](classOf[V8Object], classOf[String]), true)
 
   runtime.registerJavaMethod(callback, "someJavaMethod");

@@ -144,7 +144,7 @@ class ElasticSearchJournal extends AsyncWriteJournal with AsyncRecovery with Act
   override def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(replayCallback: (PersistentRepr) => Unit): Future[Unit] = {
     val end = toSequenceNr - fromSequenceNr match {
       case num if num < max => toSequenceNr
-      case _ => fromSequenceNr + max - 1
+      case _                => fromSequenceNr + max - 1
     }
 
     val segments = persistenceId.split("%7E")

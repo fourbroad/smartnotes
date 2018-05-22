@@ -26,6 +26,7 @@ import com.zxtx.actors.wrappers.CallbackWrapper
 import com.zxtx.actors.wrappers.CollectionWrapper
 import com.zxtx.actors.wrappers.DocumentWrapper
 import com.zxtx.actors.wrappers.DomainWrapper
+import com.zxtx.actors.wrappers.UserWrapper
 
 import akka.Done
 import akka.actor.ActorSystem
@@ -91,6 +92,7 @@ object Main extends App {
   val domainWrapper = DomainWrapper(system, callbackQueue)
   val collectionWrapper = CollectionWrapper(system, callbackQueue)
   val documentWrapper = DocumentWrapper(system, callbackQueue)
+  val userWrapper = UserWrapper(system, callbackQueue)
 
   import scala.sys.process._
   val processId = Seq("sh", "-c", "echo $PPID").!!.trim.toInt
@@ -119,10 +121,11 @@ object Main extends App {
       runtime.registerJavaMethod(domainWrapper, "bind", "__DomainWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(collectionWrapper, "bind", "__CollectionWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(documentWrapper, "bind", "__DocumentWrapper", Array[Class[_]](classOf[V8Object]), true)
+      runtime.registerJavaMethod(userWrapper, "bind", "__UserWrapper", Array[Class[_]](classOf[V8Object]), true)
 
-//      nodeJS.exec(new File("nodejs/bin/www"))
+      //      nodeJS.exec(new File("nodejs/bin/www"))
       nodeJS.exec(new File("nodejs/node_modules/mocha/bin/_mocha"))
-//      nodeJS.exec(new File("nodejs/hello-world.js"))
+      //      nodeJS.exec(new File("nodejs/hello-world.js"))
       while (nodeJS.isRunning() && running) {
         nodeJS.handleMessage()
       }

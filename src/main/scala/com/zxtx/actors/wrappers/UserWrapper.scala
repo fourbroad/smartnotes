@@ -32,7 +32,7 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
   val documentRegion: ActorRef = ClusterSharding(system).shardRegion(DocumentActor.shardName)
   val userRegion: ActorRef = ClusterSharding(system).shardRegion(UserActor.shardName)
 
-  def userId(id: String) = s"${rootDomain}~users~${id}"
+  def userId(id: String) = s"${rootDomain}~.users~${id}"
 
   def bind(receiver: V8Object) = {
     val runtime = receiver.getRuntime
@@ -40,12 +40,11 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     val prototype = runtime.executeObjectScript("__UserWrapper.prototype")
 
     prototype.registerJavaMethod(this, "registerUser", "registerUser", Array[Class[_]](classOf[V8Object], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "createUser", "createUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "login", "login", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "logout", "logout", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "isValidToken", "isValidToken", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Function]), true)
 
-    prototype.registerJavaMethod(this, "createUser", "createUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "createUser", "createUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "getUser", "getUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "replaceUser", "replaceUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "patchUser", "patchUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
@@ -105,8 +104,8 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
   def login(receiver: V8Object, userName: String, password: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     (userRegion ? GetUser(userId(userName), userName)).flatMap {
-      case doc: Document =>
-        val hexMd5 = doc.raw.fields("password").asInstanceOf[JsString].value
+      case user: User =>
+        val hexMd5 = user.raw.fields("password").asInstanceOf[JsString].value
         if (hexMd5 == password.md5.hex) {
           val secretKey = (hexMd5 + System.currentTimeMillis).md5.hex
           val token = Jwt.encode(JwtHeader(JwtAlgorithm.HS256), JwtClaim(s"""{"id":"${userName}"}"""), secretKey)

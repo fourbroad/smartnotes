@@ -23,13 +23,12 @@ import akka.stream.ActorMaterializer
 import akka.stream.ActorMaterializerSettings
 import akka.util.ByteString
 import spray.json.JsNumber
-import java.util.Calendar
+import java.time.Instant
 
 class ElasticSearchSnapshotStore extends SnapshotStore {
   import spray.json._
   import ElasticSearchStore._
 
-  val calendar = Calendar.getInstance
   implicit val executionContext = context.system.dispatcher
   val store = ElasticSearchStore(context.system)
 
@@ -51,10 +50,8 @@ class ElasticSearchSnapshotStore extends SnapshotStore {
     val segments = persistenceId.split("%7E")
     val id = segments(2)
     val alias = s"${segments(0)}~${segments(1)}~all~snapshots"
-    calendar.setTimeInMillis(criteria.minTimestamp)
-    val minTimestamp = calendar.getTime.toLocaleString()
-    calendar.setTimeInMillis(math.min(criteria.maxTimestamp, System.currentTimeMillis))
-    val maxTimestamp = calendar.getTime.toLocaleString()
+    val minTimestamp = Instant.ofEpochMilli(criteria.minTimestamp).toString()
+    val maxTimestamp = Instant.ofEpochMilli(Math.min(criteria.maxTimestamp, System.currentTimeMillis())).toString()
     val search = s"""{
       "query":{
         "bool":{
@@ -74,16 +71,14 @@ class ElasticSearchSnapshotStore extends SnapshotStore {
 
     val uri = s"http://localhost:9200/${alias}/_search?size=1"
     store.get(uri = uri, entity = search).map {
-      case (StatusCodes.OK, jv) =>
-        jv.asJsObject.fields("hits").asJsObject.fields("hits")
-          .asInstanceOf[JsArray].elements.map { jv =>
-            val jo = jv.asJsObject.fields("_source").asJsObject
-            val meta = jo.fields("_metadata").asJsObject
-            val Seq(JsNumber(revision), JsNumber(updated)) = meta.getFields("revision", "updated")
-            val id = jo.fields("id").asInstanceOf[JsString].value
-            val sm = SnapshotMetadata(persistenceId = persistenceId, sequenceNr = revision.toLong, timestamp = updated.toLong)
-            SelectedSnapshot(sm, jo)
-          }.headOption
+      case (StatusCodes.OK, jv) => jv.asJsObject.fields("hits").asJsObject.fields("hits").asInstanceOf[JsArray].elements.map { jv =>
+        val jo = jv.asJsObject.fields("_source").asJsObject
+        val meta = jo.fields("_metadata").asJsObject
+        val Seq(JsNumber(revision), JsNumber(updated)) = meta.getFields("revision", "updated")
+        val id = jo.fields("id").asInstanceOf[JsString].value
+        val sm = SnapshotMetadata(persistenceId = persistenceId, sequenceNr = revision.toLong, timestamp = updated.toLong)
+        SelectedSnapshot(sm, jo)
+      }.headOption
       case (StatusCodes.NotFound, _) => None
       case (code, jv)                => throw new RuntimeException(s"Load snapshot error: $jv")
     }
@@ -147,10 +142,8 @@ class ElasticSearchSnapshotStore extends SnapshotStore {
     val segments = persistenceId.split("%7E")
     val id = segments(2)
     val alias = s"${segments(0)}~${segments(1)}~all~snapshots"
-    calendar.setTimeInMillis(criteria.minTimestamp)
-    val minTimestamp = calendar.getTime.toLocaleString()
-    calendar.setTimeInMillis(math.min(criteria.maxTimestamp, System.currentTimeMillis))
-    val maxTimestamp = calendar.getTime.toLocaleString()
+    val minTimestamp = Instant.ofEpochMilli(criteria.minTimestamp).toString()
+    val maxTimestamp = Instant.ofEpochMilli(Math.min(criteria.maxTimestamp, System.currentTimeMillis())).toString()
     val query = s"""{
       "query":{
         "bool":{

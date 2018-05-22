@@ -23,7 +23,7 @@ const
   userWrapper = new __UserWrapper();
 
 var
-  clientProto, login, isValidToken;
+  clientProto, login, registerUser, isValidToken;
 
 // ------------- END MODULE SCOPE VARIABLES ---------------
 
@@ -151,6 +151,7 @@ isValidToken = function(token, callback){
 
 module.exports = {
   login : login,
+  registerUser: registerUser,
   isValidToken : isValidToken
 };
 

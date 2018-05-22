@@ -1,5 +1,6 @@
 package com.zxtx.actors
 
+import scala.collection._
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.Failure
@@ -7,49 +8,41 @@ import scala.util.Success
 import scala.util.Try
 
 import com.roundeights.hasher.Implicits.stringToHasher
-
 import com.zxtx.actors.ACL._
-import com.zxtx.actors.DocumentActor._
-import com.zxtx.persistence.ElasticSearchStore
+import com.zxtx.actors.DocumentActor.Document
 
 import akka.Done
-import akka.pattern.ask
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.PoisonPill
 import akka.actor.Props
 import akka.actor.ReceiveTimeout
-import akka.cluster.ddata.LWWMap
-import akka.cluster.ddata.LWWMapKey
-import akka.cluster.ddata.Replicator.Get
-import akka.cluster.ddata.Replicator.GetSuccess
-import akka.cluster.ddata.Replicator.NotFound
 import akka.cluster.ddata.Replicator.ReadMajority
-import akka.cluster.ddata.Replicator.Update
-import akka.cluster.ddata.Replicator.UpdateFailure
-import akka.cluster.ddata.Replicator.UpdateSuccess
 import akka.cluster.ddata.Replicator.WriteMajority
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.sharding.ClusterSharding
 import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion.Passivate
-import akka.http.scaladsl.model.StatusCode
 import akka.http.scaladsl.model.StatusCodes
+import akka.pattern.ask
 import akka.persistence.PersistentActor
 import akka.persistence.RecoveryCompleted
 import akka.persistence.SaveSnapshotFailure
 import akka.persistence.SaveSnapshotSuccess
 import akka.persistence.SnapshotOffer
-import akka.stream.ActorMaterializer
+import gnieh.diffson.sprayJson.JsonPatch
+import spray.json.JsArray
+import spray.json.JsBoolean
+import spray.json.JsNumber
+import spray.json.JsObject
+import spray.json.JsString
+import spray.json.JsValue
+import spray.json.RootJsonFormat
+import spray.json.enrichAny
+import spray.json.enrichString
 import akka.stream.ActorMaterializerSettings
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
-
-import pdi.jwt._
-import spray.json._
-
-import gnieh.diffson.sprayJson._
+import akka.stream.ActorMaterializer
 
 object UserActor {
 
@@ -94,9 +87,9 @@ object UserActor {
 
   val idExtractor: ShardRegion.ExtractEntityId = { case cmd: Command => (cmd.pid, cmd) }
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
-  val shardName: String = "User"
+  val shardName: String = "Users"
 
-  def persistenceId(rootDomain: String, userId: String): String = s"${rootDomain}~users~${userId}"
+  def persistenceId(rootDomain: String, userId: String): String = s"${rootDomain}~.users~${userId}"
 
   object JsonProtocol extends DocumentJsonProtocol {
     implicit object UserFormat extends RootJsonFormat[User] {
@@ -196,8 +189,16 @@ object UserActor {
         copy(user = user.copy(revision = revision, updated = created, raw = JsObject(patchedDoc.fields + ("_metadata" -> metadata))))
       case ACLSet(_, _, revision, created, patch, _) =>
         val oldMetadata = user.raw.fields("_metadata").asJsObject
-        val patchedAuth = patch(oldMetadata.fields("acl"))
-        val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedAuth))
+        val patchedACL = patch(oldMetadata.fields("acl"))
+        val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedACL))
+        copy(user = user.copy(revision = revision, updated = created, raw = JsObject(user.raw.fields + ("_metadata" -> metadata))))
+      case PermissionSubjectRemoved(_, _, revision, created, raw) =>
+        val oldMetadata = user.raw.fields("_metadata").asJsObject
+        val operation = raw.fields("operation").asInstanceOf[JsString].value
+        val kind = raw.fields("kind").asInstanceOf[JsString].value
+        val subject = raw.fields("subject").asInstanceOf[JsString].value
+        val acl = doRemovePermissionSubject(oldMetadata.fields("acl").asJsObject, operation, kind, subject)
+        val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> acl))
         copy(user = user.copy(revision = revision, updated = created, raw = JsObject(user.raw.fields + ("_metadata" -> metadata))))
       case _ => copy(user = user)
     }
@@ -235,18 +236,30 @@ object UserActor {
         "set_acl":{
             "roles":["administrator"],
             "users":["${user}"]
+        },
+        "set_event_acl":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "remove_permission_subject":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "remove_event_permission_subject":{
+            "roles":["administrator"],
+            "users":["${user}"]
         }
       }""".parseJson.asJsObject
 }
 
 class UserActor extends PersistentActor with ACL with ActorLogging {
   import CollectionActor._
+  import DocumentActor._
   import UserActor._
   import UserActor.JsonProtocol._
 
   val rootDomain = system.settings.config.getString("domain.root-domain")
   val adminName = system.settings.config.getString("domain.administrator.name")
-  val cacheKey = system.settings.config.getString("domain.cache-key")
   val domainRegion = ClusterSharding(system).shardRegion(UserActor.shardName)
   val collectionRegion = ClusterSharding(system).shardRegion(CollectionActor.shardName)
 
@@ -309,53 +322,45 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
     case DoCreateUser(user, raw, Some(replyTo: ActorRef)) =>
       persist(UserCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         state = state.updated(evt)
-        val d = state.user.toJson.asJsObject
-        saveSnapshot(d)
+        val doc = state.user.toJson.asJsObject
+        saveSnapshot(doc)
         context.become(created)
-        replyTo ! evt.copy(raw = d)
+        replyTo ! evt.copy(raw = doc)
       }
     case _: Command => sender ! UserIsCreating
   }
 
   def created: Receive = {
-    case GetUser(_, user) =>
+    case GetUser(pid, user) =>
       val replyTo = sender
       getUser(user).foreach {
-        case dgd: DoGetUser => replyTo ! state.user
+        case dgu: DoGetUser => replyTo ! state.user
         case other          => replyTo ! other
       }
     case ReplaceUser(_, user, raw) =>
       val replyTo = sender
       replaceUser(user, raw).foreach {
-        case drd: DoReplaceUser => self ! drd.copy(request = Some(replyTo))
+        case dru: DoReplaceUser => self ! dru.copy(request = Some(replyTo))
         case other              => replyTo ! other
       }
     case DoReplaceUser(user, raw, Some(replyTo: ActorRef)) =>
       persist(UserReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
-        state = state.updated(evt)
-        val ds = state.user.toJson.asJsObject
-        saveSnapshot(ds)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = ds)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case PatchUser(_, user, patch) =>
       val replyTo = sender
       patchUser(user, patch).foreach {
-        case dpd: DoPatchUser => self ! dpd.copy(request = Some(replyTo))
+        case dpu: DoPatchUser => self ! dpu.copy(request = Some(replyTo))
         case other            => replyTo ! other
       }
     case DoPatchUser(user, patch, raw, Some(replyTo: ActorRef)) =>
       persist(UserPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
-        state = state.updated(evt)
-        val d = state.user.toJson.asJsObject
-        saveSnapshot(d)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = d)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case DeleteUser(_, user) =>
       val replyTo = sender
       deleteUser(user).foreach {
-        case ddd: DoDeleteUser => self ! ddd.copy(request = Some(replyTo))
+        case ddu: DoDeleteUser => self ! ddu.copy(request = Some(replyTo))
         case other             => replyTo ! other
       }
     case DoDeleteUser(user, raw, Some(replyTo: ActorRef)) =>
@@ -363,17 +368,10 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
         state = state.updated(evt)
         deleteMessages(lastSequenceNr)
         deleteSnapshot(lastSequenceNr - 1)
-        val d = state.user.toJson.asJsObject
-        saveSnapshot(d)
-        id match {
-          case `rootDomain` => store.deleteIndices(s"${rootDomain}*").foreach {
-            case (StatusCodes.OK, _) => replyTo ! evt.copy(raw = d)
-            case (code, jv)          => throw new RuntimeException(jv.compactPrint)
-          }
-          case _ => replyTo ! evt.copy(raw = d)
-        }
+        val doc = state.user.toJson.asJsObject
+        saveSnapshot(doc)
         context.become(deleted)
-        mediator ! Publish(id, evt.copy(raw = d))
+        replyTo ! evt.copy(raw = doc)
         context.parent ! Passivate(stopMessage = PoisonPill)
       }
     case SetACL(_, user, patch) =>
@@ -384,11 +382,7 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoSetACL(user, patch, raw, Some(replyTo: ActorRef)) =>
       persist(ACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
-        state = state.updated(evt)
-        val d = state.user.toJson.asJsObject
-        saveSnapshot(d)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = d)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case SetEventACL(pid, user, patch) =>
       val replyTo = sender
@@ -400,6 +394,26 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
       persist(EventACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
         replyTo ! evt
       }
+    case RemovePermissionSubject(pid, user, operation, kind, subject) =>
+      val replyTo = sender
+      removePermissionSubject(user, operation, kind, subject).foreach {
+        case drps: DoRemovePermissionSubject => self ! drps.copy(request = Some(replyTo))
+        case other                           => replyTo ! other
+      }
+    case DoRemovePermissionSubject(user, operation, kind, subject, raw, Some(replyTo: ActorRef)) =>
+      persist(PermissionSubjectRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+        replyTo ! evt.copy(raw = updateAndSave(evt))
+      }
+    case RemoveEventPermissionSubject(pid, user, operation, kind, subject) =>
+      val replyTo = sender
+      removeEventPermissionSubject(user, pid, operation, kind, subject).foreach {
+        case dreps: DoRemoveEventPermissionSubject => self ! dreps.copy(request = Some(replyTo))
+        case other                                 => replyTo ! other
+      }
+    case DoRemoveEventPermissionSubject(user, operation, kind, subject, raw, Some(replyTo: ActorRef)) =>
+      persist(EventPermissionSubjectRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+        replyTo ! evt
+      }
     case ResetPassword(_, user, newPassword) =>
       val replyTo = sender
       resetPassword(user, newPassword).foreach {
@@ -409,11 +423,7 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoResetPassword(user, patch, raw, Some(replyTo: ActorRef)) =>
       persist(PasswordReseted(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
-        state = state.updated(evt)
-        val d = state.user.toJson.asJsObject
-        saveSnapshot(d)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = d)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case SaveSnapshotSuccess(metadata)         =>
     case SaveSnapshotFailure(metadata, reason) =>
@@ -440,8 +450,15 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
     case _              => super.unhandled(msg)
   }
 
+  private def updateAndSave(evt: DocumentEvent): JsObject = {
+    state = state.updated(evt)
+    saveSnapshot(state.user.toJson.asJsObject)
+    deleteSnapshot(lastSequenceNr - 1)
+    state.user.toJson.asJsObject
+  }
+
   private def createUser(user: String, userInfo: JsObject) =
-    (collectionRegion ? CheckPermission(s"${rootDomain}~.collections~users", user, CreateUser)).map {
+    (collectionRegion ? CheckPermission(s"${rootDomain}~.collections~.users", user, CreateUser)).map {
       case Granted =>
         val fields = userInfo.fields
         fields.get("userName") match {
@@ -481,49 +498,6 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
     case Denied  => Denied
   }.recover { case e => e }
 
-  private def deleteProfiles(user: String) = {
-
-  }
-
-  private def clearACLs(user: String) = {
-    //{
-    //  "script": "item_to_remove = nil; foreach (item : ctx._source.list) { if (item['tweet_id'] == tweet_id) { item_to_remove=item; } } if (item_to_remove != nil) ctx._source.list.remove(item_to_remove);",
-    //  "params": {"tweet_id": "123"}
-    //}
-
-    //{
-    //  "script": "items_to_remove = []; foreach (item : ctx._source.list) { if (item['tweet_id'] == tweet_id) { items_to_remove.add(item); } } foreach (item : items_to_remove) {ctx._source.list.remove(item);}",
-    //  "params": {"tweet_id": "123"}
-    //}
-
-    val search = s"""{
-      "query":{
-        "bool":{
-          "should":[
-            {"term":{"_metadata.acl.create_domain.users":"${user}"}},
-            {"term":{"_metadata.acl.create_collection.users":"${user}"}},
-            {"term":{"_metadata.acl.create_document.users":"${user}"}},
-            {"term":{"_metadata.acl.get.users":"${user}"}},
-            {"term":{"_metadata.acl.replace.users":"${user}"}},
-            {"term":{"_metadata.acl.patch.users":"${user}"}},
-            {"term":{"_metadata.acl.delete.users":"${user}"}},
-            {"term":{"_metadata.acl.reset_password.users":"${user}"}},
-            {"term":{"_metadata.acl.list_collections.users":"${user}"}},
-            {"term":{"_metadata.acl.find_documents.users":"${user}"}},
-            {"term":{"_metadata.acl.execute.users":"${user}"}}            
-          ]
-        }
-      }
-    }"""
-
-    val uri = s"http://localhost:9200/*~snapshots-*/_search"
-    store.get(uri = uri, entity = search).map {
-      case (StatusCodes.OK, jv) => jv.asJsObject.fields("hits").asJsObject.fields("hits")
-        .asInstanceOf[JsArray].elements.map { jv => jv.asJsObject.fields("_source").asJsObject }
-      case (code, _) => throw new RuntimeException(s"Error delete messages:$code")
-    }
-  }
-
   private def resetPassword(user: String, newPassword: String) = checkPermission(user, ResetPassword).map {
     case Granted =>
       val patch = JsonPatch(s"""[{
@@ -540,20 +514,23 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
     case Denied => Denied
   }.recover { case e => e }
 
-  override def checkPermission(user: String, command: Any) = fetchProfile(id, user).map {
+  override def checkPermission(user: String, command: Any) = fetchProfile(rootDomain, user).map {
     case Document(_, _, _, _, _, _, profile) =>
       val aclObj = state.user.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
       val userRoles = profileValue(profile, "roles")
       val userGroups = profileValue(profile, "groups")
       val (aclRoles, aclGroups, aclUsers) = command match {
-        case CreateUser  => (aclValue(aclObj, "create_domain", "roles"), aclValue(aclObj, "create_domain", "groups"), aclValue(aclObj, "create_domain", "users"))
-        case GetUser     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
-        case ReplaceUser => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
-        case PatchUser   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
-        case SetACL      => (aclValue(aclObj, "set_acl", "roles"), aclValue(aclObj, "set_acl", "groups"), aclValue(aclObj, "set_acl", "users"))
-        case SetEventACL => (aclValue(aclObj, "set_event_acl", "roles"), aclValue(aclObj, "set_event_acl", "groups"), aclValue(aclObj, "set_event_acl", "users"))
-        case DeleteUser  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
-        case _           => (Vector[String](), Vector[String](), Vector[String]())
+        case CreateUser                   => (aclValue(aclObj, "create_domain", "roles"), aclValue(aclObj, "create_domain", "groups"), aclValue(aclObj, "create_domain", "users"))
+        case GetUser                      => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
+        case ReplaceUser                  => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
+        case PatchUser                    => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
+        case SetACL                       => (aclValue(aclObj, "set_acl", "roles"), aclValue(aclObj, "set_acl", "groups"), aclValue(aclObj, "set_acl", "users"))
+        case SetEventACL                  => (aclValue(aclObj, "set_event_acl", "roles"), aclValue(aclObj, "set_event_acl", "groups"), aclValue(aclObj, "set_event_acl", "users"))
+        case DeleteUser                   => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
+        case RemovePermissionSubject      => (aclValue(aclObj, "remove_permission_subject", "roles"), aclValue(aclObj, "remove_permission_subject", "groups"), aclValue(aclObj, "remove_permission_subject", "users"))
+        case RemoveEventPermissionSubject => (aclValue(aclObj, "remove_event_permission_subject", "roles"), aclValue(aclObj, "remove_event_permission_subject", "groups"), aclValue(aclObj, "remove_event_permission_subject", "users"))
+
+        case _                            => (Vector[String](), Vector[String](), Vector[String]())
       }
       //            System.out.println(s"~~~~~~~~~~~~aclRoles~~~~~${aclRoles}")
       //            System.out.println(s"~~~~~~~~~~~~userRoles~~~~~${userRoles}")

@@ -49,45 +49,41 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
   val processId = Seq("sh", "-c", "echo $PPID").!!.trim.toInt
   val sigal = Signal.SIGWINCH
 
-  def validateToken(token: String): Future[ValidateResult] =
-    JwtBase64.decodeString(token.split('.')(1)).parseJson match {
-      case jo: JsObject => jo.getFields("id") match {
-        case Seq(JsString(uid)) => getSecretKey(uid).map {
-          case Some(secretKey) if (Jwt.isValid(token, secretKey, Seq(JwtAlgorithm.HS256))) => TokenValid(uid)
-          case _ => TokenInvalid
-        }
-        case _ => Future.successful(TokenInvalid)
+  def validateToken(token: String): Future[ValidateResult] = JwtBase64.decodeString(token.split('.')(1)).parseJson match {
+    case jo: JsObject => jo.getFields("id") match {
+      case Seq(JsString(uid)) => getSecretKey(uid).map {
+        case Some(secretKey) if (Jwt.isValid(token, secretKey, Seq(JwtAlgorithm.HS256))) => TokenValid(uid)
+        case _ => TokenInvalid
       }
       case _ => Future.successful(TokenInvalid)
     }
+    case _ => Future.successful(TokenInvalid)
+  }
 
-  def getSecretKey(user: String): Future[Option[String]] =
-    (replicator ? Get(LWWMapKey[String, Any](secretCacheKey), ReadLocal)).map {
-      case g @ GetSuccess(LWWMapKey(_), _) =>
-        g.dataValue match {
-          case data: LWWMap[_, _] => data.asInstanceOf[LWWMap[String, String]].get(user)
-          case _                  => None
-        }
-      case NotFound(_, _) => None
-    }
+  def getSecretKey(user: String): Future[Option[String]] = (replicator ? Get(LWWMapKey[String, Any](secretCacheKey), ReadLocal)).map {
+    case g @ GetSuccess(LWWMapKey(_), _) =>
+      g.dataValue match {
+        case data: LWWMap[_, _] => data.asInstanceOf[LWWMap[String, String]].get(user)
+        case _                  => None
+      }
+    case NotFound(_, _) => None
+  }
 
-  def updateSecretKey(user: String, secretKey: String) =
-    (replicator ? Update(LWWMapKey[String, Any](secretCacheKey), LWWMap(), WriteLocal)(_ + (user -> secretKey))).map {
-      case UpdateSuccess(LWWMapKey(_), _)    => SecretKeyUpdated
-      case _: UpdateFailure[LWWMapKey[_, _]] => UpdateSecretKeyError
-    }
+  def updateSecretKey(user: String, secretKey: String) = (replicator ? Update(LWWMapKey[String, Any](secretCacheKey), LWWMap(), WriteLocal)(_ + (user -> secretKey))).map {
+    case UpdateSuccess(LWWMapKey(_), _)    => SecretKeyUpdated
+    case _: UpdateFailure[LWWMapKey[_, _]] => UpdateSecretKeyError
+  }
 
-  def clearSecretKey(user: String) =
-    (replicator ? Update(LWWMapKey[String, Any](secretCacheKey), LWWMap(), WriteLocal)(_ - user)).map {
-      case UpdateSuccess(LWWMapKey(_), _)    => SecretKeyCleared
-      case _: UpdateFailure[LWWMapKey[_, _]] => ClearSecretKeyError
-    }
+  def clearSecretKey(user: String) = (replicator ? Update(LWWMapKey[String, Any](secretCacheKey), LWWMap(), WriteLocal)(_ - user)).map {
+    case UpdateSuccess(LWWMapKey(_), _)    => SecretKeyCleared
+    case _: UpdateFailure[LWWMapKey[_, _]] => ClearSecretKeyError
+  }
 
   def enqueueCallback(cbw: CallbackWrapper) = {
     callbackQueue.synchronized { callbackQueue.enqueue(cbw) }
     sigal.kill(processId)
   }
-  
+
   def failureCallback(cbw: CallbackWrapper, e: Any) = {
     cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
       def prepare(params: V8Array) = {

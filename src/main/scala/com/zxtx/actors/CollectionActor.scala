@@ -86,7 +86,7 @@ object CollectionActor {
 
   val idExtractor: ShardRegion.ExtractEntityId = { case cmd: Command => (cmd.pid, cmd) }
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
-  val shardName: String = "Collection"
+  val shardName: String = "Collections"
 
   def persistenceId(domain: String, collection: String) = s"${domain}~.collections~${collection}"
 
@@ -171,6 +171,14 @@ object CollectionActor {
         val patchedAuth = patch(oldMetadata.fields("acl"))
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedAuth))
         copy(collection = collection.copy(revision = revision, updated = created, raw = JsObject(collection.raw.fields + ("_metadata" -> metadata))))
+      case PermissionSubjectRemoved(_, _, revision, created, raw) =>
+        val oldMetadata = collection.raw.fields("_metadata").asJsObject
+        val operation = raw.fields("operation").asInstanceOf[JsString].value
+        val kind = raw.fields("kind").asInstanceOf[JsString].value
+        val subject = raw.fields("subject").asInstanceOf[JsString].value
+        val acl = doRemovePermissionSubject(oldMetadata.fields("acl").asJsObject, operation, kind, subject)
+        val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> acl))
+        copy(collection = collection.copy(revision = revision, updated = created, raw = JsObject(collection.raw.fields + ("_metadata" -> metadata))))
       case _ => copy(collection = collection)
     }
 
@@ -180,9 +188,8 @@ object CollectionActor {
   }
 
   import spray.json._
-  def defaultEventIndexTemplate(domainName: String, collectionName: String): JsObject =
-    s"""{
-      "index_patterns": ["${domainName}~${collectionName}_*~events-*"],
+  def defaultEventIndexTemplate(domainName: String, collectionName: String): JsObject = s"""{
+      "index_patterns": ["${domainName}~${collectionName}~events-*"],
       "aliases" : {
         "${domainName}~${collectionName}~hot~events" : {},
         "${domainName}~${collectionName}~all~events" : {}
@@ -197,8 +204,7 @@ object CollectionActor {
             "_metadata":{
               "properties":{
                 "created": {
-                  "type": "date",
-                  "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+                  "type": "date"
                 }
               }
             }
@@ -207,13 +213,12 @@ object CollectionActor {
       }
     }""".parseJson.asJsObject
 
-  def defaultSnapshotIndexTemplate(domainName: String, collectionName: String): JsObject =
-    s"""{
-      "index_patterns": ["${domainName}~${collectionName}_*~snapshots-*"],
+  def defaultSnapshotIndexTemplate(domainName: String, collectionName: String): JsObject = s"""{
+      "index_patterns": ["${domainName}~${collectionName}~snapshots-*"],
       "aliases" : {
         "${domainName}~${collectionName}~hot~snapshots" : {},
         "${domainName}~${collectionName}~all~snapshots" : {}
-      },      
+      },
       "settings": {
         "number_of_shards": 5,
         "number_of_replicas": 1
@@ -224,12 +229,10 @@ object CollectionActor {
             "_metadata":{
               "properties":{
                 "created": {
-                  "type": "date",
-                  "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+                  "type": "date"
                 },
                 "updated": {
-                  "type": "date",
-                  "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+                  "type": "date"
                 }
               }
             }
@@ -266,6 +269,22 @@ object CollectionActor {
         "gc":{
             "roles":["administrator"],
             "users":["${user}"]
+        },
+        "set_acl":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "set_event_acl":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "remove_permission_subject":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "remove_event_permission_subject":{
+            "roles":["administrator"],
+            "users":["${user}"]
         }
       }""".parseJson.asJsObject
 
@@ -296,7 +315,6 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
 
   val rootDomain = system.settings.config.getString("domain.root-domain")
   val adminName = system.settings.config.getString("domain.administrator.name")
-  val cacheKey = system.settings.config.getString("domain.cache-key")
   val domainRegion = ClusterSharding(system).shardRegion(DomainActor.shardName)
 
   implicit val materializer = ActorMaterializer(ActorMaterializerSettings(system))
@@ -375,11 +393,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoReplaceCollection(user, raw, Some(replyTo: ActorRef)) =>
       persist(CollectionReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
-        state = state.updated(evt)
-        val ds = state.collection.toJson.asJsObject
-        saveSnapshot(ds)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = ds)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case PatchCollection(_, user, patch) =>
       val replyTo = sender
@@ -389,11 +403,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoPatchCollection(user, patch, raw, Some(replyTo: ActorRef)) =>
       persist(CollectionPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
-        state = state.updated(evt)
-        val ds = state.collection.toJson.asJsObject
-        saveSnapshot(ds)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = ds)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case DeleteCollection(_, user) =>
       val replyTo = sender
@@ -429,11 +439,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoSetACL(user, patch, raw, Some(replyTo: ActorRef)) =>
       persist(ACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
-        state = state.updated(evt)
-        val d = state.collection.toJson.asJsObject
-        saveSnapshot(d)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = d)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case SetEventACL(pid, user, patch) =>
       val replyTo = sender
@@ -443,6 +449,26 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoSetEventACL(user, patch, raw, Some(replyTo: ActorRef)) =>
       persist(EventACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
+        replyTo ! evt
+      }
+    case RemovePermissionSubject(pid, user, operation, kind, subject) =>
+      val replyTo = sender
+      removePermissionSubject(user, operation, kind, subject).foreach {
+        case drps: DoRemovePermissionSubject => self ! drps.copy(request = Some(replyTo))
+        case other                           => replyTo ! other
+      }
+    case DoRemovePermissionSubject(user, operation, kind, subject, raw, Some(replyTo: ActorRef)) =>
+      persist(PermissionSubjectRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+        replyTo ! evt.copy(raw = updateAndSave(evt))
+      }
+    case RemoveEventPermissionSubject(pid, user, operation, kind, subject) =>
+      val replyTo = sender
+      removeEventPermissionSubject(user, pid, operation, kind, subject).foreach {
+        case dreps: DoRemoveEventPermissionSubject => self ! dreps.copy(request = Some(replyTo))
+        case other                                 => replyTo ! other
+      }
+    case DoRemoveEventPermissionSubject(user, operation, kind, subject, raw, Some(replyTo: ActorRef)) =>
+      persist(EventPermissionSubjectRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         replyTo ! evt
       }
     case GarbageCollection(_, user, _) =>
@@ -478,6 +504,13 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
     case _              => super.unhandled(msg)
   }
 
+  private def updateAndSave(evt: DocumentEvent): JsObject = {
+    state = state.updated(evt)
+    saveSnapshot(state.collection.toJson.asJsObject)
+    deleteSnapshot(lastSequenceNr - 1)
+    state.collection.toJson.asJsObject
+  }
+
   private def createCollection(user: String, raw: JsObject, initFlag: Option[Boolean]) = initFlag match {
     case Some(true) => doCreateCollection(user, raw)
     case other =>
@@ -506,20 +539,22 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       case Some(_) | None => defaultSnapshotIndexTemplate(domain, id)
     }
     val templates = Map("event_index_template" -> eventIndexTemplate, "snapshot_index_template" -> snapshotIndexTemplate)
-    initIndices(templates).map {
-      case Done  => DoCreateCollection(user, JsObject(raw.fields + ("indexTemplates" -> JsObject(templates)) + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
-      case other => other
+    initIndices(templates).flatMap {
+      case Done => setCache(s"${domain}~${id}", true).map {
+        case CacheUpdated     => DoCreateCollection(user, JsObject(raw.fields + ("indexTemplates" -> JsObject(templates)) + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+        case UpdateCacheError => UpdateCacheError
+      }
+      case other => Future.successful(other)
     }
   }
 
   private def getCollection(user: String, path: String) = checkPermission(user, GetCollection).flatMap {
-    case Granted =>
-      store.indices(s"${domain}~${id}_*").map {
-        case (StatusCodes.OK, jv) =>
-          val jo = state.collection.toJson.asJsObject()
-          DoGetCollection(user, path, Some(getJson(JsObject(jo.fields + ("indices" -> jv)), path.split("/"))));
-        case (code, _) => throw new RuntimeException(s"Error get indices:$code")
-      }
+    case Granted => store.indices(s"${domain}~${id}_*").map {
+      case (StatusCodes.OK, jv) =>
+        val jo = state.collection.toJson.asJsObject()
+        DoGetCollection(user, path, Some(getJson(JsObject(jo.fields + ("indices" -> jv)), path.split("/"))));
+      case (code, _) => throw new RuntimeException(s"Error get indices:$code")
+    }
     case other => Future.successful(other)
   }.recover { case e => e }
 
@@ -539,9 +574,12 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
     case other => other
   }.recover { case e => e }
 
-  private def deleteCollection(user: String) = checkPermission(user, DeleteCollection).map {
-    case Granted => DoDeleteCollection(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
-    case other   => other
+  private def deleteCollection(user: String) = checkPermission(user, DeleteCollection).flatMap {
+    case Granted => clearCache(s"${domain}~${id}").map {
+      case CacheCleared => DoDeleteCollection(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+      case other        => other
+    }
+    case other => Future.successful(other)
   }.recover { case e => e }
 
   private def findDocuments(user: String, query: JsObject) = checkPermission(user, FindDocuments).flatMap {
@@ -584,35 +622,41 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
         val segments = persistenceId.split("%7E")
         val domainId = segments(0)
         val id = segments(2)
-        store.newIndex(s"${domainId}~${id}_${lastSequenceNr + 1}~events-1")
+        store.newIndex(s"${domainId}~${id}~events-1")
       case ("snapshot_index_template", StatusCodes.OK, _) =>
         val segments = persistenceId.split("%7E")
         val domainId = segments(0)
         val id = segments(2)
-        store.newIndex(s"${domainId}~${id}_${lastSequenceNr + 1}~snapshots-1")
+        store.newIndex(s"${domainId}~${id}~snapshots-1")
     }
     source.via(initIndexTemplate).via(initIndex).runWith(Sink.ignore)
   }
 
-  override def checkPermission(user: String, command: Any) = fetchProfile(domain, user).map {
-    case Document(_, _, _, _, _, _, profile) =>
-      val aclObj = state.collection.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
-      val userRoles = profileValue(profile, "roles")
-      val userGroups = profileValue(profile, "groups")
-      val (aclRoles, aclGroups, aclUsers) = command match {
-        case GetCollection     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
-        case ReplaceCollection => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
-        case PatchCollection   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
-        case DeleteCollection  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
-        case CreateDocument    => (aclValue(aclObj, "create_document", "roles"), aclValue(aclObj, "create_document", "groups"), aclValue(aclObj, "create_document", "users"))
-        case SetACL            => (aclValue(aclObj, "set_acl", "roles"), aclValue(aclObj, "set_acl", "groups"), aclValue(aclObj, "set_acl", "users"))
-        case SetEventACL       => (aclValue(aclObj, "set_event_acl", "roles"), aclValue(aclObj, "set_event_acl", "groups"), aclValue(aclObj, "set_event_acl", "users"))
-        case FindDocuments     => (aclValue(aclObj, "find_documents", "roles"), aclValue(aclObj, "find_documents", "groups"), aclValue(aclObj, "find_documents", "users"))
-        case GarbageCollection => (aclValue(aclObj, "gc", "roles"), aclValue(aclObj, "gc", "groups"), aclValue(aclObj, "gc", "users"))
-        case _                 => (Vector[String](), Vector[String](), Vector[String]())
-      }
-      if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
-    case _ => Denied
+  override def checkPermission(user: String, command: Any) = hitCache(s"${domain}").flatMap {
+    case Some(true) => fetchProfile(domain, user).map {
+      case Document(_, _, _, _, _, _, profile) =>
+        val aclObj = state.collection.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
+        val userRoles = profileValue(profile, "roles")
+        val userGroups = profileValue(profile, "groups")
+        val (aclRoles, aclGroups, aclUsers) = command match {
+          case GetCollection                => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
+          case ReplaceCollection            => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
+          case PatchCollection              => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
+          case DeleteCollection             => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
+          case CreateDocument               => (aclValue(aclObj, "create_document", "roles"), aclValue(aclObj, "create_document", "groups"), aclValue(aclObj, "create_document", "users"))
+          case SetACL                       => (aclValue(aclObj, "set_acl", "roles"), aclValue(aclObj, "set_acl", "groups"), aclValue(aclObj, "set_acl", "users"))
+          case SetEventACL                  => (aclValue(aclObj, "set_event_acl", "roles"), aclValue(aclObj, "set_event_acl", "groups"), aclValue(aclObj, "set_event_acl", "users"))
+          case FindDocuments                => (aclValue(aclObj, "find_documents", "roles"), aclValue(aclObj, "find_documents", "groups"), aclValue(aclObj, "find_documents", "users"))
+          case GarbageCollection            => (aclValue(aclObj, "gc", "roles"), aclValue(aclObj, "gc", "groups"), aclValue(aclObj, "gc", "users"))
+          case RemovePermissionSubject      => (aclValue(aclObj, "remove_permission_subject", "roles"), aclValue(aclObj, "remove_permission_subject", "groups"), aclValue(aclObj, "remove_permission_subject", "users"))
+          case RemoveEventPermissionSubject => (aclValue(aclObj, "remove_event_permission_subject", "roles"), aclValue(aclObj, "remove_event_permission_subject", "groups"), aclValue(aclObj, "remove_event_permission_subject", "users"))
+
+          case _                            => (Vector[String](), Vector[String](), Vector[String]())
+        }
+        if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
+      case _ => Denied
+    }
+    case _ => Future.successful(Denied)
   }
 
 }

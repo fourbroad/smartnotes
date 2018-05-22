@@ -73,7 +73,7 @@ object DocumentActor {
 
   val idExtractor: ShardRegion.ExtractEntityId = { case cmd: Command => (cmd.pid, cmd) }
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
-  val shardName: String = "Document"
+  val shardName: String = "Documents"
 
   def persistenceId(domain: String, collection: String, docId: String) = s"${domain}~${collection}~${docId}"
 
@@ -135,7 +135,6 @@ object DocumentActor {
         DocumentDeleted(id, author, revision, created, raw)
       }
     }
-
   }
 
   def acl(user: String) = s"""{
@@ -157,6 +156,22 @@ object DocumentActor {
         },
         "execute":{
             "roles":["administrator","user"],
+            "users":["${user}"]
+        },
+        "set_acl":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "set_event_acl":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "remove_permission_subject":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "remove_event_permission_subject":{
+            "roles":["administrator"],
             "users":["${user}"]
         }
       }""".parseJson.asJsObject
@@ -183,6 +198,14 @@ object DocumentActor {
         val oldMetadata = document.raw.fields("_metadata").asJsObject
         val patchedAuth = patch(oldMetadata.fields("acl"))
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedAuth))
+        copy(document = document.copy(revision = revision, updated = created, raw = JsObject(document.raw.fields + ("_metadata" -> metadata))))
+      case PermissionSubjectRemoved(_, _, revision, created, raw) =>
+        val oldMetadata = document.raw.fields("_metadata").asJsObject
+        val operation = raw.fields("operation").asInstanceOf[JsString].value
+        val kind = raw.fields("kind").asInstanceOf[JsString].value
+        val subject = raw.fields("subject").asInstanceOf[JsString].value
+        val acl = doRemovePermissionSubject(oldMetadata.fields("acl").asJsObject, operation, kind, subject)
+        val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> acl))
         copy(document = document.copy(revision = revision, updated = created, raw = JsObject(document.raw.fields + ("_metadata" -> metadata))))
       case _ => copy(document = document)
     }
@@ -276,7 +299,7 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   }
 
   def created: Receive = {
-    case GetDocument(_, user) =>
+    case GetDocument(pid, user) =>
       val replyTo = sender
       getDocument(user).foreach {
         case dgd: DoGetDocument => replyTo ! state.document
@@ -290,11 +313,7 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoReplaceDocument(user, raw, Some(replyTo: ActorRef)) =>
       persist(DocumentReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
-        state = state.updated(evt)
-        val doc = state.document.toJson.asJsObject
-        saveSnapshot(doc)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = doc)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case PatchDocument(_, user, patch) =>
       val replyTo = sender
@@ -304,11 +323,7 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoPatchDocument(user, patch, raw, Some(replyTo: ActorRef)) =>
       persist(DocumentPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
-        state = state.updated(evt)
-        val doc = state.document.toJson.asJsObject
-        saveSnapshot(doc)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = doc)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case DeleteDocument(_, user) =>
       val replyTo = sender
@@ -335,11 +350,7 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoSetACL(user, patch, raw, Some(replyTo: ActorRef)) =>
       persist(ACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
-        state = state.updated(evt)
-        val d = state.document.toJson.asJsObject
-        saveSnapshot(d)
-        deleteSnapshot(lastSequenceNr - 1)
-        replyTo ! evt.copy(raw = d)
+        replyTo ! evt.copy(raw = updateAndSave(evt))
       }
     case SetEventACL(pid, user, patch) =>
       val replyTo = sender
@@ -349,6 +360,26 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
       }
     case DoSetEventACL(user, patch, raw, Some(replyTo: ActorRef)) =>
       persist(EventACLSet(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
+        replyTo ! evt
+      }
+    case RemovePermissionSubject(pid, user, operation, kind, subject) =>
+      val replyTo = sender
+      removePermissionSubject(user, operation, kind, subject).foreach {
+        case drps: DoRemovePermissionSubject => self ! drps.copy(request = Some(replyTo))
+        case other                           => replyTo ! other
+      }
+    case DoRemovePermissionSubject(user, operation, kind, subject, raw, Some(replyTo: ActorRef)) =>
+      persist(PermissionSubjectRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+        replyTo ! evt.copy(raw = updateAndSave(evt))
+      }
+    case RemoveEventPermissionSubject(pid, user, operation, kind, subject) =>
+      val replyTo = sender
+      removeEventPermissionSubject(user, pid, operation, kind, subject).foreach {
+        case dreps: DoRemoveEventPermissionSubject => self ! dreps.copy(request = Some(replyTo))
+        case other                                 => replyTo ! other
+      }
+    case DoRemoveEventPermissionSubject(user, operation, kind, subject, raw, Some(replyTo: ActorRef)) =>
+      persist(EventPermissionSubjectRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         replyTo ! evt
       }
     case ExecuteDocument(_, user, params, body) =>
@@ -383,6 +414,13 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   override def unhandled(msg: Any): Unit = msg match {
     case ReceiveTimeout => context.parent ! Passivate(stopMessage = PoisonPill)
     case _              => super.unhandled(msg)
+  }
+
+  private def updateAndSave(evt: DocumentEvent): JsObject = {
+    state = state.updated(evt)
+    saveSnapshot(state.document.toJson.asJsObject)
+    deleteSnapshot(lastSequenceNr - 1)
+    state.document.toJson.asJsObject
   }
 
   private def createDocument(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
@@ -440,26 +478,34 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
     case other => Future.successful(other)
   }.recover { case e => e }
 
-  override def checkPermission(user: String, command: Any): Future[Permission] = (collection, id) match {
-    case ("profiles", `user`) => Future.successful(Granted)
-    case _ => fetchProfile(domain, user).map {
-      case Document(_, _, _, _, _, _, profile) =>
-        val aclObj = state.document.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
-        val userRoles = profileValue(profile, "roles")
-        val userGroups = profileValue(profile, "groups")
-        val (aclRoles, aclGroups, aclUsers) = command match {
-          case GetDocument     => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
-          case ReplaceDocument => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
-          case PatchDocument   => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
-          case DeleteDocument  => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
-          case ExecuteDocument => (aclValue(aclObj, "execute", "roles"), aclValue(aclObj, "execute", "groups"), aclValue(aclObj, "execute", "users"))
-          case SetACL          => (aclValue(aclObj, "set_acl", "roles"), aclValue(aclObj, "set_acl", "groups"), aclValue(aclObj, "set_acl", "users"))
-          case SetEventACL       => (aclValue(aclObj, "set_event_acl", "roles"), aclValue(aclObj, "set_event_acl", "groups"), aclValue(aclObj, "set_event_acl", "users"))          
-          case _               => (Vector[String](), Vector[String](), Vector[String]())
+  override def checkPermission(user: String, command: Any): Future[Permission] = hitCache(s"${domain}").flatMap {
+    case Some(true) => hitCache(s"${domain}~${collection}").flatMap {
+      case Some(true) => (collection, id) match {
+        case (".profiles", `user`) => Future.successful(Granted)
+        case _ => fetchProfile(domain, user).map {
+          case Document(_, _, _, _, _, _, profile) =>
+            val aclObj = state.document.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
+            val userRoles = profileValue(profile, "roles")
+            val userGroups = profileValue(profile, "groups")
+            val (aclRoles, aclGroups, aclUsers) = command match {
+              case GetDocument                  => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
+              case ReplaceDocument              => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
+              case PatchDocument                => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
+              case DeleteDocument               => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
+              case ExecuteDocument              => (aclValue(aclObj, "execute", "roles"), aclValue(aclObj, "execute", "groups"), aclValue(aclObj, "execute", "users"))
+              case SetACL                       => (aclValue(aclObj, "set_acl", "roles"), aclValue(aclObj, "set_acl", "groups"), aclValue(aclObj, "set_acl", "users"))
+              case SetEventACL                  => (aclValue(aclObj, "set_event_acl", "roles"), aclValue(aclObj, "set_event_acl", "groups"), aclValue(aclObj, "set_event_acl", "users"))
+              case RemovePermissionSubject      => (aclValue(aclObj, "remove_permission_subject", "roles"), aclValue(aclObj, "remove_permission_subject", "groups"), aclValue(aclObj, "remove_permission_subject", "users"))
+              case RemoveEventPermissionSubject => (aclValue(aclObj, "remove_event_permission_subject", "roles"), aclValue(aclObj, "remove_event_permission_subject", "groups"), aclValue(aclObj, "remove_event_permission_subject", "users"))
+              case _                            => (Vector[String](), Vector[String](), Vector[String]())
+            }
+            if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
+          case _ => Denied
         }
-        if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
-      case _ => Denied
+      }
+      case _ => Future.successful(Granted)
     }
+    case _ => Future.successful(Granted)
   }
 
 }

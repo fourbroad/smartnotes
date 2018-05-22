@@ -111,7 +111,7 @@ object HttpService2 extends App with APIStatusCodes {
 
   def checkPassword(user: SessionUser) = {
     Source.fromFuture {
-      documentRegion ? GetDocument(s"${rootDomain}~users~${user.name}", user.name)
+      documentRegion ? GetDocument(s"${rootDomain}~.users~${user.name}", user.name)
     }.map {
       case doc: Document => doc.raw.fields("password").asInstanceOf[JsString].value == user.password.md5.hex
       case _             => false

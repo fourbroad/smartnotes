@@ -29,14 +29,14 @@ trait V8SprayJson {
           else if (bigDecimal.isValidInt) v8Array.push(bigDecimal.toInt)
           else if (bigDecimal.isValidLong) v8Array.push(bigDecimal.toLong)
           else if (bigDecimal.isValidShort) v8Array.push(bigDecimal.toShort)
-        case JsTrue       => v8Array.push(true)
-        case JsFalse      => v8Array.push(false)
-        case JsNull       => v8Array.pushNull()
-        case jo: JsObject => 
+        case JsTrue  => v8Array.push(true)
+        case JsFalse => v8Array.push(false)
+        case JsNull  => v8Array.pushNull()
+        case jo: JsObject =>
           val v8Obj = toV8Object(jo, runtime)
           v8Array.push(v8Obj)
           v8Obj.release()
-        case ja: JsArray  =>
+        case ja: JsArray =>
           val v8arr = toV8Array(ja, runtime)
           v8Array.push(v8arr)
           v8arr.release()
@@ -58,14 +58,14 @@ trait V8SprayJson {
           else if (bigDecimal.isValidInt) v8Object.add(t._1, bigDecimal.toInt)
           else if (bigDecimal.isValidLong) v8Object.add(t._1, bigDecimal.toLong)
           else if (bigDecimal.isValidShort) v8Object.add(t._1, bigDecimal.toShort)
-        case JsTrue       => v8Object.add(t._1, true)
-        case JsFalse      => v8Object.add(t._1, false)
-        case JsNull       => v8Object.addNull(t._1)
+        case JsTrue  => v8Object.add(t._1, true)
+        case JsFalse => v8Object.add(t._1, false)
+        case JsNull  => v8Object.addNull(t._1)
         case jo: JsObject =>
           val v8Obj = toV8Object(jo, runtime)
           v8Object.add(t._1, v8Obj)
           v8Obj.release()
-        case ja: JsArray  => 
+        case ja: JsArray =>
           val v8Array = toV8Array(ja, runtime)
           v8Object.add(t._1, v8Array)
           v8Array.release()

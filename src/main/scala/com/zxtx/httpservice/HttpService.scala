@@ -282,10 +282,10 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
         val raw = JsObject("name" -> JsString(ud.name), "password" -> JsString(ud.password.md5.hex))
         val userProfile = JsObject("roles" -> JsArray(JsString("user")))
         onCompleteJson {
-          val createUser = documentRegion ? CreateDocument(s"${rootDomain}~users~${ud.name}", adminName, raw)
+          val createUser = documentRegion ? CreateDocument(s"${rootDomain}~.users~${ud.name}", adminName, raw)
           createUser.flatMap {
             case _: DocumentCreated =>
-              val createProfile = documentRegion ? CreateDocument(s"${rootDomain}~profiles~${ud.name}", adminName, userProfile)
+              val createProfile = documentRegion ? CreateDocument(s"${rootDomain}~.profiles~${ud.name}", adminName, userProfile)
               createProfile.map {
                 case _: DocumentCreated => APIStatusCode(StatusCodes.OK.intValue, StatusCodes.OK.reason, JsString(s"User ${ud.name} has been registered successfully!"))
                 case _                  => APIStatusCode(StatusCodes.InternalServerError.intValue, StatusCodes.InternalServerError.reason, JsString(s"Register {ud.name} error!"))
@@ -449,7 +449,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
 
   def checkPassword(user: SessionUser) = {
     Source.fromFuture {
-      documentRegion ? GetDocument(s"${rootDomain}~users~${user.name}", user.name)
+      documentRegion ? GetDocument(s"${rootDomain}~.users~${user.name}", user.name)
     }.map {
       case doc: Document => doc.raw.fields("password").asInstanceOf[JsString].value == user.password.md5.hex
       case _             => false

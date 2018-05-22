@@ -88,7 +88,7 @@ class ElasticSearchReadJournal(system: ExtendedActorSystem, config: Config) exte
           }
         case (code, _) => throw new RuntimeException(s"Get current events by persistence id error: $code!")
       }
-    }.mapConcat(v=>v)
+    }.mapConcat(identity)
   }
 
 }
