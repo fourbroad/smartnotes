@@ -11,8 +11,13 @@ describe('#user.js', function(){
 	client;
   
   // anonymous
-  it('registerUser() should return user object', function(done){
+  it.only('registerUser() should return user object', function(done){
+	this.timeout(500);
     notes.registerUser({userName: 'fourbroad', password:'z4bb4z'}, function(err, user){
+    	if(err) console.log(err);
+    	else console.log(user);
+//    	expect(err).to.include.keys('message')
+//    	expect(err).to.be.deep.equal({ code: 401, message: 'User have no permission to access!' });
     	expect(user).to.be.an('object');
     	done();
 	});	

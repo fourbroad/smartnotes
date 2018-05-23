@@ -263,6 +263,8 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
   val domainRegion = ClusterSharding(system).shardRegion(UserActor.shardName)
   val collectionRegion = ClusterSharding(system).shardRegion(CollectionActor.shardName)
 
+  val userCollectionId = s"${rootDomain}~.collections~.users"
+
   override def persistenceId: String = self.path.name
 
   override def journalPluginId = "akka.persistence.elasticsearch.journal"
@@ -457,20 +459,19 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
     state.user.toJson.asJsObject
   }
 
-  private def createUser(user: String, userInfo: JsObject) =
-    (collectionRegion ? CheckPermission(s"${rootDomain}~.collections~.users", user, CreateUser)).map {
-      case Granted =>
-        val fields = userInfo.fields
-        fields.get("userName") match {
-          case Some(JsString(userName)) =>
-            fields.get("password") match {
-              case Some(JsString(password)) => DoCreateUser(user, JsObject(fields + ("password" -> JsString(password.md5.hex)) + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
-              case None                     => PasswordNotExists
-            }
-          case None => UserNameNotExists
-        }
-      case Denied => Denied
-    }.recover { case e => e }
+  private def createUser(user: String, userInfo: JsObject) = (collectionRegion ? CheckPermission(userCollectionId, user, CreateDocument)).map {
+    case Granted =>
+      val fields = userInfo.fields
+      fields.get("userName") match {
+        case Some(JsString(userName)) =>
+          fields.get("password") match {
+            case Some(JsString(password)) => DoCreateUser(user, JsObject(fields + ("password" -> JsString(password.md5.hex)) + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+            case None                     => PasswordNotExists
+          }
+        case None => UserNameNotExists
+      }
+    case Denied => Denied
+  }.recover { case e => e }
 
   private def getUser(user: String) = checkPermission(user, GetUser).map {
     case Granted => DoGetUser(user)
@@ -520,13 +521,12 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
       val userRoles = profileValue(profile, "roles")
       val userGroups = profileValue(profile, "groups")
       val (aclRoles, aclGroups, aclUsers) = command match {
-        case CreateUser                   => (aclValue(aclObj, "create_domain", "roles"), aclValue(aclObj, "create_domain", "groups"), aclValue(aclObj, "create_domain", "users"))
         case GetUser                      => (aclValue(aclObj, "get", "roles"), aclValue(aclObj, "get", "groups"), aclValue(aclObj, "get", "users"))
         case ReplaceUser                  => (aclValue(aclObj, "replace", "roles"), aclValue(aclObj, "replace", "groups"), aclValue(aclObj, "replace", "users"))
         case PatchUser                    => (aclValue(aclObj, "patch", "roles"), aclValue(aclObj, "patch", "groups"), aclValue(aclObj, "patch", "users"))
+        case DeleteUser                   => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
         case SetACL                       => (aclValue(aclObj, "set_acl", "roles"), aclValue(aclObj, "set_acl", "groups"), aclValue(aclObj, "set_acl", "users"))
         case SetEventACL                  => (aclValue(aclObj, "set_event_acl", "roles"), aclValue(aclObj, "set_event_acl", "groups"), aclValue(aclObj, "set_event_acl", "users"))
-        case DeleteUser                   => (aclValue(aclObj, "delete", "roles"), aclValue(aclObj, "delete", "groups"), aclValue(aclObj, "delete", "users"))
         case RemovePermissionSubject      => (aclValue(aclObj, "remove_permission_subject", "roles"), aclValue(aclObj, "remove_permission_subject", "groups"), aclValue(aclObj, "remove_permission_subject", "users"))
         case RemoveEventPermissionSubject => (aclValue(aclObj, "remove_event_permission_subject", "roles"), aclValue(aclObj, "remove_event_permission_subject", "groups"), aclValue(aclObj, "remove_event_permission_subject", "users"))
 

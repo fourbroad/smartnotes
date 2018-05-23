@@ -125,6 +125,7 @@ object Main extends App {
 
       //      nodeJS.exec(new File("nodejs/bin/www"))
       nodeJS.exec(new File("nodejs/node_modules/mocha/bin/_mocha"))
+//      nodeJS.exec(new File("nodejs/node_modules/mocha/bin/mocha"))
       //      nodeJS.exec(new File("nodejs/hello-world.js"))
       while (nodeJS.isRunning() && running) {
         nodeJS.handleMessage()

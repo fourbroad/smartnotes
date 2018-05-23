@@ -47,7 +47,7 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
   val replicator = DistributedData(system).replicator
 
   val processId = Seq("sh", "-c", "echo $PPID").!!.trim.toInt
-  val sigal = Signal.SIGWINCH
+  val signal = Signal.SIGWINCH
 
   def validateToken(token: String): Future[ValidateResult] = JwtBase64.decodeString(token.split('.')(1)).parseJson match {
     case jo: JsObject => jo.getFields("id") match {
@@ -81,7 +81,7 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
 
   def enqueueCallback(cbw: CallbackWrapper) = {
     callbackQueue.synchronized { callbackQueue.enqueue(cbw) }
-    sigal.kill(processId)
+    signal.kill(processId)
   }
 
   def failureCallback(cbw: CallbackWrapper, e: Any) = {

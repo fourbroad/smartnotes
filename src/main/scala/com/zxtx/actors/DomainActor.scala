@@ -214,6 +214,14 @@ object DomainActor {
         val patchedAuth = patch(oldMetadata.fields("acl"))
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedAuth))
         copy(domain = domain.copy(revision = revision, updated = created, raw = JsObject(domain.raw.fields + ("_metadata" -> metadata))))
+      case PermissionSubjectRemoved(_, _, revision, created, raw) =>
+        val oldMetadata = domain.raw.fields("_metadata").asJsObject
+        val operation = raw.fields("operation").asInstanceOf[JsString].value
+        val kind = raw.fields("kind").asInstanceOf[JsString].value
+        val subject = raw.fields("subject").asInstanceOf[JsString].value
+        val acl = doRemovePermissionSubject(oldMetadata.fields("acl").asJsObject, operation, kind, subject)
+        val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> acl))
+        copy(domain = domain.copy(revision = revision, updated = created, raw = JsObject(domain.raw.fields + ("_metadata" -> metadata))))
       case _ => copy(domain = domain)
     }
 
@@ -759,16 +767,16 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     val id = source.fields("id").asInstanceOf[JsString].value
     val pid = s"${domain}~${collection}~${id}"
     collection match {
-      case ".collections" => (collectionRegion ? RemovePermissionSubject(pid, user, "*", "users", subject)).mapTo[PermissionSubjectRemoved].flatMap { _ =>
+      case ".collections" => (collectionRegion ? RemovePermissionSubject(pid, user, "*", "users", subject)).flatMap { _ =>
         collectionRegion ? RemoveEventPermissionSubject(pid, user, "*", "users", subject)
       }
-      case ".domains" => (domainRegion ? RemovePermissionSubject(pid, user, "*", "users", subject)).mapTo[PermissionSubjectRemoved].flatMap { _ =>
+      case ".domains" => (domainRegion ? RemovePermissionSubject(pid, user, "*", "users", subject)).flatMap { _ =>
         domainRegion ? RemoveEventPermissionSubject(pid, user, "*", "users", subject)
       }
-      case "users" => (userRegion ? RemovePermissionSubject(pid, user, "*", "users", subject)).mapTo[PermissionSubjectRemoved].flatMap { _ =>
+      case "users" => (userRegion ? RemovePermissionSubject(pid, user, "*", "users", subject)).flatMap { _ =>
         userRegion ? RemoveEventPermissionSubject(pid, user, "*", "users", subject)
       }
-      case docs => (documentRegion ? RemovePermissionSubject(pid, user, "*", "users", subject)).mapTo[PermissionSubjectRemoved].flatMap { _ =>
+      case docs => (documentRegion ? RemovePermissionSubject(pid, user, "*", "users", subject)).flatMap { _ =>
         documentRegion ? RemoveEventPermissionSubject(pid, user, "*", "users", subject)
       }
     }

@@ -59,20 +59,19 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     val cbw = CallbackWrapper(receiver, callback)
     val jsObj = toJsObject(userInfo)
     jsObj.fields.get("userName") match {
-      case Some(JsString(userName)) =>
-        (userRegion ? CreateUser(userId(userName), "anonymous", jsObj)).recover { case e => e }.foreach {
-          case uc: UserCreated =>
-            cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-              def prepare(params: V8Array) = {
-                val v8Object = toV8Object(uc.raw, cbw.runtime)
-                toBeReleased += v8Object
-                params.pushNull()
-                params.push(v8Object)
-              }
-            })
-            enqueueCallback(cbw)
-          case other => failureCallback(cbw, other)
-        }
+      case Some(JsString(userName)) => (userRegion ? CreateUser(userId(userName), "anonymous", jsObj)).recover { case e => e }.foreach {
+        case uc: UserCreated =>
+          cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+            def prepare(params: V8Array) = {
+              val v8Object = toV8Object(uc.raw, cbw.runtime)
+              toBeReleased += v8Object
+              params.pushNull()
+              params.push(v8Object)
+            }
+          })
+          enqueueCallback(cbw)
+        case other => failureCallback(cbw, other)
+      }
       case _ => failureCallback(cbw, UserNameNotExists)
     }
   }
