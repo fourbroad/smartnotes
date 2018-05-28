@@ -14,64 +14,141 @@
 // ------------ BEGIN MODULE SCOPE VARIABLES --------------
 'use strict';
 
-var documentWrapper = new __DocumentWrapper(), collectionProto, newCollection;
+const
+  extend = require('extend'),
+  Document = require('./document'),
+  documentWrapper = new __DocumentWrapper(),
+  collectionWrapper = new __CollectionWrapper();
+
+var
+  collectionProto, create;
 
 // ------------- END MODULE SCOPE VARIABLES ---------------
 
 // ---------------- BEGIN INITIALIZE MODULE SCOPE VARIABLES -----------------
 
 collectionProto = {
-	createDocument : function(docId, callback) {
-		documentWrapper.createDocument(this.token, this.domainName, this.name, docId, function(err, document) {
-			callback(err, document);
-		});
-	},
-	getDocument : function(docId, callback) {
-		documentWrapper.getDocument(this.token, this.domainName, this.name,	docId, function(err, document) {
-			callback(err, document);
-		});
-	},
-	replaceDocument : function(docId, content, callback) {
-		documentWrapper.replaceDocument(this.token, this.domainName, this.name, docId, content, function(err, document) {
-			callback(err, document);
-		});
-	},
-	patchDocument : function(docId, patch, callback) {
-		documentWrapper.patchDocument(this.token, this.domainName, this.name, docId, patch, function(err, document) {
-			callback(err, document);
-		});
-	},
-	deleteDocument : function(docId, callback) {
-		documentWrapper.deleteDocument(this.token, this.domainName, this.name, docId, function(err, result) {
-			callback(err, result);
-		});
-	},
-	authorizeDocument : function(docId, acl, callback) {
-		documentWrapper.authorizeDocument(this.token, this.domainName, this.name, docId, acl, function(err, result) {
-			callback(err, result);
-		});
-	},
-	findDocuments : function(query, callback) {
-		this.collectionWrapper.findDocuments(this.token, this.domainName, this.name, query, function(err, result) {
-			callback(err, result);
-		});
-	}
+  createDocument : function(docId, docRaw, callback) {
+	const
+	  token = this.token,
+	  domainName = this.domainName,
+	  collectionName = this.name;
+	  
+	documentWrapper.create(token, domainName, collectionName, docId, docRaw, function(err, docData) {
+	  callback(err, err ? null, Document.create(token,domainName,collectionName, docId, docData);
+	});
+  },
+  
+  getDocument : function(docId, callback) {
+	const
+	  token = this.token,
+	  domainName = this.domainName,
+	  collectionName = this.name;
+
+	documentWrapper.get(token, domainName, collectionName, docId, function(err, docData) {
+	  callback(err, err ? null : Document.create(token, domainName, collectionName, docId, docData));		
+	});
+  },
+  
+  replace : function(collectionRaw, callback) {
+	const
+	  self = this,
+	  token = this.token,
+	  domainName = this.domainName,
+	  collectionName = this.collectionName;
+
+	collectionWrapper.replace(token, domainName, collectionName, collectionRaw, function(err, collectionData) {
+	  if(err) return callback(err);
+		  
+	  for(var key in self) {
+		if(self.hasOwnProperty(key)) delete self[key];
+	  }
+
+	  extend(self, collectionData);
+	  callback(null, true);	  
+	});
+  },
+  
+  patch : function(patch, callback) {
+	const
+	  self = this,
+	  token = this.token,
+	  domainName = this.domainName,
+	  collectionName = this.collectionName;
+		
+	collectionWrapper.patch(token, domainName, collectionName, patch, function(err, collectionData) {
+	  if(err) return callback(err);
+			  
+	  for(var key in self) {
+		if(self.hasOwnProperty(key)) delete self[key];
+	  }
+
+	  extend(self, collectionData);
+	  callback(null, true);	  
+    });
+  },
+  
+  remove : function(callback) {
+	var
+	  sef = this;
+
+	collectionWrapper.remove(this.token, this.domainName, this.name, function(err, result){
+	  self.removed = result ? true : false;
+	  callback(err, result);	  
+	});
+  },
+  
+  setACL : function(acl, callback) {
+	collectionWrapper.setACL(this.token, this.domainName, this.name, acl, function(err, result) {
+	  callback(err, result);
+	});
+  },
+  
+  removePermissionSubject : function(acl, callback) {
+	collectionWrapper.removePermissionSubject(this.token, this.domainName, this.name, acl, function(err, result) {
+	  callback(err, result);
+	});
+  },
+  
+  findDocuments : function(query, callback) {
+	collectionWrapper.findDocuments(this.token, this.domainName, this.name, query, function(err, result) {
+	  callback(err, result);
+	});
+  }
 };
 
 // ----------------- END INITIALIZE MODULE SCOPE VARIABLES ------------------
 
 // ---------------- BEGIN PUBLIC METHODS ------------------
 
-newCollection = function(domainName, collectionName, token, callback) {
-	var collection = Object.create(collectionProto);
-	collection.domainName = domainName;
-	collection.name = collectionName;
-	collection.token = token;
-	callback(null, collection);
+create = function(token, domainName, collectionName, collectionData) {
+  var 
+    collection = Object.create(collectionProto, {
+      token:{
+    	value: token,
+    	configurable: false,
+    	writable: false,
+    	enumerable: false   	  
+      },
+      domainName:{
+    	value: domainName,
+      	configurable: false,
+    	writable: false,
+    	enumerable: true   	  
+      },
+      name:{
+    	value: collectionName,
+      	configurable: false,
+    	writable: false,
+    	enumerable: true   	  
+      }
+    });
+
+  return extend(true, collection, collectionData)
 };
 
 module.exports = {
-	newCollection : newCollection
+  create: create
 };
 
 // ----------------- END PUBLIC METHODS -----------------

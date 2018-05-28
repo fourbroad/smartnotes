@@ -6,9 +6,32 @@ process.on('SIGWINCH', function(){
     asyncCallback();
 });
 
-describe('#user.js', function(){
+describe.only('#user.js', function(){
   var
-	client;
+	client, rootDomain;
+
+  before(function(done){
+	this.timeout(10000);
+	notes.login("administrator","!QAZ)OKM", function(err1, adminClient){
+	  adminClient.getDomain('localhost',function(err2, domain){
+		console.log(domain);
+		rootDomain = domain
+		domain.setCollectionACL('.users',[{op:"add",path:"/create_document/users/-",value:"anonymous"}],function(err3, result){
+		  console.log(err3);
+		  console.log(result);
+	      done();
+		});
+      });
+	});
+  });
+
+  after(function(done){
+	rootDomain.removeCollectionPermissionSubject('.users',[{op:"add",path:"/create_document/users/-",value:"anonymous"}],function(err3, result){
+	  console.log(err3);
+	  console.log(result);
+      done();
+	});
+  });
   
   // anonymous
   it.only('registerUser() should return user object', function(done){
@@ -46,7 +69,7 @@ describe('#user.js', function(){
   });
 
   it('changePassword() should return true', function(done){
-    client.createUser({userName: 'hello', password:'world'}, function(err, result){
+    client.changePassword({userName: 'hello', password:'world'}, function(err, result){
    	  expect(result).to.be.ok;
 	  done();
 	});	

@@ -11,7 +11,9 @@ describe('#notes.js', function(){
 	client;
   
   before(function(done){
+	this.timeout(10000);
     notes.login("administrator","!QAZ)OKM", function(err, c){
+      console.log(err);
       client = c;
       done();
     });

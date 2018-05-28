@@ -38,14 +38,14 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     val dw = runtime.getObject("__DomainWrapper")
     val prototype = runtime.executeObjectScript("__DomainWrapper.prototype")
 
-    prototype.registerJavaMethod(this, "joinDomain", "joinDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "quitDomain", "quitDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "createDomain", "createDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "getDomain", "getDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "replaceDomain", "replaceDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "patchDomain", "patchDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "deleteDomain", "deleteDomain", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "setDomainACL", "setDomainACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "join", "join", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "quit", "quit", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "create", "create", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "get", "get", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "replace", "replace", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "patch", "patch", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "remove", "remove", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "setACL", "setACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "garbageCollection", "garbageCollection", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "listCollections", "listCollections", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
 
@@ -54,7 +54,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     dw.release
   }
 
-  def joinDomain(receiver: V8Object, token: String, domainName: String, userName: String, permission: V8Object, callback: V8Function) = {
+  def join(receiver: V8Object, token: String, domainName: String, userName: String, permission: V8Object, callback: V8Function) = {
     val jsObj = toJsObject(permission)
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
@@ -75,7 +75,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     }
   }
 
-  def quitDomain(receiver: V8Object, token: String, domainName: String, userName: String, callback: V8Function) = {
+  def quit(receiver: V8Object, token: String, domainName: String, userName: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => domainRegion ? QuitDomain(domainId(domainName), user, userName)
@@ -93,7 +93,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     }
   }
 
-  def createDomain(receiver: V8Object, token: String, domainName: String, v8Raw: V8Object, callback: V8Function) = {
+  def create(receiver: V8Object, token: String, domainName: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
@@ -114,7 +114,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     }
   }
 
-  def getDomain(receiver: V8Object, token: String, domainName: String, callback: V8Function) = {
+  def get(receiver: V8Object, token: String, domainName: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => domainRegion ? GetDomain(domainId(domainName), user)
@@ -134,7 +134,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     }
   }
 
-  def replaceDomain(receiver: V8Object, token: String, domainName: String, content: V8Object, callback: V8Function) = {
+  def replace(receiver: V8Object, token: String, domainName: String, content: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsContent = toJsObject(content)
     validateToken(token).flatMap {
@@ -155,7 +155,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     }
   }
 
-  def patchDomain(receiver: V8Object, token: String, domainName: String, v8Patch: V8Array, callback: V8Function) = {
+  def patch(receiver: V8Object, token: String, domainName: String, v8Patch: V8Array, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsArray = toJsArray(v8Patch)
     validateToken(token).flatMap {
@@ -176,7 +176,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     }
   }
 
-  def deleteDomain(receiver: V8Object, token: String, domainName: String, callback: V8Function) = {
+  def remove(receiver: V8Object, token: String, domainName: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => domainRegion ? DeleteDomain(domainId(domainName), user)
@@ -196,7 +196,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     }
   }
 
-  def setDomainACL(receiver: V8Object, token: String, domainName: String, auth: V8Array, callback: V8Function) = {
+  def setACL(receiver: V8Object, token: String, domainName: String, auth: V8Array, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsArray = toJsArray(auth)
     validateToken(token).flatMap {

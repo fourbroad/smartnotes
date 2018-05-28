@@ -39,23 +39,23 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     val dw = runtime.getObject("__UserWrapper")
     val prototype = runtime.executeObjectScript("__UserWrapper.prototype")
 
-    prototype.registerJavaMethod(this, "registerUser", "registerUser", Array[Class[_]](classOf[V8Object], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "register", "register", Array[Class[_]](classOf[V8Object], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "login", "login", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "logout", "logout", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "isValidToken", "isValidToken", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Function]), true)
 
-    prototype.registerJavaMethod(this, "createUser", "createUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "getUser", "getUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "replaceUser", "replaceUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "patchUser", "patchUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "deleteUser", "deleteUser", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "create", "create", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "get", "get", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "replace", "replace", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "patch", "patch", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "remove", "remove", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
 
     dw.setPrototype(prototype)
     prototype.release
     dw.release
   }
 
-  def registerUser(receiver: V8Object, userInfo: V8Object, callback: V8Function) = {
+  def register(receiver: V8Object, userInfo: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsObj = toJsObject(userInfo)
     jsObj.fields.get("userName") match {
@@ -76,7 +76,7 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     }
   }
 
-  def createUser(receiver: V8Object, token: String, userInfo: V8Object, callback: V8Function) = {
+  def create(receiver: V8Object, token: String, userInfo: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsObj = toJsObject(userInfo)
     jsObj.fields.get("userName") match {
@@ -113,8 +113,8 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
             case other            => other
           }
         } else Future.successful(UserNamePasswordError)
-      case DocumentNotFound => Future.successful(UserNotExists)
-      case other            => Future.successful(other)
+      case UserNotFound => Future.failed(UserNotFound)
+      case other        => Future.successful(other)
     }.recover { case e => e }.foreach {
       case token: String =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
@@ -164,7 +164,7 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     }
   }
 
-  def getUser(receiver: V8Object, token: String, id: String, callback: V8Function) = {
+  def get(receiver: V8Object, token: String, id: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => userRegion ? GetUser(userId(id), user)
@@ -184,7 +184,7 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     }
   }
 
-  def replaceUser(receiver: V8Object, token: String, id: String, content: V8Object, callback: V8Function) = {
+  def replace(receiver: V8Object, token: String, id: String, content: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsContent = toJsObject(content)
     validateToken(token).flatMap {
@@ -205,7 +205,7 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     }
   }
 
-  def patchUser(receiver: V8Object, token: String, id: String, v8Patch: V8Array, callback: V8Function) = {
+  def patch(receiver: V8Object, token: String, id: String, v8Patch: V8Array, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsArray = toJsArray(v8Patch)
     validateToken(token).flatMap {
@@ -226,7 +226,7 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     }
   }
 
-  def deleteUser(receiver: V8Object, token: String, id: String, callback: V8Function) = {
+  def remove(receiver: V8Object, token: String, id: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => userRegion ? DeleteUser(userId(id), user)

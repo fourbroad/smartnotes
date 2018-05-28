@@ -18,6 +18,7 @@
 
 const
   Domain = require('./domain'),
+  User = require('./user'),  
   extend = require('extend'),
   domainWrapper = new __DomainWrapper(),
   userWrapper = new __UserWrapper();
@@ -30,94 +31,57 @@ var
 // ---------------- BEGIN INITIALIZE MODULE SCOPE VARIABLES -----------------
 
 clientProto = {
-  createUser : function(uid, userInfo, callback) {
-	userWrapper.createUser(this.token, uid, userInfo, function(err, user) {
-	  callback(err, user);
+  createUser: function(userId, userRaw, callback) {
+	const
+	  token = this.token;
+	  
+	userWrapper.create(token, userId, userRaw, function(err, userData) {
+	  callback(err, err ? null : User.create(token, userId, userData));		
 	});
   },
-  getUser : function(uid, callback) {
-	userWrapper.getUser(this.token, uid, function(err, user) {
-	  callback(err, user);
+
+  getUser: function(userId, callback) {
+	const
+	  token = this.token;
+	
+	userWrapper.get(token, userId, function(err, userData) {
+	  callback(err, err ? null : User.create(token, userId, userData));		
 	});
   },
-  replaceUser : function(uid, userInfo, callback) {
-	userWrapper.replaceUser(this.token, uid, userInfo, function(err, user) {
-	  callback(err, user);
-	});
-  },
-  patchUser : function(uid, patch, callback) {
-	userWrapper.patchUser(this.token, uid,  patch, function(err, user) {
-	  callback(err, user);
-	});
-  },
-  deleteUser : function(uid, callback) {
-	userWrapper.deleteUser(this.token, uid, function(err, result) {
-	  callback(err, result);
-    });
-  },
-  resetPassword : function(uid, newPassword, callback) {
-	userWrapper.resetPassword(this.token, uid, newPassword, function(err, user) {
-	  callback(err, user);
-	});
-  },
-  authorizeUser : function(uid, acl, callback) {
-	userWrapper.authorizeUser(this.token, uid, acl, function(err, result) {
-	  callback(err, result);
-	});
-  },
+  
   logout: function(callback){
 	domainWrapper.logout(this.token, function(err, result){
 	  callback(err, result);
 	});
   },
 
-  joinDomain:function(domainName, userName, permission, callback){
-	domainWrapper.joinDomain(this.token, domainName, userName, permission, function(err, result){
-	  callback(err, result);	  
+  joinDomain:function(domainName, userId, permission, callback){
+	domainWrapper.joinDomain(this.token, domainName, userId, permission, function(err, result){
+	  callback(err, result);
 	});
   },
-  quitDomain:function(domainName, userName, callback){
-	domainWrapper.quitDomain(this.token, domainName, userName, function(err, result){
-	  callback(err, result);	  
+
+  quitDomain:function(domainName, userId, callback){
+	domainWrapper.quitDomain(this.token, domainName, userId, function(err, result){
+	  callback(err, result);
 	});
   },
-  createDomain: function(domainName, callback){
-	domainWrapper.createDomain(this.token, domainName, function(err, domain){
-	  callback(err, domain);	  
+
+  createDomain: function(domainName, domainRaw, callback){
+	const
+	  token = this.token;
+	
+	domainWrapper.create(token, domainName, domainRaw, function(err, domainData){
+	  callback(err, err ? null : Domain.create(token, domainName, domainData));
 	});
   },
+
   getDomain: function(domainName, callback){
-	const token = this.token;
-	domainWrapper.getDomain(token, domainName, function(err, domainData){
-	  if(err) return callback(err);
-	  Domain.newDomain(token, domainName, function(err2, domain){
-		callback(err2, extend(true, domain, domainData, {domainWrapper: domainWrapper}));
-	  });
-	});
-  },
-  replaceDomain: function(domainName, content, callback){
-	domainWrapper.replaceDomain(this.token, domainName, content, function(err, domain){
-	  callback(err, domain);	  
-	});
-  },
-  patchDomain: function(domainName, patch, callback){
-	domainWrapper.patchDomain(this.token, domainName, patch, function(err, domain){
-	  callback(err, domain);	  
-	});
-  },
-  deleteDomain: function(domainName, callback){
-	domainWrapper.deleteDomain(this.token, domainName, function(err, result){
-	  callback(err, result);	  
-	});
-  },
-  authorizeDomain: function(domainName, acl, callback){
-	domainWrapper.authorizeDomain(this.token, domainName, acl, function(err, result){
-	  callback(err, result);	  
-	});
-  },
-  garbageCollection: function(domainName, callback){
-	domainWrapper.garbageCollection(this.token, domainName, function(err, result){
-	  callback(err, result);	  
+	const 
+	  token = this.token;
+
+	domainWrapper.get(token, domainName, function(err, domainData){
+	  callback(err, err ? null : Domain.create(token, domainName, domainData));
 	});
   }
 };
@@ -129,10 +93,19 @@ clientProto = {
 
 login = function(username, password, callback){
   userWrapper.login(username, password, function(err, token){
+	var
+	  client;
+	
 	if(err) return callback(err);
 
-	var client = Object.create(clientProto);
-	client.token     = token;
+	client = Object.create(clientProto, {
+	  token:{
+	    value: token,
+	    configurable: false,
+	    writable: false,
+	    enumerable: false
+	  }	  
+	});
 	callback(null, client);
   });
 };
@@ -144,7 +117,7 @@ registerUser = function(userInfo, callback){
 };
 
 isValidToken = function(token, callback){
-  domainWrapper.isValidToken(token, function(err, result){
+  userWrapper.isValidToken(token, function(err, result){
 	callback(err, result);
   });
 };

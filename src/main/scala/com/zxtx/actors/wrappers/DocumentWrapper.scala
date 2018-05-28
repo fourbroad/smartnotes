@@ -31,17 +31,17 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
     val runtime = receiver.getRuntime
     val dw = runtime.getObject("__DocumentWrapper")
     val prototype = runtime.executeObjectScript("__DocumentWrapper.prototype")
-    prototype.registerJavaMethod(this, "createDocument", "createDocument", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "getDocument", "getDocument", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "replaceDocument", "replaceDocument", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "patchDocument", "patchDocument", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "deleteDocument", "deleteDocument", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "create", "create", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "get", "get", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "replace", "replace", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "patch", "patch", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "remove", "remove", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
     dw.setPrototype(prototype)
     prototype.release
     dw.release
   }
 
-  def createDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, v8Raw: V8Object, callback: V8Function) = {
+  def create(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
@@ -63,7 +63,7 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
 
   }
 
-  def getDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, callback: V8Function) = {
+  def get(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => documentRegion ? GetDocument(documentId(domainName, collectionName, docId), user)
@@ -83,7 +83,7 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
     }
   }
 
-  def replaceDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, content: V8Object, callback: V8Function) = {
+  def replace(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, content: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsContent = toJsObject(content)
     validateToken(token).flatMap {
@@ -104,7 +104,7 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
     }
   }
 
-  def patchDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, v8Patch: V8Array, callback: V8Function) = {
+  def patch(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, v8Patch: V8Array, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsArray = toJsArray(v8Patch)
     validateToken(token).flatMap {
@@ -125,7 +125,7 @@ class DocumentWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]
     }
   }
 
-  def deleteDocument(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, callback: V8Function) = {
+  def remove(receiver: V8Object, token: String, domainName: String, collectionName: String, docId: String, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).flatMap {
       case TokenValid(user) => documentRegion ? DeleteDocument(documentId(domainName, collectionName, docId), user)

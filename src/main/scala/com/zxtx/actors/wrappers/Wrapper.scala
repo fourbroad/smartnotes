@@ -95,9 +95,9 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
           case Denied =>
             v8Object.add("code", 401)
             v8Object.add("message", "User have no permission to access!")
-          case UserNotExists =>
+          case UserNotFound =>
             v8Object.add("code", 404)
-            v8Object.add("message", "User not exists!")
+            v8Object.add("message", "User not found!")
           case DomainNotFound =>
             v8Object.add("code", 404)
             v8Object.add("message", "Domain is not found!")
@@ -188,6 +188,4 @@ object Wrapper {
   case object UpdateSecretKeyError extends SecretKeyResult
   case object SecretKeyCleared extends SecretKeyResult
   case object ClearSecretKeyError extends SecretKeyResult
-
-  case object UserNotExists
 }
