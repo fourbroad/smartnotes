@@ -56,7 +56,7 @@ class ElasticSearchJournal extends AsyncWriteJournal with AsyncRecovery with Act
               case _                       => Map[String, JsValue]()
             }
             val metaMap = metaFields + ("revision" -> JsNumber(pr.sequenceNr)) + ("manifest" -> JsString(pr.manifest)) + ("writerUuid" -> JsString(pr.writerUuid))
-            val metaObj = JsObject((if (pr.deleted) metaMap + ("deleted" -> JsBoolean(true)) else metaMap).toList)
+            val metaObj = JsObject((if (pr.deleted) metaMap + ("removed" -> JsBoolean(true)) else metaMap).toList)
             op + "\n" + JsObject(obj.fields + ("id" -> JsString(id)) + ("_metadata" -> metaObj)).compactPrint
           }
       }
@@ -91,7 +91,7 @@ class ElasticSearchJournal extends AsyncWriteJournal with AsyncRecovery with Act
         }
       },
       "script":{
-        "source": "ctx._source._metadata.deleted = true"
+        "source": "ctx._source._metadata.removed = true"
       }
     }"""
 
@@ -157,7 +157,7 @@ class ElasticSearchJournal extends AsyncWriteJournal with AsyncRecovery with Act
             {"term":{"id.keyword":"${id}"}}
           ],
           "must_not":[
-            {"term":{"_metadata.deleted":true}}
+            {"term":{"_metadata.removed":true}}
           ],
           "filter":{
             "range":{"_metadata.revision":{"gte":"${fromSequenceNr}","lte":"${end}"}}

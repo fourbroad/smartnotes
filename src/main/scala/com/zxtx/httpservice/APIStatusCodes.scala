@@ -41,14 +41,14 @@ trait APIStatusCodes {
     case DocumentCreated(_, _, _, _, raw)    => APIStatusCode(Created.intValue, Created.reason, raw)
     case DocumentReplaced(_, _, _, _, raw)   => APIStatusCode(OK.intValue, OK.reason, raw)
     case DocumentPatched(_, _, _, _, _, raw) => APIStatusCode(OK.intValue, OK.reason, raw)
-    case DocumentDeleted(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, documentDeleted)
+    case DocumentRemoved(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, documentDeleted)
     case document: Document                  => APIStatusCode(OK.intValue, OK.reason, document.toJson)
     case documents: JsObject                 => APIStatusCode(OK.intValue, OK.reason, documents)
     case Denied                              => APIStatusCode(Unauthorized.intValue, Unauthorized.reason, unauthorizedAccess)
     case DocumentNotFound                    => APIStatusCode(NotFound.intValue, NotFound.reason, documentNotFound)
     case DocumentAlreadyExists               => APIStatusCode(Conflict.intValue, Conflict.reason, documentAlreadyExists)
     case DocumentIsCreating                  => APIStatusCode(Conflict.intValue, Conflict.reason, documentIsCreating)
-    case DocumentSoftDeleted                 => APIStatusCode(Conflict.intValue, Conflict.reason, documentSoftDeleted)
+    case DocumentSoftRemoved                 => APIStatusCode(Conflict.intValue, Conflict.reason, documentSoftDeleted)
     case ExecuteDocumentException(e)         => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
     case PatchDocumentException(e)           => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
   }
@@ -58,7 +58,7 @@ trait APIStatusCodes {
     case CollectionCreated(_, _, _, _, raw)    => APIStatusCode(Created.intValue, Created.reason, raw)
     case CollectionReplaced(_, _, _, _, raw)   => APIStatusCode(OK.intValue, OK.reason, raw)
     case CollectionPatched(_, _, _, _, _, raw) => APIStatusCode(OK.intValue, OK.reason, raw)
-    case CollectionDeleted(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, collectionDeleted)
+    case CollectionRemoved(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, collectionDeleted)
     case collection: Collection                => APIStatusCode(OK.intValue, OK.reason, collection.toJson)
     case collections: JsObject                 => APIStatusCode(OK.intValue, OK.reason, collections)
     case Denied                                => APIStatusCode(Unauthorized.intValue, Unauthorized.reason, unauthorizedAccess)
@@ -66,7 +66,7 @@ trait APIStatusCodes {
     case CollectionNotFound                    => APIStatusCode(NotFound.intValue, NotFound.reason, collectionNotFound)
     case CollectionAlreadyExists               => APIStatusCode(Conflict.intValue, Conflict.reason, collectionAlreadyExists)
     case CollectionIsCreating                  => APIStatusCode(Conflict.intValue, Conflict.reason, collectionIsCreating)
-    case CollectionSoftDeleted                 => APIStatusCode(Conflict.intValue, Conflict.reason, collectionSoftDeleted)
+    case CollectionSoftRemoved                 => APIStatusCode(Conflict.intValue, Conflict.reason, collectionSoftDeleted)
     case PatchCollectionException(e)           => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
   }
 
@@ -75,7 +75,7 @@ trait APIStatusCodes {
     case DomainCreated(_, _, _, _, raw)    => APIStatusCode(Created.intValue, Created.reason, raw)
     case DomainReplaced(_, _, _, _, raw)   => APIStatusCode(OK.intValue, OK.reason, raw)
     case DomainPatched(_, _, _, _, _, raw) => APIStatusCode(OK.intValue, OK.reason, raw)
-    case DomainDeleted(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, domainDeleted)
+    case DomainRemoved(_, _, _, _, _)      => APIStatusCode(OK.intValue, OK.reason, domainDeleted)
     case domain: Domain                    => APIStatusCode(OK.intValue, OK.reason, domain.toJson)
     case domains: JsObject                 => APIStatusCode(OK.intValue, OK.reason, domains)
     case Denied                            => APIStatusCode(Unauthorized.intValue, Unauthorized.reason, unauthorizedAccess)
@@ -83,7 +83,7 @@ trait APIStatusCodes {
     case DomainNotFound                    => APIStatusCode(NotFound.intValue, NotFound.reason, domainNotFound)
     case DomainAlreadyExists               => APIStatusCode(Conflict.intValue, Conflict.reason, domainAlreadyExists)
     case DomainIsCreating                  => APIStatusCode(Conflict.intValue, Conflict.reason, domainIsCreating)
-    case DomainSoftDeleted                 => APIStatusCode(Conflict.intValue, Conflict.reason, domainSoftDeleted)
+    case DomainSoftRemoved                 => APIStatusCode(Conflict.intValue, Conflict.reason, domainSoftDeleted)
     case PatchDomainException(e)           => APIStatusCode(InternalServerError.intValue, InternalServerError.reason, JsString(e.toString))
   }
 

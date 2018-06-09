@@ -1,3 +1,3 @@
 package com.zxtx.actors
 
-trait DocumentEvent
+trait Event

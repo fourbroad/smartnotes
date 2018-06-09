@@ -24,33 +24,33 @@ router.get('/', function(request, response){
 	response.redirect( '/spa.html' );
 });
 
-router.post("/_login", function(req, res){
-	var 
-	  name = req.body.name,
-	  password = req.body.password;
-	
-	req.domain.login(name, password, function(err, result){
-		if(err) return res.status(err.code).json(err);
-		res.json(result);
-	});
-});
-
-router.get("/_logout", function(req,res){
-	var 
-	  hostName = utils.getHostName(req);
-	
-	req.domain.logout(function(err, result){
-		if(err) return res.status(err.code).json(err);			
-		res.json({message:"logout"});	
-	});
-});
-
-router.get("/secret", function(req, res){
-	req.domain.isValidToken(function(err, result){
-		if(err) return res.status(err.code).json(err);
-		res.json(req.domain);	
-	});
-});
+//router.post("/_login", function(req, res){
+//	var 
+//	  name = req.body.name,
+//	  password = req.body.password;
+//	
+//	req.domain.login(name, password, function(err, result){
+//		if(err) return res.status(err.code).json(err);
+//		res.json(result);
+//	});
+//});
+//
+//router.get("/_logout", function(req,res){
+//	var 
+//	  hostName = utils.getHostName(req);
+//	
+//	req.domain.logout(function(err, result){
+//		if(err) return res.status(err.code).json(err);			
+//		res.json({message:"logout"});	
+//	});
+//});
+//
+//router.get("/secret", function(req, res){
+//	req.domain.isValidToken(function(err, result){
+//		if(err) return res.status(err.code).json(err);
+//		res.json(req.domain);	
+//	});
+//});
 
 router.all('/:obj_type/*?', function(request, response, next){
   response.contentType('json');

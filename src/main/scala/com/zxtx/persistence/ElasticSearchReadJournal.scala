@@ -58,7 +58,7 @@ class ElasticSearchReadJournal(system: ExtendedActorSystem, config: Config) exte
             {"term":{"id.keyword":"${id}"}}
           ],
           "must_not":[
-            {"term":{"_metadata.deleted":true}}
+            {"term":{"_metadata.removed":true}}
           ],
           "filter":{
             "range":{"_metadata.revision":{"gte":"${fromSequenceNr}","lte":"${toSequenceNr}"}}

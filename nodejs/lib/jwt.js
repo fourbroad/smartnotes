@@ -2,7 +2,7 @@ var
   unless = require('express-unless'),
   utils = require('./utils');
   
-function UnauthorizedError (code, error) {
+function UnauthorizedError(code, error) {
 	this.name = "UnauthorizedError";
 	this.message = error.message;
 	Error.call(this, error.message);
@@ -16,11 +16,10 @@ UnauthorizedError.prototype = Object.create(Error.prototype);
 UnauthorizedError.prototype.constructor = UnauthorizedError;
 
 module.exports = function(options) {
-  var opts = options || {};
-
-  var credentialsRequired = typeof opts.credentialsRequired === 'undefined' ? true : opts.credentialsRequired;
-
-  var middleware = function(req, res, next) {
+  var
+    opts = options || {},
+    credentialsRequired = typeof opts.credentialsRequired === 'undefined' ? true : opts.credentialsRequired,
+    middleware = function(req, res, next) {
     var 
       hostName = utils.getHostName(req),
       domain, token;

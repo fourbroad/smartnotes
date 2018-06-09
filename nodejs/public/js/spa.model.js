@@ -100,7 +100,7 @@ spa.model = (function () {
     stateMap.user.css_map = user_map.css_map;
     stateMap.people_cid_map[ user_map._id ] = stateMap.user;
     chat.join();
-    $.gevent.publish( 'spa-login', [ stateMap.user ] );
+    $.gevent.publish('spa-login', [stateMap.user]);
   };
 
   makePerson = function ( person_map ) {
@@ -122,8 +122,8 @@ spa.model = (function () {
     if ( id ) { person.id = id; }
 
     stateMap.people_cid_map[ cid ] = person;
-
     stateMap.people_db.insert( person );
+    
     return person;
   };
 
@@ -134,36 +134,34 @@ spa.model = (function () {
       return false;
     }
 
-    stateMap.people_db({ cid : person.cid }).remove();
+    stateMap.people_db({cid : person.cid}).remove();
     if ( person.cid ) {
       delete stateMap.people_cid_map[ person.cid ];
     }
     return true;
   };
 
-  people = (function () {
+  people = (function() {
     var get_by_cid, get_db, get_user, login, logout;
 
-    get_by_cid = function ( cid ) {
-      return stateMap.people_cid_map[ cid ];
-    };
+    get_by_cid = function(cid) { return stateMap.people_cid_map[ cid ]; };
 
-    get_db = function () { return stateMap.people_db; };
+    get_db = function() { return stateMap.people_db; };
 
-    get_user = function () { return stateMap.user; };
+    get_user = function() { return stateMap.user; };
 
-    login = function ( name ) {
+    login = function(name) {
       var sio = isFakeData ? spa.fake.mockSio : spa.data.getSio();
 
       stateMap.user = makePerson({
         cid     : makeCid(),
-        css_map : {top : 25, left : 25, 'background-color':'#8f8'},
+        css_map : {top:25, left:25, 'background-color':'#8f8'},
         name    : name
       });
 
-      sio.on( 'userupdate', completeLogin );
+      sio.on('userupdate', completeLogin);
 
-      sio.emit( 'adduser', {
+      sio.emit('adduser', {
         cid     : stateMap.user.cid,
         css_map : stateMap.user.css_map,
         name    : stateMap.user.name

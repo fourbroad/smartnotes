@@ -32,195 +32,76 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
 
   val collectionRegion: ActorRef = ClusterSharding(system).shardRegion(CollectionActor.shardName)
 
-  def collectionId(domainName: String, collectionName: String) = s"${domainName}~.collections~${collectionName}"
+  def collectionPID(domainId: String, collectionId: String) = s"${domainId}~.collections~${collectionId}"
 
   def bind(receiver: V8Object) = {
     val runtime = receiver.getRuntime
     val dw = runtime.getObject("__CollectionWrapper")
     val prototype = runtime.executeObjectScript("__CollectionWrapper.prototype")
+
     prototype.registerJavaMethod(this, "create", "create", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "get", "get", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "replace", "replace", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "patch", "patch", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "remove", "remove", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "findDocuments", "findDocuments", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
-    prototype.registerJavaMethod(this, "setACL", "setACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
+
+    prototype.registerJavaMethod(this, "getACL", "getACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "replaceACL", "replaceACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "patchACL", "patchACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "removePermissionSubject", "removePermissionSubject", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "removeEventPermissionSubject", "removeEventPermissionSubject", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
+
     dw.setPrototype(prototype)
     prototype.release
     dw.release
   }
 
-  def create(receiver: V8Object, token: String, domainName: String, collectionName: String, v8Raw: V8Object, callback: V8Function) = {
+  def create(receiver: V8Object, token: String, domainId: String, collectionId: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
-    val cbw = CallbackWrapper(receiver, callback)
-    validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? CreateCollection(collectionId(domainName, collectionName), user, jsRaw)
-      case other            => Future.successful(other)
-    }.recover { case e => e }.foreach {
-      case cc: CollectionCreated =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = toV8Object(cc.toJson.asJsObject, cbw.runtime)
-            toBeReleased += v8Object
-            params.pushNull()
-            params.push(v8Object)
-          }
-        })
-        enqueueCallback(cbw)
-      case other => failureCallback(cbw, other)
-    }
+    commandWithCollection(receiver, token, callback) { user => collectionRegion ? CreateCollection(collectionPID(domainId, collectionId), user, jsRaw) }
   }
 
-  def get(receiver: V8Object, token: String, domainName: String, collectionName: String, callback: V8Function) = {
-    val cbw = CallbackWrapper(receiver, callback)
-    validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? GetCollection(collectionId(domainName, collectionName), user, "/")
-      case other            => Future.successful(other)
-    }.recover { case e => e }.foreach {
-      case c: JsValue =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = toV8Object(c.asJsObject, cbw.runtime)
-            toBeReleased += v8Object
-            params.pushNull()
-            params.push(v8Object)
-          }
-        })
-        enqueueCallback(cbw)
-      case other => failureCallback(cbw, other)
-    }
-  }
+  def get(receiver: V8Object, token: String, domainId: String, collectionId: String, callback: V8Function) =
+    commandWithCollection(receiver, token, callback) { user => collectionRegion ? GetCollection(collectionPID(domainId, collectionId), user, "/") }
 
-  def replace(receiver: V8Object, token: String, domainName: String, collectionName: String, content: V8Object, callback: V8Function) = {
-    val cbw = CallbackWrapper(receiver, callback)
+  def replace(receiver: V8Object, token: String, domainId: String, collectionId: String, content: V8Object, callback: V8Function) = {
     val jsContent = toJsObject(content)
-    validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? ReplaceCollection(collectionId(domainName, collectionName), user, toJsObject(content))
-      case other            => Future.successful(other)
-    }.recover { case e => e }.foreach {
-      case cr: CollectionReplaced =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = toV8Object(cr.toJson.asJsObject, cbw.runtime)
-            toBeReleased += v8Object
-            params.pushNull()
-            params.push(v8Object)
-          }
-        })
-        enqueueCallback(cbw)
-      case other => failureCallback(cbw, other)
-    }
+    commandWithCollection(receiver, token, callback) { user => collectionRegion ? ReplaceCollection(collectionPID(domainId, collectionId), user, jsContent) }
   }
 
-  def patch(receiver: V8Object, token: String, domainName: String, collectionName: String, v8Patch: V8Array, callback: V8Function) = {
-    val cbw = CallbackWrapper(receiver, callback)
+  def patch(receiver: V8Object, token: String, domainId: String, collectionId: String, v8Patch: V8Array, callback: V8Function) = {
     val jsArray = toJsArray(v8Patch)
-    validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? PatchCollection(collectionId(domainName, collectionName), user, JsonPatch(jsArray))
-      case other            => Future.successful(other)
-    }.recover { case e => e }.foreach {
-      case cp: CollectionPatched =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = toV8Object(cp.toJson.asJsObject, cbw.runtime)
-            toBeReleased += v8Object
-            params.pushNull()
-            params.push(v8Object)
-          }
-        })
-        enqueueCallback(cbw)
-      case other => failureCallback(cbw, other)
-    }
+    commandWithCollection(receiver, token, callback) { user => collectionRegion ? PatchCollection(collectionPID(domainId, collectionId), user, JsonPatch(jsArray)) }
   }
 
-  def remove(receiver: V8Object, token: String, domainName: String, collectionName: String, callback: V8Function) = {
-    val cbw = CallbackWrapper(receiver, callback)
-    validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? DeleteCollection(collectionId(domainName, collectionName), user)
-      case other            => Future.successful(other)
-    }.recover { case e => e }.foreach {
-      case c: Collection =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = toV8Object(c.toJson.asJsObject, cbw.runtime)
-            toBeReleased += v8Object
-            params.pushNull()
-            params.push(v8Object)
-          }
-        })
-        enqueueCallback(cbw)
-      case other => failureCallback(cbw, other)
-    }
+  def remove(receiver: V8Object, token: String, domainId: String, collectionId: String, callback: V8Function) =
+    commandWithSuccess(receiver, token, callback) { user => collectionRegion ? RemoveCollection(collectionPID(domainId, collectionId), user) }
+
+  def getACL(receiver: V8Object, token: String, domainId: String, collectionId: String, callback: V8Function) =
+    commandWithACL(receiver, token, callback) { user => collectionRegion ? GetACL(collectionPID(domainId, collectionId), user) }
+
+  def replaceACL(receiver: V8Object, token: String, domainId: String, collectionId: String, v8ACL: V8Object, callback: V8Function) = {
+    val jsACL = toJsObject(v8ACL)
+    commandWithSuccess(receiver, token, callback) { user => collectionRegion ? ReplaceACL(collectionPID(domainId, collectionId), user, jsACL) }
   }
 
-  def setACL(receiver: V8Object, token: String, domainName: String, collectionName: String, v8ACL: V8Array, callback: V8Function) = {
-    val cbw = CallbackWrapper(receiver, callback)
-    val jsArray = toJsArray(v8ACL)
-    validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? SetACL(collectionId(domainName, collectionName), user, JsonPatch(jsArray))
-      case other            => Future.successful(other)
-    }.recover { case e => e }.foreach {
-      case as: ACLSet =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = toV8Object(as.toJson.asJsObject, cbw.runtime)
-            toBeReleased += v8Object
-            params.pushNull()
-            params.push(v8Object)
-          }
-        })
-        enqueueCallback(cbw)
-      case other => failureCallback(cbw, other)
-    }
+  def patchACL(receiver: V8Object, token: String, domainId: String, collectionId: String, v8ACLPatch: V8Array, callback: V8Function) = {
+    val jsACLPatch = toJsArray(v8ACLPatch)
+    commandWithSuccess(receiver, token, callback) { user => collectionRegion ? PatchACL(collectionPID(domainId, collectionId), user, JsonPatch(jsACLPatch)) }
   }
 
-  def removePermissionSubject(receiver: V8Object, token: String, domainName: String, collectionName: String, operation: String, kind: String, subject: String, callback: V8Function) = {
-    val cbw = CallbackWrapper(receiver, callback)
-    validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? RemovePermissionSubject(collectionId(domainName, collectionName), user, operation, kind, subject)
-      case other            => Future.successful(other)
-    }.recover { case e => e }.foreach {
-      case psr: PermissionSubjectRemoved =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = toV8Object(psr.toJson.asJsObject, cbw.runtime)
-            toBeReleased += v8Object
-            params.pushNull()
-            params.push(v8Object)
-          }
-        })
-        enqueueCallback(cbw)
-      case other => failureCallback(cbw, other)
-    }
-  }
+  def removePermissionSubject(receiver: V8Object, token: String, domainId: String, collectionId: String, operation: String, kind: String, subject: String, callback: V8Function) =
+    commandWithSuccess(receiver, token, callback) { user => collectionRegion ? RemovePermissionSubject(collectionPID(domainId, collectionId), user, operation, kind, subject) }
 
-  def removeEventPermissionSubject(receiver: V8Object, token: String, domainName: String, collectionName: String, operation: String, kind: String, subject: String, callback: V8Function) = {
-    val cbw = CallbackWrapper(receiver, callback)
-    validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? RemoveEventPermissionSubject(collectionId(domainName, collectionName), user, operation, kind, subject)
-      case other            => Future.successful(other)
-    }.recover { case e => e }.foreach {
-      case epsr: EventPermissionSubjectRemoved =>
-        cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
-          def prepare(params: V8Array) = {
-            val v8Object = toV8Object(epsr.toJson.asJsObject, cbw.runtime)
-            toBeReleased += v8Object
-            params.pushNull()
-            params.push(v8Object)
-          }
-        })
-        enqueueCallback(cbw)
-      case other => failureCallback(cbw, other)
-    }
-  }
+  def removeEventPermissionSubject(receiver: V8Object, token: String, domainId: String, collectionId: String, operation: String, kind: String, subject: String, callback: V8Function) =
+    commandWithSuccess(receiver, token, callback) { user => collectionRegion ? RemoveEventPermissionSubject(collectionPID(domainId, collectionId), user, operation, kind, subject) }
 
-  def findDocuments(receiver: V8Object, token: String, domainName: String, collectionName: String, query: V8Object, callback: V8Function) = {
+  def findDocuments(receiver: V8Object, token: String, domainId: String, collectionId: String, query: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsQuery = toJsObject(query)
     validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? FindDocuments(collectionId(domainName, collectionName), user, jsQuery)
+      case TokenValid(user) => collectionRegion ? FindDocuments(collectionPID(domainId, collectionId), user, jsQuery)
       case other            => Future.successful(other)
     }.recover { case e => e }.foreach {
       case jo: JsObject =>
@@ -235,6 +116,21 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
         enqueueCallback(cbw)
       case other => failureCallback(cbw, other)
     }
+  }
+
+  private def commandWithCollection(receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any]) =
+    command[Collection](receiver, token, callback)(cmd) { (cbw, c) => collectionCallback(cbw, c) }
+
+  private def collectionCallback(cbw: CallbackWrapper, c: Collection) = {
+    cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+      def prepare(params: V8Array) = {
+        val v8Object = toV8Object(c.toJson.asJsObject, cbw.runtime)
+        toBeReleased += v8Object
+        params.pushNull()
+        params.push(v8Object)
+      }
+    })
+    enqueueCallback(cbw)
   }
 
 }

@@ -16,11 +16,11 @@ spa.shell = (function () {
   //---------------- BEGIN MODULE SCOPE VARIABLES --------------
   var
     configMap = {
-      anchor_schema_map : {
-        chat  : { opened : true, closed : true }
+      anchor_schema_map: {
+        chat: { opened: true, closed: true }
       },
-      resize_interval : 200,
-      main_html : String()
+      resize_interval: 200,
+      main_html: String()
         + '<div class="spa-shell-head">'
           + '<div class="spa-shell-head-logo">'
             + '<h1>SPA</h1>'
@@ -99,7 +99,7 @@ spa.shell = (function () {
       if ( arg_map.hasOwnProperty( key_name ) ) {
 
         // skip dependent keys during iteration
-        if ( key_name.indexOf( '_' ) === 0 ) { continue KEYVAL; }
+        if ( key_name.indexOf('_') === 0 ) { continue KEYVAL; }
 
         // update independent key value
         anchor_map_revise[key_name] = arg_map[key_name];
@@ -108,8 +108,7 @@ spa.shell = (function () {
         key_name_dep = '_' + key_name;
         if ( arg_map[key_name_dep] ) {
           anchor_map_revise[key_name_dep] = arg_map[key_name_dep];
-        }
-        else {
+        } else {
           delete anchor_map_revise[key_name_dep];
           delete anchor_map_revise['_s' + key_name_dep];
         }
@@ -120,10 +119,9 @@ spa.shell = (function () {
     // Begin attempt to update URI; revert if not successful
     try {
       $.uriAnchor.setAnchor( anchor_map_revise );
-    }
-    catch ( error ) {
+    } catch ( error ) {
       // replace URI with existing state
-      $.uriAnchor.setAnchor( stateMap.anchor_map,null,true );
+      $.uriAnchor.setAnchor(stateMap.anchor_map, null, true);
       bool_return = false;
     }
     // End attempt to update URI...
@@ -154,8 +152,9 @@ spa.shell = (function () {
       anchor_map_previous = copyAnchorMap();
 
     // attempt to parse anchor
-    try { anchor_map_proposed = $.uriAnchor.makeAnchorMap(); }
-    catch ( error ) {
+    try {
+      anchor_map_proposed = $.uriAnchor.makeAnchorMap(); 
+    } catch(error) {
       $.uriAnchor.setAnchor( anchor_map_previous, null, true );
       return false;
     }
@@ -166,9 +165,7 @@ spa.shell = (function () {
     _s_chat_proposed = anchor_map_proposed._s_chat;
 
     // Begin adjust chat component if changed
-    if ( ! anchor_map_previous
-     || _s_chat_previous !== _s_chat_proposed
-    ) {
+    if ( !anchor_map_previous || _s_chat_previous !== _s_chat_proposed ) {
       s_chat_proposed = anchor_map_proposed.chat;
       switch ( s_chat_proposed ) {
         case 'opened' :
@@ -222,8 +219,7 @@ spa.shell = (function () {
       user_name = prompt( 'Please sign-in' );
       spa.model.people.login( user_name );
       jqueryMap.$acct.text( '... processing ...' );
-    }
-    else {
+    } else {
      spa.model.people.logout();
     }
     return false;
@@ -307,9 +303,9 @@ spa.shell = (function () {
     // is considered on-load
     //
     $(window)
-      .bind( 'resize',     onResize )
-      .bind( 'hashchange', onHashchange )
-      .trigger( 'hashchange' );
+      .bind('resize', onResize)
+      .bind('hashchange', onHashchange)
+      .trigger('hashchange');
 
     $.gevent.subscribe( $container, 'spa-login',  onLogin  );
     $.gevent.subscribe( $container, 'spa-logout', onLogout );

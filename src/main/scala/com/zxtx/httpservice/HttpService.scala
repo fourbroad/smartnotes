@@ -262,7 +262,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
   }
 
   def deleteDocument(domain: String, collection: String, docId: String, user: String) = delete {
-    onCompleteJson((documentRegion ? DeleteDocument(s"${domain}~${collection}~${docId}", user)).map(documentStatus))
+    onCompleteJson((documentRegion ? RemoveDocument(s"${domain}~${collection}~${docId}", user)).map(documentStatus))
   }
 
   def executeDocument(domain: String, collection: String, docId: String, user: String) = pathSuffix("_exec") {
@@ -351,7 +351,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
   }
 
   def deleteCollection(domain: String, name: String, user: String) = delete {
-    onCompleteJson((collectionRegion ? DeleteCollection(s"${domain}~.collections~${name}", user)).map(collectionStatus))
+    onCompleteJson((collectionRegion ? RemoveCollection(s"${domain}~.collections~${name}", user)).map(collectionStatus))
   }
 
   def createCollection(domain: String, name: String, user: String) = post {
@@ -397,7 +397,7 @@ object HttpService extends App with Directives with JsonSupport with APIStatusCo
   }
 
   def deleteDomain(domain: String, user: String) = delete {
-    onCompleteJson((domainRegion ? DeleteDomain(s"${rootDomain}~.domains~${domain}", user)).map(domainStatus))
+    onCompleteJson((domainRegion ? RemoveDomain(s"${rootDomain}~.domains~${domain}", user)).map(domainStatus))
   }
 
   def findDomains(user: String) = pathSingleSlash {

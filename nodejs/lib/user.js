@@ -29,12 +29,12 @@ userProto = {
   replace: function(userRaw, callback) {
 	const
 	  self = this;
-		
-	userWrapper.replace(this.token, this.domainName, this.collectionName, this.id, userRaw, function(err, userData) {
+	
+	userWrapper.replace(this.token, this.id, userRaw, function(err, userData) {
 	  if(err) return callback(err);
 			  
 	  for(var key in self) {
-		if(self.hasOwnProperty(key)) delete self[key];
+		if(self.hasOwnProperty(key)) try{delete self[key];}catch(e){}
 	  }
 
 	  extend(self, userData);
@@ -46,11 +46,11 @@ userProto = {
 	const
 	  self = this;
 			
-	userWrapper.patch(this.token, this.domainName, this.collectionName, this.id, patch, function(err, userData) {
+	userWrapper.patch(this.token, this.id, patch, function(err, userData) {
 	  if(err) return callback(err);
 				  
 	  for(var key in self) {
-		if(self.hasOwnProperty(key)) delete self[key];
+		if(self.hasOwnProperty(key)) try{delete self[key];}catch(e){}
 	  }
 
 	  extend(self, userData);
@@ -62,26 +62,37 @@ userProto = {
 	var
 	  sef = this;
 
-	userWrapper.remove(this.token, this.domainName, this.collectionName, this.id, function(err, result) {
-	  self.removed = result ? true : false;
+	userWrapper.remove(this.token, this.id, function(err, result) {
 	  callback(err, result);	  
 	});
   },
   
-  resetPassword: function(uid, newPassword, callback) {
-	userWrapper.resetPassword(this.token, this.domainName, this.collectionName, this.id, newPassword, function(err, user) {
+  resetPassword: function(newPassword, callback) {
+	userWrapper.resetPassword(this.token, this.id, newPassword, function(err, user) {
 	  callback(err, user);
 	});
   },
   
-  setACL: function(acl, callback) {
-	userWrapper.setACL(this.token, this.domainName, this.collectionName, this.id, acl, function(err, result) {
+  getACL: function(callback) {
+	userWrapper.getACL(this.token, this.id, function(err, acl) {
+	  callback(err, acl);
+	});
+  },
+
+  replaceACL: function(acl, callback) {
+	userWrapper.replaceACL(this.token, this.id, acl, function(err, result) {
+	  callback(err, result);
+	});
+  },
+
+  patchACL: function(aclPatch, callback) {
+	userWrapper.patchACL(this.token, this.id, aclPatch, function(err, result) {
 	  callback(err, result);
 	});
   },
   
   removePermissionSubject: function(acl, callback) {
-	userWrapper.removePermissionSubject(this.token, this.domainName, this.collectionName, this.id, acl, function(err, result) {
+	userWrapper.removePermissionSubject(this.token, this.id, acl, function(err, result) {
 	  callback(err, result);
 	});
   }
@@ -92,20 +103,14 @@ userProto = {
 
 // ---------------- BEGIN PUBLIC METHODS ------------------
 
-create = function(token, userId, userData) {
+create = function(token, userData) {
   var
     user = Object.create(userProto, {
       token: {
 	    value: token,
 	    configurable: false,
 	    writable: false,
-	    enumerable: false   	  
-      },
-      id: {
-  	    value: userId,
-  	    configurable: false,
-  	    writable: false,
-  	    enumerable: true
+	    enumerable: false
       }
     });
 

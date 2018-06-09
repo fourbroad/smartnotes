@@ -1,13 +1,13 @@
 /*
  * notes.js - module to provide CRUD db capabilities
-*/
+ */
 
 /*jslint         node    : true, continue : true,
   devel  : true, indent  : 2,    maxerr   : 50,
   newcap : true, nomen   : true, plusplus : true,
   regexp : true, sloppy  : true, vars     : false,
   white  : true
-*/
+ */
 
 /*global */
 
@@ -30,45 +30,45 @@ var
 // ---------------- BEGIN INITIALIZE MODULE SCOPE VARIABLES -----------------
 
 domainProto = {
-  createCollection: function(collectionName, collectionRaw, callback){
+  createCollection: function(collectionId, collectionRaw, callback){
 	const 
-	  domainName = this.name,
-	  token = this.token;
+	  token = this.token,
+	  domainId = this.id;
 	
-	collectionWrapper.create(token, domainName, collectionName, collectionRaw, function(err, collectionData){
-	  callback(err, err ? null : Collection.create(token, domainName, collectionName, collectionData));	  
+	collectionWrapper.create(token, domainId, collectionId, collectionRaw, function(err, collectionData){
+	  callback(err, err ? null : Collection.create(token, domainId, collectionData));	  
 	});
   },
   
-  getCollection: function(collectionName, callback){
+  getCollection: function(collectionId, callback){
 	const 
-	  domainName = this.name,
-	  token = this.token;
+	  token = this.token,
+	  domainId = this.id;
 
-	collectionWrapper.getCollection(token, domainName, collectionName, function(err, collectionData){
-	  callback(err, err ? null : Collection.create(token, domainName, collectionName, collectionData));
+	collectionWrapper.get(token, domainId, collectionId, function(err, collectionData){
+	  callback(err, err ? null : Collection.create(token, domainId, collectionData));
 	});
   },
   
   listCollections: function(callback){
-	domainWrapper.listCollections(this.token, this.name, function(err, collectionInfos){
+	domainWrapper.listCollections(this.token, this.id, function(err, collectionInfos){
 	  callback(err, collectionInfos);	  
 	});
   },
   
   replace: function(domainRaw, callback){
-	const 
+	const
 	  self = this,
 	  token = this.token,
-	  domainName = this.name;
+	  domainId = this.id;
 
-	domainWrapper.replace(token, domainName, domainRaw, function(err, domainData){
+	domainWrapper.replace(token, domainId, domainRaw, function(err, domainData){
 	  if(err) return callback(err);
-		  
-	  for(var key in self) {
-		if(self.hasOwnProperty(key)) delete self[key];
-	  }
 
+	  for(var key in self) {
+		if(self.hasOwnProperty(key)) try{delete self[key];}catch(e){}
+	  }
+	  
 	  extend(self, domainData);
 	  callback(null, true);	  
 	});
@@ -78,13 +78,13 @@ domainProto = {
 	const 
 	  self = this,
 	  token = this.token,
-	  domainName = this.name;
+	  domainId = this.id;
 	
-	domainWrapper.patch(token, domainName, patch, function(err, domainData){
+	domainWrapper.patch(token, domainId, patch, function(err, domainData){
 	  if(err) return callback(err);
 	  
 	  for(var key in self) {
-		if(self.hasOwnProperty(key)) delete self[key];
+		if(self.hasOwnProperty(key)) try{delete self[key];}catch(e){}
 	  }
 
 	  extend(self, domainData);
@@ -93,13 +93,31 @@ domainProto = {
   },
   
   remove: function(callback){
-	domainWrapper.remove(this.token, this.name, function(err, result){
+	domainWrapper.remove(this.token, this.id, function(err, result){
 	  callback(err, result);	  
 	});
   },
   
+  getACL : function(callback) {
+	domainWrapper.getACL(this.token, this.id, function(err, acl) {
+	  callback(err, acl);
+	});
+  },
+
+  replaceACL : function(acl, callback) {
+	domainWrapper.replaceACL(this.token, this.id, acl, function(err, result) {
+	  callback(err, result);
+	});
+  },
+
+  patchACL : function(aclPatch, callback) {
+	domainWrapper.patchACL(this.token, this.id, aclPatch, function(err, result) {
+	  callback(err, result);
+	});
+  },
+
   garbageCollection: function(callback){
-	domainWrapper.garbageCollection(this.token, this.name, function(err, result){
+	domainWrapper.garbageCollection(this.token, this.id, function(err, result){
 	  callback(err, result);	  
 	});
   }
@@ -110,7 +128,7 @@ domainProto = {
 
 // ---------------- BEGIN PUBLIC METHODS ------------------
 
-create = function(token, domainName, domainData){
+create = function(token, domainData){
   var 
     domain = Object.create(domainProto, {
       token:{
@@ -118,12 +136,6 @@ create = function(token, domainName, domainData){
     	configurable: false,
     	writable: false,
     	enumerable: false
-      },
-      name:{
-    	value: domainName,
-      	configurable: false,
-    	writable: false,
-    	enumerable: true
       }
     });
 	  
@@ -131,7 +143,7 @@ create = function(token, domainName, domainData){
 };
 
 module.exports = {
-  create : create
+  create: create
 };
 
 // ----------------- END PUBLIC METHODS -----------------

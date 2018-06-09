@@ -10,14 +10,14 @@ import spray.json.DeserializationException
 import gnieh.diffson.sprayJson.JsonPatch
 
 trait DocumentJsonProtocol extends DefaultJsonProtocol {
-  def newMetaObject(jvs: Seq[JsValue], author: String, revision: Long, created: Long, updated: Long, deleted: Option[Boolean]): JsObject = {
+  def newMetaObject(jvs: Seq[JsValue], author: String, revision: Long, created: Long, updated: Long, removed: Option[Boolean]): JsObject = {
     val metaFields = jvs match {
       case Seq(metadata: JsObject) => metadata.fields
       case _                       => Map[String, JsValue]()
     }
     val metaMap = metaFields + ("author" -> JsString(author)) + ("revision" -> JsNumber(revision)) + ("created" -> JsNumber(created)) + ("updated" -> JsNumber(updated))
-    JsObject(deleted match {
-      case Some(true) => metaMap + ("deleted" -> JsBoolean(true))
+    JsObject(removed match {
+      case Some(true) => metaMap + ("removed" -> JsBoolean(true))
       case _          => metaMap
     })
   }
@@ -41,17 +41,17 @@ trait DocumentJsonProtocol extends DefaultJsonProtocol {
     case _ => throw new DeserializationException(errorMsg)
   }
 
-  def extractFieldsWithUpdatedDeleted(jv: JsValue, errorMsg: String) = jv match {
+  def extractFieldsWithUpdatedRemoved(jv: JsValue, errorMsg: String) = jv match {
     case jo: JsObject =>
       val id = jo.fields("id").asInstanceOf[JsString].value
       val metaObj = jo.fields("_metadata").asJsObject
-      val deleted = metaObj.getFields("deleted") match {
+      val removed = metaObj.getFields("removed") match {
         case Seq(JsBoolean(d)) => Some(d)
         case _                 => None
       }
       metaObj.getFields("author", "revision", "created", "updated") match {
         case Seq(JsString(author), JsNumber(revision), JsNumber(created), JsNumber(updated)) =>
-          (id, author, revision.toLong, created.toLong, updated.toLong, deleted, jo)
+          (id, author, revision.toLong, created.toLong, updated.toLong, removed, jo)
         case _ => throw new DeserializationException(errorMsg)
       }
     case _ => throw new DeserializationException(errorMsg)
@@ -69,4 +69,16 @@ trait DocumentJsonProtocol extends DefaultJsonProtocol {
     case _ => throw new DeserializationException(errorMsg)
   }
 
+  def extractFieldsWithPassword(jv: JsValue, errorMsg: String) = jv match {
+    case jo: JsObject =>
+      val id = jo.fields("id").asInstanceOf[JsString].value
+      val password = jo.fields("password").asInstanceOf[JsString].value
+      val meta = jo.fields("_metadata").asJsObject
+      meta.getFields("author", "revision", "created") match {
+        case Seq(JsString(author), JsNumber(revision), JsNumber(created)) => (id, author, revision.toLong, created.toLong, password, JsObject())
+        case _ => throw new DeserializationException(errorMsg)
+      }
+    case _ => throw new DeserializationException(errorMsg)
+  }
+  
 }

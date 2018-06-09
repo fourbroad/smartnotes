@@ -18,10 +18,7 @@ import com.zxtx.actors.CollectionActor
 import com.zxtx.actors.UserActor
 import com.zxtx.actors.DocumentActor
 import com.zxtx.actors.DomainActor
-import com.zxtx.actors.DomainActor.CreateDomain
-import com.zxtx.actors.DomainActor.Domain
-import com.zxtx.actors.DomainActor.DomainCreated
-import com.zxtx.actors.DomainActor.GetDomain
+import com.zxtx.actors.DomainActor._
 import com.zxtx.actors.wrappers.CallbackWrapper
 import com.zxtx.actors.wrappers.CollectionWrapper
 import com.zxtx.actors.wrappers.DocumentWrapper
@@ -38,6 +35,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import posix.Signal
 import spray.json.JsObject
+import scala.concurrent.Await
 
 object Main extends App {
   val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + 2551).withFallback(ConfigFactory.load())
@@ -50,7 +48,7 @@ object Main extends App {
   }
   val log = Logging(system, this)
 
-  implicit val duration = 5.seconds
+  implicit val duration = 1.minutes
   implicit val timeOut = Timeout(duration)
 
   val domainRegion = ClusterSharding(system).start(
@@ -81,12 +79,21 @@ object Main extends App {
   val rootDomain = system.settings.config.getString("domain.root-domain")
   val adminName = system.settings.config.getString("domain.administrator.name")
 
-  for {
-    r1 <- domainRegion ? GetDomain(s"${rootDomain}~.domains~${rootDomain}", adminName)
-    if !r1.isInstanceOf[Domain]
-    r2 <- domainRegion ? CreateDomain(s"${rootDomain}~.domains~${rootDomain}", adminName, JsObject())
-    if r2.isInstanceOf[DomainCreated]
-  } System.out.println("System intialize successfully!")
+  def init() = {
+    implicit val ec = system.dispatchers.lookup("akka.init-dispatcher")
+    implicit val duration = 1.minutes
+    implicit val timeOut = Timeout(duration)
+    (domainRegion ? GetDomain(s"${rootDomain}~.domains~${rootDomain}", adminName)).flatMap{
+      case DomainNotFound =>
+        (domainRegion ? CreateDomain(s"${rootDomain}~.domains~${rootDomain}", adminName, JsObject())).map{
+          case _:Domain => "System intialize successfully!"
+          case _ => "System intialize failed!"
+        }
+      case _ => Future.successful("System has intialized!")
+    }
+  }
+
+  println(Await.result[String](init(), 120.seconds))
 
   val callbackQueue = Queue[CallbackWrapper]()
   val domainWrapper = DomainWrapper(system, callbackQueue)
@@ -123,9 +130,8 @@ object Main extends App {
       runtime.registerJavaMethod(documentWrapper, "bind", "__DocumentWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(userWrapper, "bind", "__UserWrapper", Array[Class[_]](classOf[V8Object]), true)
 
-      //      nodeJS.exec(new File("nodejs/bin/www"))
-      nodeJS.exec(new File("nodejs/node_modules/mocha/bin/_mocha"))
-//      nodeJS.exec(new File("nodejs/node_modules/mocha/bin/mocha"))
+      nodeJS.exec(new File("nodejs/bin/www"))
+//      nodeJS.exec(new File("nodejs/node_modules/mocha/bin/_mocha"))
       //      nodeJS.exec(new File("nodejs/hello-world.js"))
       while (nodeJS.isRunning() && running) {
         nodeJS.handleMessage()

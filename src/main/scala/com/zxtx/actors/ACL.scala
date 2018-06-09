@@ -59,6 +59,8 @@ trait ACL { this: Actor =>
   implicit val duration = 5.seconds
   implicit val timeOut = Timeout(duration)
 
+  def profilePID(domainId: String, userId: String) = s"${domainId}~.profiles~${userId}"
+
   def aclValue(aclObj: JsObject, op: String, name: String): Vector[String] = aclObj.getFields(op) match {
     case Seq(opObj: JsObject) => opObj.getFields(name) match {
       case Seq(ja: JsArray) => ja.elements.map { jv => jv.asInstanceOf[JsString].value }
@@ -74,41 +76,51 @@ trait ACL { this: Actor =>
 
   def fetchProfile(domain: String, user: String) = user match {
     case "anonymous" => Future.successful(Document("", "anonymous", 0L, 0L, 0L, None, JsObject()))
-    case _           => documentRegion ? GetDocument(s"${domain}~.profiles~${user}", user)
+    case _           => documentRegion ? GetDocument(profilePID(domain, user), user)
   }
 
-  def hitCache(user: String): Future[Option[Boolean]] = (replicator ? Get(LWWMapKey[String, Boolean](cacheKey), ReadLocal)).map {
+  def hitCache(domainId: String): Future[Option[Boolean]] = (replicator ? Get(LWWMapKey[String, Boolean](cacheKey), ReadLocal)).map {
     case g @ GetSuccess(LWWMapKey(_), _) =>
       g.dataValue match {
-        case data: LWWMap[_, _] => data.asInstanceOf[LWWMap[String, Boolean]].get(user)
+        case data: LWWMap[_, _] => data.asInstanceOf[LWWMap[String, Boolean]].get(domainId)
         case _                  => None
       }
     case NotFound(_, _) => None
   }
 
-  def setCache(user: String, exist: Boolean) = (replicator ? Update(LWWMapKey[String, Boolean](cacheKey), LWWMap(), WriteLocal)(_ + (user -> exist))).map {
+  def setCache(domainId: String, exist: Boolean) = (replicator ? Update(LWWMapKey[String, Boolean](cacheKey), LWWMap(), WriteLocal)(_ + (domainId -> exist))).map {
     case UpdateSuccess(LWWMapKey(_), _)    => CacheUpdated
     case _: UpdateFailure[LWWMapKey[_, _]] => UpdateCacheError
   }
 
-  def clearCache(user: String) = (replicator ? Update(LWWMapKey[String, Boolean](cacheKey), LWWMap(), WriteLocal)(_ - user)).map {
+  def clearCache(domainId: String) = (replicator ? Update(LWWMapKey[String, Boolean](cacheKey), LWWMap(), WriteLocal)(_ - domainId)).map {
     case UpdateSuccess(LWWMapKey(_), _)    => CacheCleared
     case _: UpdateFailure[LWWMapKey[_, _]] => ClearCacheError
   }
 
   def checkPermission(user: String, command: Any): Future[Permission]
 
-  def setACL(user: String, acl: JsValue, patch: JsonPatch) = checkPermission(user, SetACL).map {
+  def getACL(user: String) = checkPermission(user, GetACL).map {
+    case Granted => DoGetACL(user)
+    case Denied  => Denied
+  }.recover { case e => e }
+
+  def replaceACL(user: String, raw: JsObject) = checkPermission(user, ReplaceACL).map {
+    case Granted => DoReplaceACL(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+    case other   => other
+  }.recover { case e => e }
+
+  def patchACL(user: String, acl: JsValue, patch: JsonPatch) = checkPermission(user, PatchACL).map {
     case Granted => Try {
       patch(acl)
     } match {
-      case Success(_) => DoSetACL(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
-      case Failure(e) => SetACLException(e)
+      case Success(_) => DoPatchACL(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+      case Failure(e) => PatchACLException(e)
     }
     case Denied => Denied
   }.recover { case e => e }
 
-  def setEventACL(user: String, persistenceId: String, patch: JsonPatch) = checkPermission(user, SetEventACL).flatMap {
+  def setEventACL(user: String, persistenceId: String, patch: JsonPatch) = checkPermission(user, PatchEventACL).flatMap {
     case Granted =>
       implicit val mat = ActorMaterializer()
       val readJournal = PersistenceQuery(system).readJournalFor[ElasticSearchReadJournal](ElasticSearchReadJournal.Identifier)
@@ -124,11 +136,11 @@ trait ACL { this: Actor =>
             val _index = jo.fields("_index").asInstanceOf[JsString].value
             val op = s"""{"index":{"_index":"${_index}","_type":"${_type}","_id":"${_id}"}}"""
             op + "\n" + JsObject(jo.fields + ("_metadata" -> JsObject(meta.fields + ("acl" -> acl)))).compactPrint
-          case Failure(e) => throw SetEventACLException(e)
+          case Failure(e) => throw PatchEventACLException(e)
         }
       }.reduce { _ + "\n" + _ }.mapAsync(1) { b =>
         store.post(uri = "http://localhost:9200/_bulk?refresh", entity = (b + "\n")) map {
-          case (StatusCodes.OK, _) => DoSetEventACL(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+          case (StatusCodes.OK, _) => DoPatchEventACL(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
           case (code, jv)          => throw new RuntimeException(s"Set event acl error: $jv")
         }
       }.runWith(Sink.last)
@@ -137,7 +149,7 @@ trait ACL { this: Actor =>
 
   def removePermissionSubject(user: String, operation: String, kind: String, subject: String) = checkPermission(user, RemovePermissionSubject).map {
     case Granted => DoRemovePermissionSubject(user, operation, kind, subject,
-      JsObject("operation" -> JsString(operation), "kind" -> JsString(kind), "subject" -> JsString(subject), "metadata" -> JsObject("acl" -> eventACL(user))))
+      JsObject("operation" -> JsString(operation), "kind" -> JsString(kind), "subject" -> JsString(subject), "_metadata" -> JsObject("acl" -> eventACL(user))))
     case Denied => Denied
   }.recover { case e => e }
 
@@ -175,7 +187,7 @@ trait ACL { this: Actor =>
       val uri = s"http://localhost:9200/${alias}/_update_by_query"
       store.post(uri = uri, entity = removeByQeury).map {
         case (StatusCodes.OK, _) => DoRemoveEventPermissionSubject(user, operation, kind, subject,
-          JsObject("operation" -> JsString(operation), "kind" -> JsString(kind), "subject" -> JsString(subject), "metadata" -> JsObject("acl" -> eventACL(user))))
+          JsObject("operation" -> JsString(operation), "kind" -> JsString(kind), "subject" -> JsString(subject), "_metadata" -> JsObject("acl" -> eventACL(user))))
         case (code, _) => throw new RuntimeException(s"Error remove event permission subject: $code")
       }
     case Denied => Future.successful(Denied)
@@ -183,24 +195,32 @@ trait ACL { this: Actor =>
 }
 
 object ACL {
-  case class SetACL(pid: String, user: String, patch: JsonPatch) extends Command
-  case class DoSetACL(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
-  case class ACLSet(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends DocumentEvent
-  case class SetACLException(exception: Throwable) extends Exception
+  case class GetACL(pid: String, user: String) extends Command
+  case class DoGetACL(user: String, request: Option[Any] = None)
+
+  case class ReplaceACL(pid: String, user: String, acl: JsObject) extends Command
+  case class DoReplaceACL(user: String, acl: JsObject, request: Option[Any] = None)
+  case class ACLReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
+  case class ReplaceACLException(exception: Throwable) extends Exception
+
+  case class PatchACL(pid: String, user: String, patch: JsonPatch) extends Command
+  case class DoPatchACL(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
+  case class ACLPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends Event
+  case class PatchACLException(exception: Throwable) extends Exception
 
   case class RemovePermissionSubject(pid: String, user: String, operation: String, kind: String, subject: String) extends Command
   case class DoRemovePermissionSubject(user: String, operation: String, kind: String, subject: String, raw: JsObject, request: Option[Any] = None)
-  case class PermissionSubjectRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
+  case class PermissionSubjectRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
   case class RemovePermissionSubjectException(exception: Throwable) extends Exception
 
-  case class SetEventACL(pid: String, user: String, patch: JsonPatch) extends Command
-  case class DoSetEventACL(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
-  case class EventACLSet(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends DocumentEvent
-  case class SetEventACLException(exception: Throwable) extends Exception
+  case class PatchEventACL(pid: String, user: String, patch: JsonPatch) extends Command
+  case class DoPatchEventACL(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
+  case class EventACLPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends Event
+  case class PatchEventACLException(exception: Throwable) extends Exception
 
   case class RemoveEventPermissionSubject(pid: String, user: String, operation: String, kind: String, subject: String) extends Command
   case class DoRemoveEventPermissionSubject(user: String, operation: String, kind: String, subject: String, raw: JsObject, request: Option[Any] = None)
-  case class EventPermissionSubjectRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends DocumentEvent
+  case class EventPermissionSubjectRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
   case class RemoveEventPermissionSubjectException(exception: Throwable) extends Exception
 
   def eventACL(user: String) = s"""{
@@ -215,29 +235,41 @@ object ACL {
       }""".parseJson.asJsObject
 
   object JsonProtocol extends DocumentJsonProtocol {
-    implicit object ACLSetFormat extends RootJsonFormat[ACLSet] {
-      import gnieh.diffson.sprayJson.provider.marshall
-      import gnieh.diffson.sprayJson.provider.patchMarshaller
-      def write(acls: ACLSet) = {
-        val metaObj = newMetaObject(acls.raw.getFields("_metadata"), acls.author, acls.revision, acls.created)
-        JsObject(("id" -> JsString(acls.id)) :: ("patch" -> marshall(acls.patch)) :: acls.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+
+    implicit object ACLReplacedFormat extends RootJsonFormat[ACLReplaced] {
+      def write(ar: ACLReplaced) = {
+        val metaObj = newMetaObject(ar.raw.getFields("_metadata"), ar.author, ar.revision, ar.created)
+        JsObject(("id" -> JsString(ar.id)) :: ar.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "ACLSet event expected!")
-        ACLSet(id, author, revision, created, patch, jo)
+        val (id, author, revision, created, raw) = extractFields(value, "ACLReplaced event expected!")
+        ACLReplaced(id, author, revision, created, raw)
       }
     }
 
-    implicit object EventACLSetFormat extends RootJsonFormat[EventACLSet] {
+    implicit object ACLPatchedFormat extends RootJsonFormat[ACLPatched] {
       import gnieh.diffson.sprayJson.provider.marshall
       import gnieh.diffson.sprayJson.provider.patchMarshaller
-      def write(acls: EventACLSet) = {
+      def write(acls: ACLPatched) = {
         val metaObj = newMetaObject(acls.raw.getFields("_metadata"), acls.author, acls.revision, acls.created)
         JsObject(("id" -> JsString(acls.id)) :: ("patch" -> marshall(acls.patch)) :: acls.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "EventACLSet event expected!")
-        EventACLSet(id, author, revision, created, patch, jo)
+        val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "ACLPatched event expected!")
+        ACLPatched(id, author, revision, created, patch, jo)
+      }
+    }
+
+    implicit object EventACLPatchedFormat extends RootJsonFormat[EventACLPatched] {
+      import gnieh.diffson.sprayJson.provider.marshall
+      import gnieh.diffson.sprayJson.provider.patchMarshaller
+      def write(acls: EventACLPatched) = {
+        val metaObj = newMetaObject(acls.raw.getFields("_metadata"), acls.author, acls.revision, acls.created)
+        JsObject(("id" -> JsString(acls.id)) :: ("patch" -> marshall(acls.patch)) :: acls.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+      }
+      def read(value: JsValue) = {
+        val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "EventACLPatched event expected!")
+        EventACLPatched(id, author, revision, created, patch, jo)
       }
     }
 
@@ -277,7 +309,7 @@ object ACL {
               case other  => opFields = k :: opFields
             }
           }
-          aclFields = (operation, JsObject(opFields: _*)) :: aclFields
+          aclFields = (op._1, JsObject(opFields: _*)) :: aclFields
         case other => aclFields = op :: aclFields
       }
     }

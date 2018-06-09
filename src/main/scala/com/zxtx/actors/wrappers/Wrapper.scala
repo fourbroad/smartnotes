@@ -5,6 +5,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.sys.process._
+import scala.reflect.ClassTag
 
 import akka.actor.ActorSystem
 import akka.pattern.ask
@@ -31,15 +32,17 @@ import com.zxtx.actors.DocumentActor._
 import com.zxtx.actors.UserActor._
 import com.zxtx.actors.CollectionActor._
 import com.zxtx.actors.ACL._
+import com.eclipsesource.v8.V8Function
+import com.zxtx.actors.Event
 
-class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]) {
+class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]) extends V8SprayJson {
   import Wrapper._
   import CallbackWrapper._
 
   val rootDomain: String = system.settings.config.getString("domain.root-domain")
 
   implicit val ec: ExecutionContext = system.dispatcher
-  implicit val duration = 5.seconds
+  implicit val duration = 1.minutes
   implicit val timeOut = Timeout(duration)
   implicit val cluster = Cluster(system)
 
@@ -84,6 +87,45 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
     signal.kill(processId)
   }
 
+  def command[T: ClassTag](receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any])(result: (CallbackWrapper, T) => Unit) = {
+    val cbw = CallbackWrapper(receiver, callback)
+    validateToken(token).flatMap {
+      case TokenValid(user) => cmd(user)
+      case other => Future.successful(other)
+    }.recover { case e => e }.foreach {
+      case t: T  => result(cbw, t)
+      case other => failureCallback(cbw, other)
+    }
+  }
+
+  def commandWithACL(receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any]) =
+    command[JsObject](receiver, token, callback)(cmd) { (cbw, t) => aclCallback(cbw, t) }
+
+  def aclCallback(cbw: CallbackWrapper, acl: JsObject) = {
+    cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+      def prepare(params: V8Array) = {
+        val v8Object = toV8Object(acl, cbw.runtime)
+        toBeReleased += v8Object
+        params.pushNull()
+        params.push(v8Object)
+      }
+    })
+    enqueueCallback(cbw)
+  }
+
+  def commandWithSuccess(receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any]) =
+    command[Event](receiver, token, callback)(cmd) { (cbw, _) => successCallback(cbw) }
+
+  def successCallback(cbw: CallbackWrapper) = {
+    cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
+      def prepare(params: V8Array) = {
+        params.pushNull()
+        params.push(true)
+      }
+    })
+    enqueueCallback(cbw)
+  }
+
   def failureCallback(cbw: CallbackWrapper, e: Any) = {
     cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
       def prepare(params: V8Array) = {
@@ -107,9 +149,9 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
           case DomainIsCreating =>
             v8Object.add("code", 409)
             v8Object.add("message", "Domain is creating!")
-          case DomainSoftDeleted =>
+          case DomainSoftRemoved =>
             v8Object.add("code", 410)
-            v8Object.add("message", "Domain is soft deleted!")
+            v8Object.add("message", "Domain is soft removed!")
           case CollectionAlreadyExists =>
             v8Object.add("code", 409)
             v8Object.add("message", "Collection already exists!")
@@ -119,9 +161,9 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
           case CollectionIsCreating =>
             v8Object.add("code", 409)
             v8Object.add("message", "Collection is creating!")
-          case CollectionSoftDeleted =>
+          case CollectionSoftRemoved =>
             v8Object.add("code", 410)
-            v8Object.add("message", "Collection is soft deleted!")
+            v8Object.add("message", "Collection is soft removed!")
           case DocumentNotFound =>
             v8Object.add("code", 404)
             v8Object.add("message", "Document is not found!")
@@ -131,18 +173,18 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
           case DocumentIsCreating =>
             v8Object.add("code", 409)
             v8Object.add("message", "Document is creating!")
-          case DocumentSoftDeleted =>
+          case DocumentSoftRemoved =>
             v8Object.add("code", 410)
-            v8Object.add("message", "Document is soft deleted!")
-          case UserNamePasswordError =>
+            v8Object.add("message", "Document is soft removed!")
+          case UserIdPasswordError =>
             v8Object.add("code", 401)
             v8Object.add("message", "Username or password error!")
           case UserAlreadyRegistered =>
             v8Object.add("code", 409)
             v8Object.add("message", "User already registered!")
-          case UserNameNotExists =>
+          case UserIdNotExists =>
             v8Object.add("code", 400)
-            v8Object.add("message", "User name not exists!")
+            v8Object.add("message", "User id not exists!")
           case PasswordNotExists =>
             v8Object.add("code", 400)
             v8Object.add("message", "Password not exists!")
@@ -155,9 +197,9 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
           case UserAlreadyQuited =>
             v8Object.add("code", 410)
             v8Object.add("message", "User already quited!")
-          case UserProfileIsSoftDeleted =>
+          case UserProfileIsSoftRemoved =>
             v8Object.add("code", 409)
-            v8Object.add("message", "User profile is soft deleted, please run garbage collection!")
+            v8Object.add("message", "User profile is soft removed, please run garbage collection!")
           case UpdateSecretKeyError =>
             v8Object.add("code", 500)
             v8Object.add("message", "Update secret key error!")

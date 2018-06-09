@@ -30,11 +30,11 @@ documentProto = {
 	const
 	  self = this;
 	
-	documentWrapper.replace(this.token, this.domainName, this.collectionName, this.id, docRaw, function(err, docData) {
+	documentWrapper.replace(this.token, this.domainId, this.collectionId, this.id, docRaw, function(err, docData) {
 	  if(err) return callback(err);
 		  
 	  for(var key in self) {
-		if(self.hasOwnProperty(key)) delete self[key];
+		if(self.hasOwnProperty(key)) try{delete self[key];}catch(e){}
 	  }
 
 	  extend(self, docData);
@@ -46,11 +46,11 @@ documentProto = {
 	const
 	  self = this;
 		
-	documentWrapper.patch(this.token, this.domainName, this.collectionName, this.id, patch, function(err, docData) {
+	documentWrapper.patch(this.token, this.domainId, this.collectionId, this.id, patch, function(err, docData) {
 	  if(err) return callback(err);
 			  
 	  for(var key in self) {
-		if(self.hasOwnProperty(key)) delete self[key];
+		if(self.hasOwnProperty(key)) try{delete self[key];}catch(e){}
 	  }
 
 	  extend(self, docData);
@@ -59,23 +59,31 @@ documentProto = {
   },
   
   remove: function(callback) {
-	var
-	  sef = this;
-			
-	documentWrapper.remove(this.token, this.domainName, this.collectionName, this.id, function(err, result) {
-	  self.removed = result ? true : false;
+	documentWrapper.remove(this.token, this.domainId, this.collectionId, this.id, function(err, result) {
 	  callback(err, result);	  
 	});
   },
+
+  getACL: function(callback) {
+	documentWrapper.getACL(this.token, this.domainId, this.collectionId, this.id, function(err, acl) {
+	  callback(err, acl);
+	});
+  },
   
-  setACL: function(acl, callback) {
-	documentWrapper.setACL(this.token, this.domainName, this.collectionName, this.id, acl, function(err, result) {
+  replaceACL: function(acl, callback) {
+	documentWrapper.replaceACL(this.token, this.domainId, this.collectionId, this.id, acl, function(err, result) {
+	  callback(err, result);
+	});
+  },
+  
+  patchACL: function(aclPatch, callback) {
+	documentWrapper.patchACL(this.token, this.domainId, this.collectionId, this.id, aclPatch, function(err, result) {
 	  callback(err, result);
 	});
   },
   
   removePermissionSubject: function(acl, callback) {
-	documentWrapper.removePermissionSubject(this.token, this.domainName, this.collectionName, this.id, acl, function(err, result) {
+	documentWrapper.removePermissionSubject(this.token, this.domainId, this.collectionId, this.id, acl, function(err, result) {
 	  callback(err, result);
 	});
   }
@@ -85,7 +93,7 @@ documentProto = {
 
 // ---------------- BEGIN PUBLIC METHODS ------------------
 
-create = function(token, domainName, collectionName, docId, docData) {
+create = function(token, domainId, collectionId, docData) {
   var 
     document = Object.create(documentProto, {
       token:{
@@ -94,23 +102,17 @@ create = function(token, domainName, collectionName, docId, docData) {
   	    writable: false,
   	    enumerable: false   	  
       },
-      domainName:{
-  	    value: domainName,
+      domainId:{
+  	    value: domainId,
     	configurable: false,
   	    writable: false,
   	    enumerable: true   	  
       },
-      collectionName:{
-    	value: collectionName,
+      collectionId:{
+    	value: collectionId,
       	configurable: false,
     	writable: false,
     	enumerable: true   	  
-      },
-      id:{
-    	value: docId,
-    	configurable: false,
-    	writable: false,
-    	enumerable: true
       }
     });
 

@@ -166,9 +166,7 @@ spa.chat = (function () {
     // position type of 'opened' is not allowed for anon user;
     // therefore we simply return false; the shell will fix the
     // uri and try again.
-    if ( position_type === 'opened'
-      && configMap.people_model.get_user().get_is_anon()
-    ){ return false; }
+    if ( position_type === 'opened' && configMap.people_model.get_user().get_is_anon()){ return false; }
 
     // return true if slider already in requested position
     if ( stateMap.position_type === position_type ){
@@ -225,17 +223,11 @@ spa.chat = (function () {
   // Begin private DOM methods to manage chat message
   scrollChat = function() {
     var $msg_log = jqueryMap.$msg_log;
-    $msg_log.animate(
-      { scrollTop : $msg_log.prop( 'scrollHeight' )
-        - $msg_log.height()
-      },
-      150
-    );
+    $msg_log.animate({scrollTop: $msg_log.prop( 'scrollHeight' ) - $msg_log.height()}, 150);
   };
 
   writeChat = function ( person_name, text, is_user ) {
-    var msg_class = is_user
-      ? 'spa-chat-msg-log-me' : 'spa-chat-msg-log-msg';
+    var msg_class = is_user ? 'spa-chat-msg-log-me' : 'spa-chat-msg-log-msg';
 
     jqueryMap.$msg_log.append(
       '<div class="' + msg_class + '">'
