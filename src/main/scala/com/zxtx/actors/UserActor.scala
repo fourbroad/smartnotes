@@ -377,7 +377,7 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
       persist(UserRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
         state = state.updated(evt)
         deleteMessages(lastSequenceNr)
-        deleteSnapshots(SnapshotSelectionCriteria.Latest)        
+        deleteSnapshots(SnapshotSelectionCriteria.Latest)
         saveSnapshot(state.user.toJson.asJsObject)
         context.become(removed)
         replyTo ! evt
@@ -479,7 +479,7 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
 
   private def updateAndSave(evt: Event) = {
     state = state.updated(evt)
-    deleteSnapshots(SnapshotSelectionCriteria.Latest)    
+    deleteSnapshots(SnapshotSelectionCriteria.Latest)
     saveSnapshot(state.user.toJson.asJsObject)
     state.user
   }
@@ -509,13 +509,12 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
   }.recover { case e => e }
 
   private def patchUser(user: String, patch: JsonPatch) = checkPermission(user, PatchUser).map {
-    case Granted =>
-      Try {
-        patch(state.user.raw)
-      } match {
-        case Success(_) => DoPatchUser(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
-        case Failure(e) => PatchUserException(e)
-      }
+    case Granted => Try {
+      patch(state.user.raw)
+    } match {
+      case Success(_) => DoPatchUser(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+      case Failure(e) => PatchUserException(e)
+    }
     case Denied => Denied
   }.recover { case e => e }
 

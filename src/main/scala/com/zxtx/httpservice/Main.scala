@@ -37,6 +37,7 @@ import posix.Signal
 import spray.json.JsObject
 import scala.concurrent.Await
 
+
 object Main extends App {
   val config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + 2551).withFallback(ConfigFactory.load())
   implicit val system = ActorSystem("SmartNotes", config)
@@ -87,7 +88,7 @@ object Main extends App {
       case DomainNotFound =>
         (domainRegion ? CreateDomain(s"${rootDomain}~.domains~${rootDomain}", adminName, JsObject())).map{
           case _:Domain => "System intialize successfully!"
-          case _ => "System intialize failed!"
+          case other => s"System intialize failed: ${other}"
         }
       case _ => Future.successful("System has intialized!")
     }
@@ -130,9 +131,9 @@ object Main extends App {
       runtime.registerJavaMethod(documentWrapper, "bind", "__DocumentWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(userWrapper, "bind", "__UserWrapper", Array[Class[_]](classOf[V8Object]), true)
 
-      nodeJS.exec(new File("nodejs/bin/www"))
-//      nodeJS.exec(new File("nodejs/node_modules/mocha/bin/_mocha"))
-      //      nodeJS.exec(new File("nodejs/hello-world.js"))
+      nodeJS.exec(new File("nodejs/www.js"))
+//      nodeJS.exec(new File("nodejs/test.js"))
+
       while (nodeJS.isRunning() && running) {
         nodeJS.handleMessage()
       }

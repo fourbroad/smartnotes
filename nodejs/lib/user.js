@@ -3,10 +3,10 @@
  */
 
 /*jslint         node    : true, continue : true,
- devel  : true, indent  : 2,    maxerr   : 50,
- newcap : true, nomen   : true, plusplus : true,
- regexp : true, sloppy  : true, vars     : false,
- white  : true
+  devel  : true, indent  : 2,    maxerr   : 50,
+  newcap : true, nomen   : true, plusplus : true,
+  regexp : true, sloppy  : true, vars     : false,
+  white  : true
  */
 
 /*global */
@@ -26,6 +26,10 @@ var
 // ---------------- BEGIN INITIALIZE MODULE SCOPE VARIABLES -----------------
 
 userProto = {
+  isAnonymous: function(){
+	return this.id === 'anonymous';
+  },
+		
   replace: function(userRaw, callback) {
 	const
 	  self = this;
@@ -68,11 +72,11 @@ userProto = {
   },
   
   resetPassword: function(newPassword, callback) {
-	userWrapper.resetPassword(this.token, this.id, newPassword, function(err, user) {
-	  callback(err, user);
+	userWrapper.resetPassword(this.token, this.id, newPassword, function(err, result) {
+	  callback(err, result);
 	});
   },
-  
+
   getACL: function(callback) {
 	userWrapper.getACL(this.token, this.id, function(err, acl) {
 	  callback(err, acl);
@@ -110,7 +114,7 @@ create = function(token, userData) {
 	    value: token,
 	    configurable: false,
 	    writable: false,
-	    enumerable: false
+	    enumerable: true
       }
     });
 

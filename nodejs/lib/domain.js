@@ -9,9 +9,6 @@
   white  : true
  */
 
-/*global */
-
-
 // ------------ BEGIN MODULE SCOPE VARIABLES --------------
 
 'use strict';
@@ -50,8 +47,8 @@ domainProto = {
 	});
   },
   
-  listCollections: function(callback){
-	domainWrapper.listCollections(this.token, this.id, function(err, collectionInfos){
+  findCollections: function(callback){
+	domainWrapper.findCollections(this.token, this.id, function(err, collectionInfos){
 	  callback(err, collectionInfos);	  
 	});
   },

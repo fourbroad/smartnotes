@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Notes Tests</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="mocha.css" />
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <script src="../js/require.js"></script>    
+    <script src="mocha.js"></script>
+    <script>mocha.setup('bdd');</script>
+    <script>
+      require.config({
+        paths: {
+          'socket.io'          : ['/socket.io/socket.io','io.fake'],
+          'client'              : '../js/client',
+          'user'               : '../js/user',
+          'domain'             : '../js/domain',
+          'collection'         : '../js/collection',
+          'document'           : '../js/document',
+          'im'                 : '../js/im',
+          'util'               : '../js/util',
+          'underscore'         : '../thirdparty/underscore.js-1.9.1/underscore',
+          'io.fake'            : '../js/io.fake',
+          'jquery'             : '../thirdparty/jquery/jquery-3.3.1',
+          'jquery.event.gevent': '../thirdparty/jquery/jquery.event.gevent-1.1.2',
+          'jquery.event.ue'    : '../thirdparty/jquery/jquery.event.ue-1.3.0'
+        },
+        shim: {
+          'socket.io': {
+            exports: 'io'
+          },
+          underscore: {
+            exports : '_'
+          },
+          'jquery.event.gevent': ['jquery'],
+          'jquery.event.ue': ['jquery']
+        }
+      });
+
+      require(['user.test','domain.test','collection.test','document.test'], function(){
+        mocha.checkLeaks();
+        mocha.run();   
+      });
+
+    </script>
+  </body>
+</html>

@@ -52,23 +52,38 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
   val processId = Seq("sh", "-c", "echo $PPID").!!.trim.toInt
   val signal = Signal.SIGWINCH
 
-  def validateToken(token: String): Future[ValidateResult] = JwtBase64.decodeString(token.split('.')(1)).parseJson match {
-    case jo: JsObject => jo.getFields("id") match {
-      case Seq(JsString(uid)) => getSecretKey(uid).map {
-        case Some(secretKey) if (Jwt.isValid(token, secretKey, Seq(JwtAlgorithm.HS256))) => TokenValid(uid)
-        case _ => TokenInvalid
-      }
-      case _ => Future.successful(TokenInvalid)
+  def validateToken(token: String): Future[ValidateResult] = extractUserId(token) match {
+    case Some(uid) => getSecretKey(uid).map {
+      case Some(secretKey) if (Jwt.isValid(token, secretKey, Seq(JwtAlgorithm.HS256))) => TokenValid(uid)
+      case _ => TokenInvalid
     }
-    case _ => Future.successful(TokenInvalid)
+    case None => Future.successful(TokenInvalid)
+  }
+
+  def extractUserId(token: String): Option[String] = {
+    if (token.isEmpty()) {
+      None
+    } else {
+      val segments = token.split('.')
+      if (segments.length != 3) {
+        None
+      } else {
+        JwtBase64.decodeString(segments(1)).parseJson match {
+          case jo: JsObject => jo.getFields("id") match {
+            case Seq(JsString(uid)) => Some(uid)
+            case _                  => None
+          }
+          case _ => None
+        }
+      }
+    }
   }
 
   def getSecretKey(user: String): Future[Option[String]] = (replicator ? Get(LWWMapKey[String, Any](secretCacheKey), ReadLocal)).map {
-    case g @ GetSuccess(LWWMapKey(_), _) =>
-      g.dataValue match {
-        case data: LWWMap[_, _] => data.asInstanceOf[LWWMap[String, String]].get(user)
-        case _                  => None
-      }
+    case g @ GetSuccess(LWWMapKey(_), _) => g.dataValue match {
+      case data: LWWMap[_, _] => data.asInstanceOf[LWWMap[String, String]].get(user)
+      case _                  => None
+    }
     case NotFound(_, _) => None
   }
 
@@ -89,10 +104,10 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
 
   def command[T: ClassTag](receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any])(result: (CallbackWrapper, T) => Unit) = {
     val cbw = CallbackWrapper(receiver, callback)
-    validateToken(token).flatMap {
-      case TokenValid(user) => cmd(user)
-      case other => Future.successful(other)
-    }.recover { case e => e }.foreach {
+    validateToken(token).map {
+      case TokenValid(user) => user
+      case other            => "anonymous"
+    }.flatMap { user => cmd(user) }.recover { case e => e }.foreach {
       case t: T  => result(cbw, t)
       case other => failureCallback(cbw, other)
     }

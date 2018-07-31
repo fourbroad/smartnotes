@@ -9,8 +9,6 @@
  white  : true
  */
 
-/*global */
-
 // ------------ BEGIN MODULE SCOPE VARIABLES --------------
 'use strict';
 

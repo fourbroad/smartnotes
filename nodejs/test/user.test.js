@@ -18,7 +18,7 @@ describe('#user', function(){
 		rootDomain = domain;
 		rootDomain.getCollection('.users', function(err3, collection){
 		  userCollection = collection;
-		  userCollection.patchACL([{op:"add",path:"/createDocument/users/-",value:"anonymous"},{op:"add",path:"/createDocument/users/-",value:"test"}], function(err4, result){
+		  userCollection.patchACL([{op:"add",path:"/createDocument/roles/-",value:"anonymous"},{op:"add",path:"/createDocument/users/-",value:"test"}], function(err4, result){
 		    expect(result).to.be.ok;			  
 			done();				
 		  });
@@ -30,7 +30,9 @@ describe('#user', function(){
   after(function(done){
 	userCollection.getACL(function(err1, acl){
 	  var users = acl.createDocument.users;
-	  acl.createDocument.users = users.filter(e => e != "anonymous" && e != "test")
+	  var roles = acl.createDocument.roles;
+	  acl.createDocument.users = users.filter(e => e != "test");
+	  acl.createDocument.roles = roles.filter(e => e != "anonymous");
 	  userCollection.replaceACL(acl, function(err2, result){
 		expect(result).to.be.ok;
         done();
@@ -41,7 +43,7 @@ describe('#user', function(){
   // anonymous
   it('register new test user and should return user object.', function(done){
 	this.timeout(5000);
-    notes.registerUser({id:'test', password:'z4bb4z'}, function(err, userData){
+	adminClient.registerUser({id:'test', password:'z4bb4z'}, function(err, userData){
       expect(userData).to.be.an('object');
       done();
 	});	

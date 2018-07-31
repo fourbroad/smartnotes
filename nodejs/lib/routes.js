@@ -21,7 +21,7 @@ var
 
 // ---------------- BEGIN PUBLIC METHODS ------------------
 router.get('/', function(request, response){
-	response.redirect( '/spa.html' );
+  response.redirect( '/index.html' );
 });
 
 //router.post("/_login", function(req, res){

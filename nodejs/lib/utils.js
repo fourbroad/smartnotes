@@ -13,10 +13,20 @@
 // ------------ BEGIN MODULE SCOPE VARIABLES --------------
 'use strict';
 var
-  getHostName, getToken;
+  getHostName, getToken, makeError;
 // ------------- END MODULE SCOPE VARIABLES ---------------
 
 // ---------------- BEGIN PUBLIC METHODS ------------------
+
+makeError = function ( name_text, msg_text, data ) {
+  var error     = new Error();
+  error.name    = name_text;
+  error.message = msg_text;
+
+  if ( data ){ error.data = data; }
+
+  return error;
+};
 
 getHostName = function(req){
 	return req.headers.host.replace(/:.*$/,"");
@@ -33,6 +43,7 @@ getToken = function(req) {
 
 module.exports = {
   getHostName: getHostName,
-  getToken: getToken
+  getToken: getToken,
+  makeError: makeError
 };
 // ----------------- END PUBLIC METHODS -------------------

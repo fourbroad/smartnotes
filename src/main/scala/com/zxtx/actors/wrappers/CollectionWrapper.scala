@@ -100,10 +100,10 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
   def findDocuments(receiver: V8Object, token: String, domainId: String, collectionId: String, query: V8Object, callback: V8Function) = {
     val cbw = CallbackWrapper(receiver, callback)
     val jsQuery = toJsObject(query)
-    validateToken(token).flatMap {
-      case TokenValid(user) => collectionRegion ? FindDocuments(collectionPID(domainId, collectionId), user, jsQuery)
-      case other            => Future.successful(other)
-    }.recover { case e => e }.foreach {
+    validateToken(token).map {
+      case TokenValid(user) => user
+      case other            => "anonymous"
+    }.flatMap { user => collectionRegion ? FindDocuments(collectionPID(domainId, collectionId), user, jsQuery) }.recover { case e => e }.foreach {
       case jo: JsObject =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {

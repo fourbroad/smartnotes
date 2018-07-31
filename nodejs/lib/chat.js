@@ -1,21 +1,23 @@
 /*
  * chat.js - module to provide chat messaging
-*/
+ */
 
 /*jslint         node    : true, continue : true,
   devel  : true, indent  : 2,    maxerr   : 50,
   newcap : true, nomen   : true, plusplus : true,
   regexp : true, sloppy  : true, vars     : false,
   white  : true
-*/
-/*global */
+ */
 
 // ------------ BEGIN MODULE SCOPE VARIABLES --------------
 'use strict';
+const
+  userWrapper = new __UserWrapper();
+
 var
   emitUserList, signIn, signOut, chatObj,
-  socket = require('socket.io'),
   crud   = require('./crud'),
+  notes = require('./notes'),
 
   makeMongoId = crud.makeMongoId,
   chatterMap  = {};
@@ -57,11 +59,17 @@ signOut = function(io, user_id){
 
 // ---------------- BEGIN PUBLIC METHODS ------------------
 chatObj = {
-  connect : function ( server ) {
-    var io = socket.listen( server );
-
-    // Begin io setup
-    io.set('blacklist', []).of('/chat').on('connection', function(socket){
+  connect: function(io){
+	// Begin io setup
+    io.of('/chat').use((socket, next) => {
+      userWrapper.isValidToken(socket.handshake.query.token, function(err, result){
+       	if(result){
+       	  return next();
+        } else {
+          return next(new Error(err ? err.toString() : 'authentication error'));
+        }
+      });    	
+    }).on('connection', function(socket){
       // Begin /adduser/ message handler
       // Summary   : Provides sign in capability.
       // Arguments : A single user_map object.

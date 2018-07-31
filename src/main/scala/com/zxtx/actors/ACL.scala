@@ -75,7 +75,7 @@ trait ACL { this: Actor =>
   }
 
   def fetchProfile(domain: String, user: String) = user match {
-    case "anonymous" => Future.successful(Document("", "anonymous", 0L, 0L, 0L, None, JsObject()))
+    case "anonymous" => Future.successful(Document("", "anonymous", 0L, 0L, 0L, None, JsObject("roles" -> JsArray(JsString("anonymous")))))
     case _           => documentRegion ? GetDocument(profilePID(domain, user), user)
   }
 

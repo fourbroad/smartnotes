@@ -52,7 +52,7 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     prototype.registerJavaMethod(this, "remove", "remove", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
 
     prototype.registerJavaMethod(this, "resetPassword", "resetPassword", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
-    
+
     prototype.registerJavaMethod(this, "getACL", "getACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "replaceACL", "replaceACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "patchACL", "patchACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
@@ -78,10 +78,10 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     val jsUserInfo = toJsObject(v8UserInfo)
     val cbw = CallbackWrapper(receiver, callback)
     jsUserInfo.fields.get("id") match {
-      case Some(JsString(userId)) => validateToken(token).flatMap {
-        case TokenValid(user) => userRegion ? CreateUser(userPID(userId), user, jsUserInfo)
-        case other            => Future.successful(other)
-      }.recover { case e => e }.foreach {
+      case Some(JsString(userId)) => validateToken(token).map {
+        case TokenValid(user) => user
+        case other            => "anonymous"
+      }.flatMap { user => userRegion ? CreateUser(userPID(userId), user, jsUserInfo) }.recover { case e => e }.foreach {
         case u: User => userCallback(cbw, u)
         case other   => failureCallback(cbw, other)
       }
@@ -147,7 +147,7 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
   }
 
   def get(receiver: V8Object, token: String, userId: String, callback: V8Function) =
-    commandWithUser(receiver, token, callback) { user => userRegion ? GetUser(userPID(userId), user) }
+    commandWithUser(receiver, token, callback) { user => userRegion ? GetUser(userPID(if (userId.isEmpty()) user else userId), user) }
 
   def replace(receiver: V8Object, token: String, userId: String, v8UserInfo: V8Object, callback: V8Function) = {
     val jsUserInfo = toJsObject(v8UserInfo)

@@ -74,7 +74,7 @@ object DomainActor {
   case class ReplaceDomain(pid: String, user: String, raw: JsObject) extends Command
   case class PatchDomain(pid: String, user: String, patch: JsonPatch) extends Command
   case class RemoveDomain(pid: String, user: String) extends Command
-  case class ListCollections(pid: String, user: String) extends Command
+  case class FindCollections(pid: String, user: String) extends Command
   case class JoinDomain(pid: String, user: String, userName: String, permission: Option[JsObject] = None) extends Command
   case class QuitDomain(pid: String, user: String, userName: String) extends Command
 
@@ -83,7 +83,7 @@ object DomainActor {
   private case class DoReplaceDomain(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoPatchDomain(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
   private case class DoRemoveDomain(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoListCollections(user: String, request: Option[Any] = None)
+  private case class DoFindCollections(user: String, request: Option[Any] = None)
   private case class DoJoinDomain(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoQuitDomain(user: String, raw: JsObject, request: Option[Any] = None)
 
@@ -258,7 +258,7 @@ object DomainActor {
             "roles":["administrator"],
             "users":["${user}"]
         },
-        "listCollections":{
+        "findCollections":{
             "roles":["administrator","user"],
             "users":["${user}"]
         },
@@ -506,10 +506,10 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
       persist(EventPermissionSubjectRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         replyTo ! evt
       }
-    case ListCollections(_, user) =>
+    case FindCollections(_, user) =>
       val replyTo = sender
-      listCollections(user).foreach {
-        case DoListCollections(_, Some(collections)) => replyTo ! collections
+      findCollections(user).foreach {
+        case DoFindCollections(_, Some(collections)) => replyTo ! collections
         case other                                   => replyTo ! other
       }
     case SaveSnapshotSuccess(metadata)         =>
@@ -630,10 +630,10 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     case Denied => Future.successful(Denied)
   }.recover { case e => e }
 
-  private def listCollections(user: String) = checkPermission(user, ListCollections).flatMap {
+  private def findCollections(user: String) = checkPermission(user, FindCollections).flatMap {
     case Granted =>
       (collectionRegion ? FindDocuments(CollectionActor.persistenceId(id, ".collections"), user, JsObject())).map {
-        case jo: JsObject => DoListCollections(user, Some(jo))
+        case jo: JsObject => DoFindCollections(user, Some(jo))
         case jv: JsValue  => throw new RuntimeException(jv.compactPrint)
       }
     case Denied => Future.successful(Denied)
@@ -765,7 +765,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
             {"term":{"_metadata.acl.patch.users":"${subject}"}},
             {"term":{"_metadata.acl.remove.users":"${subject}"}},
             {"term":{"_metadata.acl.resetPassword.users":"${subject}"}},
-            {"term":{"_metadata.acl.listCollections.users":"${subject}"}},
+            {"term":{"_metadata.acl.findCollections.users":"${subject}"}},
             {"term":{"_metadata.acl.findDocuments.users":"${subject}"}},
             {"term":{"_metadata.acl.getACL.users":"${subject}"}},
             {"term":{"_metadata.acl.replaceACL.users":"${subject}"}},
@@ -809,7 +809,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     JoinDomain -> "join",
     QuitDomain -> "quit",
     CreateCollection -> "createCollection",
-    ListCollections -> "listCollections",
+    FindCollections -> "findCollections",
     GarbageCollection -> "gc",
     RemovePermissionSubject -> "removePermissionSubject",
     RemoveEventPermissionSubject -> "removeEventPermissionSubject")
@@ -837,13 +837,21 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     val adminRole = JsObject("description" -> JsString("The administrator role of current domain."))
     val userRole = JsObject("description" -> JsString("The user role of current domain."))
     val profile = JsObject("roles" -> JsArray(JsString("administrator"), JsString("user")))
+
     for {
       r1 <- createCollection(user, id, ".collections", JsObject(), Some(true))
       r2 <- createCollection(user, id, ".roles", JsObject(), Some(true))
       r3 <- createCollection(user, id, ".profiles", JsObject(), Some(true))
-      r4 <- createDocument(user, id, ".roles", "administrator", adminRole, Some(true))
-      r5 <- createDocument(user, id, ".roles", "user", userRole, Some(true))
-      r6 <- createDocument(user, id, ".profiles", user, profile, Some(true))
+      r4 <- createCollection(user, id, ".views", JsObject(), Some(true))
+      r5 <- createCollection(user, id, ".forms", JsObject(), Some(true))
+      r6 <- createDocument(user, id, ".roles", "administrator", adminRole, Some(true))
+      r7 <- createDocument(user, id, ".roles", "user", userRole, Some(true))
+      r8 <- createDocument(user, id, ".profiles", user, profile, Some(true))
+      r9 <- createDocument(user, id, ".views", ".collections", JsObject("collections" -> JsArray(JsString(".collections"))), Some(true))
+      r10 <- createDocument(user, id, ".views", ".roles", JsObject("collections" -> JsArray(JsString(".roles"))), Some(true))
+      r11 <- createDocument(user, id, ".views", ".profiles", JsObject("collections" -> JsArray(JsString(".profiles"))), Some(true))
+      r12 <- createDocument(user, id, ".views", ".views", JsObject("collections" -> JsArray(JsString(".views"))), Some(true))
+      r13 <- createDocument(user, id, ".views", ".forms", JsObject("collections" -> JsArray(JsString(".forms"))), Some(true))
     } yield Done
   }
 
@@ -863,10 +871,19 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
       r3 <- createCollection(adminName, rootDomain, ".users", JsObject(), Some(true))
       r4 <- createCollection(adminName, rootDomain, ".roles", JsObject(), Some(true))
       r5 <- createCollection(adminName, rootDomain, ".profiles", JsObject(), Some(true))
-      r6 <- createDocument(adminName, rootDomain, ".users", adminName, adminUser, Some(true))
-      r7 <- createDocument(adminName, rootDomain, ".roles", "administrator", adminRole, Some(true))
-      r8 <- createDocument(adminName, rootDomain, ".roles", "user", userRole, Some(true))
-      r9 <- createDocument(adminName, rootDomain, ".profiles", adminName, profile, Some(true))
+      r6 <- createCollection(adminName, rootDomain, ".forms", JsObject(), Some(true))
+      r7 <- createCollection(adminName, rootDomain, ".views", JsObject(), Some(true))
+      r8 <- createDocument(adminName, rootDomain, ".users", adminName, adminUser, Some(true))
+      r9 <- createDocument(adminName, rootDomain, ".roles", "administrator", adminRole, Some(true))
+      r10 <- createDocument(adminName, rootDomain, ".roles", "user", userRole, Some(true))
+      r11 <- createDocument(adminName, rootDomain, ".profiles", adminName, profile, Some(true))
+      r12 <- createDocument(adminName, rootDomain, ".views", ".collections", JsObject("collections" -> JsArray(JsString(".collections"))), Some(true))
+      r13 <- createDocument(adminName, rootDomain, ".views", ".domains", JsObject("collections" -> JsArray(JsString(".domains"))), Some(true))
+      r14 <- createDocument(adminName, rootDomain, ".views", ".users", JsObject("collections" -> JsArray(JsString(".users"))), Some(true))      
+      r15 <- createDocument(adminName, rootDomain, ".views", ".roles", JsObject("collections" -> JsArray(JsString(".roles"))), Some(true))
+      r16 <- createDocument(adminName, rootDomain, ".views", ".profiles", JsObject("collections" -> JsArray(JsString(".profiles"))), Some(true))
+      r17 <- createDocument(adminName, rootDomain, ".views", ".forms", JsObject("collections" -> JsArray(JsString(".forms"))), Some(true))      
+      r18 <- createDocument(adminName, rootDomain, ".views", ".views", JsObject("collections" -> JsArray(JsString(".views"))), Some(true))      
     } yield Done
   }
 }
