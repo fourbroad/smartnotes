@@ -46,6 +46,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     prototype.registerJavaMethod(this, "replace", "replace", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "patch", "patch", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "remove", "remove", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "refresh", "refresh", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
 
     prototype.registerJavaMethod(this, "getACL", "getACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "replaceACL", "replaceACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
@@ -74,7 +75,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
 
   def get(receiver: V8Object, token: String, domainId: String, callback: V8Function) =
     commandWithDomain(receiver, token, callback) { user => domainRegion ? GetDomain(domainPID(domainId), user) }
-
+  
   def replace(receiver: V8Object, token: String, domainId: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
     commandWithDomain(receiver, token, callback) { user => domainRegion ? ReplaceDomain(domainPID(domainId), user, jsRaw) }
@@ -101,6 +102,9 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     commandWithSuccess(receiver, token, callback) { user => domainRegion ? PatchACL(domainPID(domainId), user, JsonPatch(jsACLPatch)) }
   }
 
+  def refresh(receiver: V8Object, token: String, domainId: String, callback: V8Function) =
+    commandWithSuccess(receiver, token, callback) { user => domainRegion ? RefreshDomain(domainPID(domainId), user) }
+  
   def garbageCollection(receiver: V8Object, token: String, domainId: String, callback: V8Function) =
     commandWithSuccess(receiver, token, callback) { user => domainRegion ? GarbageCollection(domainPID(domainId), user) }
 

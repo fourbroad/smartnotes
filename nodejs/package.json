@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "JSV": "^4.0.2",
+    "chai": "^4.1.2",
     "express": "^4.16.3",
     "express-unless": "^0.5.0",
     "extend": "^3.0.2",

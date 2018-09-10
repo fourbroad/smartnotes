@@ -1,0 +1,188 @@
+{
+  "order" : 0,
+  "index_patterns": [".domains*", ".views*"],
+  "settings": {
+    "number_of_shards": "1",
+    "number_of_replicas": "2"
+  },
+  "mappings": {
+    "snapshot": {
+      "properties": {
+        "id": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },      
+        "title": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },      
+        "_metadata": {
+          "properties": {
+            "author": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "revision": {
+              "type": "long"
+            },
+            "created": {
+              "type": "date"
+            },
+            "updated": {
+              "type": "date"
+            },
+            "acl": {
+              "properties": {
+                "get": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "replace": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "patch": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "remove": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "getACL": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "replaceACL": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "patchACL": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "patchEventACL": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "removePermissionSubject": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "removeEventPermissionSubject": {
+                  "properties": {
+                    "roles": {
+                      "type": "keyword"
+                    },
+                    "groups": {
+                      "type": "keyword"
+                    },
+                    "users": {
+                      "type": "keyword"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

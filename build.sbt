@@ -30,7 +30,7 @@ lazy val root = (project in file(".")).
       "com.typesafe.akka"                  %% "akka-http-spray-json"    % akkaHttpVersion,
       "com.pauldijou"                      %% "jwt-core"                % "0.16.0",      
       "com.eclipsesource.j2v8"             %  "j2v8_linux_x86_64"       % "4.8.0",
-      "org.gnieh"                          %%  f"diffson-spray-json"    % "2.2.5",
+      "org.gnieh"                          %%  f"diffson-spray-json"    % "3.0.0",
       "com.softwaremill.akka-http-session" %% "core"                    % "0.5.4",
       "com.roundeights"                    %% "hasher"                  % "1.2.0",
       "org.slf4j"                          % "slf4j-api"                % "1.7.25",

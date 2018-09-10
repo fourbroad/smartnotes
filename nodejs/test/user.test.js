@@ -135,6 +135,13 @@ describe('#user', function(){
 	});	
   });
 
+  it('RootDomain refresh should return true', function(done){
+    rootDomain.refresh(function(err, result){
+	  expect(result).to.be.ok;
+	  done();
+	});
+  });
+
   it('RootDomain garbageCollection should return true', function(done){
 	this.timeout(10000);	  
 	rootDomain.garbageCollection(function(err, result){

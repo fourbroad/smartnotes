@@ -107,7 +107,7 @@ describe('#testDomain document', function(){
   this.slow(200);
 
   before(function(done){
-	this.timeout(30000);
+	this.timeout(60000);
     Client.login("administrator","!QAZ)OKM", function(err, c){
 	  client = c;
 	  client.getDomain('localhost',function(err, d){

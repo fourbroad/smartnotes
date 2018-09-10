@@ -145,7 +145,6 @@ object CollectionActor {
         CollectionRemoved(id, author, revision, created, jo)
       }
     }
-
   }
 
   private case class State(collection: Collection, removed: Boolean) {
@@ -303,14 +302,13 @@ object CollectionActor {
 
   private def getJson(jsValue: JsValue, path: Array[String]): JsValue = path.size match {
     case size if size <= 1 => jsValue
-    case _ =>
-      jsValue match {
-        case jo: JsObject =>
-          Try {
-            getJson(jo.fields(path(1)), path.slice(1, path.size))
-          }.recover { case e: java.util.NoSuchElementException => spray.json.JsNull }.get
-        case _ => spray.json.JsNull
-      }
+    case _ => jsValue match {
+      case jo: JsObject =>
+        Try {
+          getJson(jo.fields(path(1)), path.slice(1, path.size))
+        }.recover { case e: java.util.NoSuchElementException => spray.json.JsNull }.get
+      case _ => spray.json.JsNull
+    }
   }
 }
 
@@ -427,7 +425,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
       persist(CollectionRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
         state = state.updated(evt)
         deleteMessages(lastSequenceNr)
-        deleteSnapshots(SnapshotSelectionCriteria.Latest)        
+        deleteSnapshots(SnapshotSelectionCriteria.Latest)
         val ds = state.collection.toJson.asJsObject
         saveSnapshot(ds)
         context.become(removed)
@@ -536,7 +534,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
 
   private def updateAndSave(evt: Event) = {
     state = state.updated(evt)
-    deleteSnapshots(SnapshotSelectionCriteria.Latest)    
+    deleteSnapshots(SnapshotSelectionCriteria.Latest)
     saveSnapshot(state.collection.toJson.asJsObject)
     state.collection
   }
@@ -612,9 +610,10 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
     case Granted =>
       store.search(s"${domain}~${id}~all~snapshots", query.compactPrint).map {
         case (StatusCodes.OK, jo: JsObject) =>
-          val fields = jo.fields
-          val hitsFields = jo.fields("hits").asJsObject.fields
-          DoFindDocuments(user, query, Some(JsObject(hitsFields + ("_metadata" -> JsObject((fields - "hits"))))))
+          //          val fields = jo.fields
+          //          val hitsFields = jo.fields("hits").asJsObject.fields
+          //          DoFindDocuments(user, query, Some(JsObject(hitsFields + ("_metadata" -> JsObject((fields - "hits"))))))
+          DoFindDocuments(user, query, Some(jo))
         case (code, jv) => throw new RuntimeException(s"Find documents error: $jv")
       }
     case other => Future.successful(other)

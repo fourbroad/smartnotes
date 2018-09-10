@@ -96,7 +96,7 @@ describe('#testDomain', function(){
   
 
   it('Creating testDomain should return domain', function(done){
-	this.timeout(20000);
+	this.timeout(60000);
     client.createDomain('www.notes.com',{}, function(err, d){
   	  expect(d).to.be.an('object');
   	  done();

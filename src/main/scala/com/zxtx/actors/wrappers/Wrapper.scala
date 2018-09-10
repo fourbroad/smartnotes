@@ -221,6 +221,9 @@ class Wrapper(val system: ActorSystem, val callbackQueue: Queue[CallbackWrapper]
           case ClearSecretKeyError =>
             v8Object.add("code", 500)
             v8Object.add("message", "Clear secret key error!")
+          case pde:PatchDocumentException =>
+            v8Object.add("code", 500)
+            v8Object.add("message", s"System error:${pde.exception.toString()}")
           case e =>
             v8Object.add("code", 500)
             v8Object.add("message", s"System error:${e.toString()}")

@@ -34,13 +34,13 @@ documentProto = {
 	const self = this;
 	this.socket.emit('patchDocument', this.domainId, this.collectionId, this.id, patch, function(err, docData) {
 	  if(err) return callback(err);
-			  
+
 	  for(var key in self) {
 		if(self.hasOwnProperty(key)) try{delete self[key];}catch(e){}
 	  }
 
 	  utils.extend(self, docData);
-	  callback(null, true);	  
+	  callback(null, true);
 	});
   },
   

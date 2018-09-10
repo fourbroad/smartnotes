@@ -113,6 +113,12 @@ domainProto = {
 	});
   },
 
+  refresh: function(callback){
+	domainWrapper.refresh(this.token, this.id, function(err, result){
+	  callback(err, result);	  
+    });
+  },
+  
   garbageCollection: function(callback){
 	domainWrapper.garbageCollection(this.token, this.id, function(err, result){
 	  callback(err, result);	  

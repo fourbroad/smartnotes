@@ -94,7 +94,7 @@ trait V8SprayJson {
       }
       if (obj.isInstanceOf[Releasable]) obj.asInstanceOf[Releasable].release()
     }
-    new JsArray(list)
+    new JsArray(list.reverse)
   }
 
   def toJsObject(v8Object: V8Object): JsObject = {

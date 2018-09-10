@@ -137,6 +137,12 @@ module.exports = {
       $: 'jquery',
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
+      _: 'lodash',
+      'window._': 'lodash',
+      moment: 'moment',
+      'window.moment': 'moment',
+      jiff: 'jiff',
+      'window.jiff': 'jiff',
       Popper: ['popper.js', 'default']
     }),
     new CaseSensitivePathsPlugin(),

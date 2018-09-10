@@ -33,6 +33,20 @@ domainProto = {
 	});
   },
 
+  createView: function(viewId, viewRaw, callback){
+    const domainId = this.id, socket = this.socket;
+	socket.emit('createView', domainId, viewId, viewRaw, function(err, viewData){
+	  callback(err, err ? null : View.create(socket, domainId, viewData));	  
+	});
+  },
+
+  getView: function(viewId, callback){
+    const domainId = this.id, socket = this.socket;
+	socket.emit('getView', domainId, viewId, function(err, viewData){
+	  callback(err, err ? null : View.create(socket, domainId, viewData));
+	});
+  },
+
   findCollections: function(callback){
     const domainId = this.id, socket = this.socket;
     socket.emit('findCollections', this.id, function(err, collectionInfos){

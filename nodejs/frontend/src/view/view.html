@@ -1,0 +1,53 @@
+<div class="view container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="bgc-white bd bdrs-3 p-20 mB-20">
+        <div class="view-header pB-5 mB-20">
+          <h4 class="c-grey-900">View</h4>
+          <span class="modified">-- modified </span>
+          <div class="btn-group">
+            <button type="button" class="save btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#newView">Save as ...</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <span class="sr-only">Toggle Dropdown</span>
+            </button>
+            <div class="dropdown-menu">
+              <a class="dropdown-item save-as" href="javascript:void(0)">Save as ...</a>
+              <a class="dropdown-item discard" href="javascript:void(0)">Discard modification </a>
+            </div>
+            <div class="modal fade" id="newView" tabindex="-1" role="dialog" aria-labelledby="newView" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Save view as ...</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <form class="new-view">
+                      <div class="form-group">
+                        <label for="newViewTitle">View Title</label>
+                        <input type="text" class="form-control" id="newViewTitle" name="title" aria-describedby="viewHelp" placeholder="Enter title of view">
+                        <span class="messages"></span>
+                      </div>
+                      <button type="submit" class="btn btn-primary d-none">Submit</button>
+                    </form>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary submit">Submit</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="search-container"></div>
+        <table id="dataTable" class="table table-striped hover" cellspacing="0" width="100%">
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

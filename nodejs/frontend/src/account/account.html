@@ -1,5 +1,5 @@
 <li id="account" class="dropdown">
-  <a class="dropdown-toggle no-after peers fxw-nw ai-c lh-1">
+  <a class="dropdown-toggle no-after peers fxw-nw ai-c lh-1" data-toggle="dropdown">
     <div class="peer mR-10">
       <img class="avatar w-2r bdrs-50p" src="https://randomuser.me/api/portraits/men/10.jpg" alt="">
     </div>
@@ -7,7 +7,7 @@
       <span class="nickname fsz-sm c-grey-900">Please sign-in</span>
     </div>
   </a>
-  <ul class="dropdown-menu fsz-sm">
+  <ul class="profile-menu dropdown-menu fsz-sm">
     <li>
       <a href="" class="d-b td-n pY-5 bgcH-grey-100 c-grey-700">
         <i class="ti-settings mR-10"></i>
@@ -34,4 +34,64 @@
       </a>
     </li>
   </ul>
+  <div class="login-menu dropdown-menu">
+    <div class="alert alert-warning alert-dismissible d-none fade show" role="alert">
+      <button type="button" class="close" aria-label="Close">&times;</button>
+      <strong>Warning: </strong>
+      <p class="alert-content" style="display: inline-block;"></p>
+    </div>
+    <form class="px-3">
+      <div class="form-group">
+        <label class="control-label　text-normal text-dark" for="username">Username</label>
+        <input class="form-control" type="text" placeholder="Username" name="username">
+        <div class="messages"></div>
+      </div>
+      <div class="form-group">
+        <label class="control-label　text-normal text-dark" for="password">Password</label>
+        <input class="form-control" type="password" placeholder="Password" name="password">
+        <div class="messages"></div>
+      </div>
+      <div class="form-group">
+        <div class="peers ai-c jc-sb fxw-nw">
+          <div class="peer">
+            <div class="checkbox checkbox-circle checkbox-info peers ai-c">
+              <input type="checkbox" id="inputCall1" name="inputCheckboxesCall" class="peer">
+              <label for="inputCall1" class=" peers peer-greed js-sb ai-c">
+                <span class="peer peer-greed">Remember Me</span>
+              </label>
+            </div>
+          </div>
+          <div class="peer">
+            <button type="submit" id="login" role="button" class="btn btn-primary btn-default" data-loading-text="<i class='fa fa-spinner fa-spin '></i> Login...">
+              <i class='fa fa-vcard'/>Login            
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+    <div class="dropdown-divider"></div>
+    <a class="dropdown-item" href="#">New around here? Sign up</a>
+    <a class="dropdown-item" href="#">Forgot password?</a>
+  </div>
 </li>
+<!--   <div class="login dropdown-menu">
+    <form class="px-4 py-3">
+      <div class="form-group">
+        <label for="exampleDropdownFormEmail1">Email address</label>
+        <input type="email" class="form-control" id="exampleDropdownFormEmail1" placeholder="email@example.com">
+      </div>
+      <div class="form-group">
+        <label for="exampleDropdownFormPassword1">Password</label>
+        <input type="password" class="form-control" id="exampleDropdownFormPassword1" placeholder="Password">
+      </div>
+      <div class="form-check">
+        <input type="checkbox" class="form-check-input" id="dropdownCheck">
+        <label class="form-check-label" for="dropdownCheck">Remember me</label>
+      </div>
+      <button type="submit" class="btn btn-primary">Sign in</button>
+    </form>
+    <div class="dropdown-divider"></div>
+    <a class="dropdown-item" href="#">New around here? Sign up</a>
+    <a class="dropdown-item" href="#">Forgot password?</a>
+  </div>
+ -->

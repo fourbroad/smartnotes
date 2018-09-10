@@ -56,7 +56,7 @@ trait ACL { this: Actor =>
   val documentRegion = ClusterSharding(context.system).shardRegion(DocumentActor.shardName)
   val store = ElasticSearchStore(system)
 
-  implicit val duration = 5.seconds
+  implicit val duration = 10.seconds
   implicit val timeOut = Timeout(duration)
 
   def profilePID(domainId: String, userId: String) = s"${domainId}~.profiles~${userId}"

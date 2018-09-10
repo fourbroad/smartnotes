@@ -47,8 +47,10 @@ class ElasticSearchJournal extends AsyncWriteJournal with AsyncRecovery with Act
         case _ =>
           m.payload.map { pr =>
             val segments = pr.persistenceId.split("%7E")
+            val domain = segments(0)
+            val collection = segments(1)
             val id = segments(2)
-            val alias = s"${segments(0)}~${segments(1)}~hot~events"
+            val alias = s"${domain}~${collection}~hot~events"
             val op = s"""{"index":{"_index":"${alias}","_type":"event","_id":"${id}~${pr.sequenceNr}"}}"""
             val obj = pr.payload.asInstanceOf[JsObject]
             val metaFields = obj.getFields("_metadata") match {

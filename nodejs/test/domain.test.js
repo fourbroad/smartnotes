@@ -61,6 +61,13 @@ describe('#rootDomain', function(){
       done();
 	});
   });
+
+  it('RootDomain refresh should return true', function(done){
+    rootDomain.refresh(function(err, result){
+      expect(result).to.be.ok;
+	  done();
+	});
+  });
   
   it('RootDomain garbageCollection should return true', function(done){
 	rootDomain.garbageCollection(function(err, result){
@@ -96,7 +103,7 @@ describe('#testDomain', function(){
   
 
   it('Creating testDomain should return domain', function(done){
-	this.timeout(10000);
+	this.timeout(60000);
     client.createDomain('www.notes.com',{}, function(err, d){
   	  expect(d).to.be.an('object');
   	  done();
@@ -146,6 +153,13 @@ describe('#testDomain', function(){
 	});
   });
 
+  it('RootDomain refresh should return true', function(done){
+    rootDomain.refresh(function(err, result){
+	  expect(result).to.be.ok;
+	  done();
+	});
+  });
+  
   it('RootDomain garbageCollection should return true', function(done){
 	rootDomain.garbageCollection(function(err, result){
       expect(result).to.be.ok;

@@ -1,0 +1,22 @@
+.view {
+  .view-header {
+    border-bottom: 1px solid lightgray;
+    
+    h4 {
+      display: inline-block;
+    }
+  }
+
+  .btn{
+    border-color: lightgray;
+  }
+
+  .search-container {
+    .btn{
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+}

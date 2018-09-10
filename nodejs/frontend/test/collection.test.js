@@ -99,7 +99,7 @@ describe('#testDomain collection', function(){
   });
 
   it('Creating testDomain should return domain', function(done){
-	this.timeout(20000);
+	this.timeout(60000);
     client.createDomain('www.notes.com',{}, function(err, d){
       testDomain = d
   	  expect(testDomain).to.be.an('object');

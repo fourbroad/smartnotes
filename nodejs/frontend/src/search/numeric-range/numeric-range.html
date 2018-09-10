@@ -1,0 +1,30 @@
+<div class="numeric-range dropdown btn-group mb-3 mr-1">
+  <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+  <div class="dropdown-menu">
+    <form class="px-2">
+      <div class="form-group">
+        <label for="lowestValue">Lowest value</label>
+        <input id="lowestValue" type="text" class="form-control form-control-sm" name="lowestValue" placeholder="Lowest value">
+        <span class="messages"></span>
+      </div>
+      <div class="form-group">
+        <label for="highestValue">Highest value</label>
+        <input id="highestValue" type="text" class="form-control form-control-sm" name="highestValue" placeholder="Highest value">
+        <span class="messages"></span>
+      </div>
+      <div class="form-group btn-group">
+        <div class="peers ai-c jc-sb fxw-nw">
+          <div class="peer">
+            <button id="update" type="submit" class="btn btn-primary btn-sm" role="button">Update</button>
+          </div>
+          <div class="peer">
+            <a href="javascript:void(0)" id="reset" class="btn btn-secondary btn-sm" role="button">Reset</a>
+          </div>
+          <div class="peer">
+            <a href="javascript:void(0)" id="cancel" class="btn btn-secondary btn-sm" role="button">Cancel</a>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

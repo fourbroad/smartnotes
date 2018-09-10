@@ -60,7 +60,7 @@ collectionProto = {
 	  callback(null, true);	  
     });
   },
-  
+
   remove: function(callback) {
 	this.socket.emit('removeCollection', this.domainId, this.id, function(err, result){
 	  callback(err, result);	  
@@ -92,8 +92,15 @@ collectionProto = {
   },
   
   findDocuments: function(query, callback) {
-	this.socket.emit('findDocuments', this.domainId, this.id, query, function(err, docsData) {
-	  callback(err, docsData);
+    const domainId = this.domainId, collectionId = this.id, socket = this.socket;
+	socket.emit('findDocuments', domainId, collectionId, query, function(err, docsData) {
+      if(err) return callback(err);
+
+      var documents = _.map(docsData.hits.hits, function(docData){
+      	return Document.create(socket, domainId, collectionId, docData._source);
+      })
+
+	  callback(null, {total:docsData.hits.total, documents: documents});
 	});
   }
 };

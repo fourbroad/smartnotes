@@ -77,6 +77,7 @@ object DomainActor {
   case class FindCollections(pid: String, user: String) extends Command
   case class JoinDomain(pid: String, user: String, userName: String, permission: Option[JsObject] = None) extends Command
   case class QuitDomain(pid: String, user: String, userName: String) extends Command
+  case class RefreshDomain(pid: String, user: String) extends Command  
 
   private case class DoCreateDomain(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoGetDomain(user: String, request: Option[Any] = None)
@@ -86,6 +87,7 @@ object DomainActor {
   private case class DoFindCollections(user: String, request: Option[Any] = None)
   private case class DoJoinDomain(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoQuitDomain(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoRefreshDomain(user: String, request: Option[Any] = None)
 
   case class DomainCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
   case class DomainReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
@@ -93,6 +95,8 @@ object DomainActor {
   case class DomainRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
   case class DomainJoined(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
   case class DomainQuited(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
+  case object DomainRefreshed extends Event
+
 
   case object DomainNotFound extends Exception
   case object DomainAlreadyExists extends Exception
@@ -286,6 +290,10 @@ object DomainActor {
             "users":["${user}"]
         },
         "patchEventACL":{
+            "roles":["administrator"],
+            "users":["${user}"]
+        },
+        "refresh":{
             "roles":["administrator"],
             "users":["${user}"]
         },
@@ -512,6 +520,12 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         case DoFindCollections(_, Some(collections)) => replyTo ! collections
         case other                                   => replyTo ! other
       }
+    case RefreshDomain(_, user) =>
+      val replyTo = sender
+      refreshDomain(user).foreach {
+        case drd: DoRefreshDomain => replyTo ! DomainRefreshed
+        case other            => replyTo ! other
+      }
     case SaveSnapshotSuccess(metadata)         =>
     case SaveSnapshotFailure(metadata, reason) =>
     case GarbageCollection(_, user, _) =>
@@ -698,11 +712,25 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
       }
     }
   }
+  
+  private def refreshDomain(user: String) = checkPermission(user, RefreshDomain).flatMap {
+    case Granted => id match {
+      case `rootDomain`=> store.refresh.map{
+        case (StatusCodes.OK, _) => DoRefreshDomain(user)
+        case (code, result) => throw new RuntimeException(s"Error refresh domain: $code-$result")
+      }
+      case _ => store.refresh(id).map{
+        case (StatusCodes.OK, _) => DoRefreshDomain(user)
+        case (code, result) => throw new RuntimeException(s"Error refresh domain: $code-$result")
+      }
+    }
+    case Denied => Future.successful(Denied)
+  }.recover { case e => e }
 
   private def garbageCollection(user: String) = checkPermission(user, GarbageCollection).flatMap {
     case Granted =>
       Thread.sleep(1000) // Bugfix: delay for deleting document in ElasticSearch.
-
+      
       val query = s"""{
         "query":{
           "bool":{
@@ -713,27 +741,25 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         }
       }"""
       id match {
-        case `rootDomain` =>
-          for {
-            r1 <- Source.fromGraph(SearchSource(s"${rootDomain}~.domains~all~snapshots", query)).mapAsync(1) { jo =>
-              store.deleteIndices(s"${jo.fields("_source").asJsObject.fields("id").asInstanceOf[JsString].value}~*")
-            }.runWith(Sink.ignore)
-            r2 <- Source.fromGraph(SearchSource(s"${rootDomain}~.collections~all~snapshots", query)).mapAsync(1) { jo =>
-              store.deleteIndices(s"${rootDomain}~${jo.fields("_source").asJsObject.fields("id").asInstanceOf[JsString].value}*")
-            }.runWith(Sink.ignore)
-            r3 <- Source.fromGraph(SearchSource(s"${rootDomain}~.users~all~snapshots", query)).mapAsync(1) { jo =>
-              val subject = jo.fields("_source").asJsObject.fields("id").asInstanceOf[JsString].value
-              deleteProfiles(user, subject).flatMap { any => clearACLs(user, subject) }
-            }.runWith(Sink.ignore)
-            r4 <- store.deleteByQuery(s"${rootDomain}~*", Seq[(String, String)](), query)
-          } yield Done
-        case _ =>
-          for {
-            r1 <- Source.fromGraph(SearchSource(s"${id}~.collections~all~snapshots", query)).mapAsync(1) { jo =>
-              store.deleteIndices(s"${id}~${jo.fields("_source").asJsObject.fields("id").asInstanceOf[JsString].value}*")
-            }.runWith(Sink.ignore)
-            r2 <- store.deleteByQuery(s"${id}~*", Seq[(String, String)](), query)
-          } yield Done
+        case `rootDomain` => for {
+          r1 <- Source.fromGraph(SearchSource(s"${rootDomain}~.domains~all~snapshots", query)).mapAsync(1) { jo =>
+            store.deleteIndices(s"${jo.fields("_source").asJsObject.fields("id").asInstanceOf[JsString].value}~*")
+          }.runWith(Sink.ignore)
+          r2 <- Source.fromGraph(SearchSource(s"${rootDomain}~.collections~all~snapshots", query)).mapAsync(1) { jo =>
+            store.deleteIndices(s"${rootDomain}~${jo.fields("_source").asJsObject.fields("id").asInstanceOf[JsString].value}*")
+          }.runWith(Sink.ignore)
+          r3 <- Source.fromGraph(SearchSource(s"${rootDomain}~.users~all~snapshots", query)).mapAsync(1) { jo =>
+            val subject = jo.fields("_source").asJsObject.fields("id").asInstanceOf[JsString].value
+            deleteProfiles(user, subject).flatMap { any => clearACLs(user, subject) }
+          }.runWith(Sink.ignore)
+          r4 <- store.deleteByQuery(s"${rootDomain}~*", Seq[(String, String)](), query)
+        } yield Done
+        case _ => for {
+          r1 <- Source.fromGraph(SearchSource(s"${id}~.collections~all~snapshots", query)).mapAsync(1) { jo =>
+            store.deleteIndices(s"${id}~${jo.fields("_source").asJsObject.fields("id").asInstanceOf[JsString].value}*")
+          }.runWith(Sink.ignore)
+          r2 <- store.deleteByQuery(s"${id}~*", Seq[(String, String)](), query)
+        } yield Done
       }
     case Denied => Future.successful(Denied)
   }.recover { case e => e }
@@ -770,6 +796,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
             {"term":{"_metadata.acl.getACL.users":"${subject}"}},
             {"term":{"_metadata.acl.replaceACL.users":"${subject}"}},
             {"term":{"_metadata.acl.patchACL.users":"${subject}"}},
+            {"term":{"_metadata.acl.refresh.users":"${subject}"}},
             {"term":{"_metadata.acl.gc.users":"${subject}"}},
             {"term":{"_metadata.acl.execute.users":"${subject}"}}            
           ]
@@ -810,6 +837,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     QuitDomain -> "quit",
     CreateCollection -> "createCollection",
     FindCollections -> "findCollections",
+    RefreshDomain -> "refresh",
     GarbageCollection -> "gc",
     RemovePermissionSubject -> "removePermissionSubject",
     RemoveEventPermissionSubject -> "removeEventPermissionSubject")
@@ -879,11 +907,11 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
       r11 <- createDocument(adminName, rootDomain, ".profiles", adminName, profile, Some(true))
       r12 <- createDocument(adminName, rootDomain, ".views", ".collections", JsObject("collections" -> JsArray(JsString(".collections"))), Some(true))
       r13 <- createDocument(adminName, rootDomain, ".views", ".domains", JsObject("collections" -> JsArray(JsString(".domains"))), Some(true))
-      r14 <- createDocument(adminName, rootDomain, ".views", ".users", JsObject("collections" -> JsArray(JsString(".users"))), Some(true))      
+      r14 <- createDocument(adminName, rootDomain, ".views", ".users", JsObject("collections" -> JsArray(JsString(".users"))), Some(true))
       r15 <- createDocument(adminName, rootDomain, ".views", ".roles", JsObject("collections" -> JsArray(JsString(".roles"))), Some(true))
       r16 <- createDocument(adminName, rootDomain, ".views", ".profiles", JsObject("collections" -> JsArray(JsString(".profiles"))), Some(true))
-      r17 <- createDocument(adminName, rootDomain, ".views", ".forms", JsObject("collections" -> JsArray(JsString(".forms"))), Some(true))      
-      r18 <- createDocument(adminName, rootDomain, ".views", ".views", JsObject("collections" -> JsArray(JsString(".views"))), Some(true))      
+      r17 <- createDocument(adminName, rootDomain, ".views", ".forms", JsObject("collections" -> JsArray(JsString(".forms"))), Some(true))
+      r18 <- createDocument(adminName, rootDomain, ".views", ".views", JsObject("collections" -> JsArray(JsString(".views"))), Some(true))
     } yield Done
   }
 }

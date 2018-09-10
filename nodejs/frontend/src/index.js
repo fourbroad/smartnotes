@@ -1,9 +1,7 @@
 import 'bootstrap';
-// import 'assets/styles/index.scss';
 import 'index.scss';
 
 import Client from 'client';
-import * as $ from 'jquery';
 import 'jquery.urianchor';
 import 'jquery.event.gevent';
 import 'jquery.event.ue';
@@ -14,10 +12,12 @@ const
   $container = $("#mainContent");
 
 var
-  client, uriAnchor = {}, _changeAnchorPart, _setAchor,
-  _onSignInClicked, _onClientChanged, _onHashchange,
-  _loadSignIn, _loadSignUp, _loadDashboard, _loadEmail, _loadCompose, _loadCalendar, _loadChat, 
-  _loadCharts, _loadForms, _loadUi, _loadBasicTable, _loadDataTable, _loadGoogleMaps,
+  client, domain,
+  uriAnchor = {}, _changeAnchorPart, _setAchor,
+  $viewContainer, $viewList,
+  _init, _armViewListItem, _onClientChanged, _onHashchange,
+  _loadSignUp, _loadDashboard, _loadEmail, _loadCompose, _loadCalendar, _loadChat, 
+  _loadView, _loadCharts, _loadForms, _loadUi, _loadBasicTable, _loadDataTable, _loadGoogleMaps,
   _loadVectorMaps; 
 
 _setAchor = function(anchor){
@@ -107,197 +107,152 @@ _onHashchange = function(event){
 
   // Adjust chat component if changed
   if(anchorPrevious._s_module !== anchorProposed._s_module) {
+    var opts = {$container: $container, error: errorCallback};
     moduleProposed = anchorProposed.module;
     switch(moduleProposed){
-      case 'signin':
-        _loadSignIn({error: errorCallback});
-        break;      
       case 'signup':
-        _loadSignUp({error: errorCallback});
+        _loadSignUp(opts);
         break;      
       case 'dashboard':
-        _loadDashboard({error: errorCallback});
+        _loadDashboard(opts);
         break;
       case 'email':
-        _loadEmail({error: errorCallback});
+        _loadEmail(opts);
         break;
       case 'compose':
-        _loadCompose({error: errorCallback});
+        _loadCompose(opts);
         break;
       case 'calendar':
-        _loadCalendar({error: errorCallback});
+        _loadCalendar(opts);
         break;
       case 'chat':
-        _loadChat({error: errorCallback});
+        _loadChat(opts);
+        break;
+      case 'view':
+        opts.domain = domain;
+        opts.viewId = anchorProposed._module.viewId;
+        _loadView(opts);
         break;
       case 'charts':
-        _loadCharts({error: errorCallback});
+        _loadCharts(opts);
         break;
       case 'forms':
-        _loadForms({error: errorCallback});
+        _loadForms(opts);
         break;
       case 'ui':
-        _loadUi({error: errorCallback});
+        _loadUi(opts);
         break;
       case 'basic-table':
-        _loadBasicTable({error: errorCallback});
+        _loadBasicTable(opts);
         break;
       case 'data-table':
-        _loadDataTable({error: errorCallback});
+        _loadDataTable(opts);
         break;
       case 'google-maps':
-        _loadGoogleMaps({error: errorCallback});
+        _loadGoogleMaps(opts);
         break;
       case 'vector-maps':
-        _loadVectorMaps({error: errorCallback});
+        _loadVectorMaps(opts);
         break;
-      default :
-        _loadDashboard({error: errorCallback});
+      default :        
     }
   }
 
   return false;
 };
 
-_loadSignIn = function(opts){
-  import(/* webpackChunkName: "signin" */ './signin').then(module => {
-    module.default.init({
-      $container: $container,
-      submitCallback: function(err, client){
-        if(err) return opts && opts.errorCallback;
-
-        $.gevent.publish('clientChanged', client);
-        import(/* webpackChunkName: "dashboard" */ './dashboard').then(module => {
-          module.default.init();
-        });
-      }
-    });
-  });  
-};
-
 _loadSignUp = function(opts){
   import(/* webpackChunkName: "signup" */ './signup').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadDashboard = function(opts){
   import(/* webpackChunkName: "dashboard" */ './dashboard').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadEmail = function(opts){
   import(/* webpackChunkName: "email" */ './email').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadCompose = function(opts){
   import(/* webpackChunkName: "compose" */ './compose').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadCalendar = function(opts){
   import(/* webpackChunkName: "calendar" */ './calendar').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadChat = function(opts){
   import(/* webpackChunkName: "chat" */ './chat').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
+  });
+};
+
+_loadView = function(opts){
+  import(/* webpackChunkName: "view" */ './view').then(module => {
+    module.default.create(opts);
   });
 };
 
 _loadCharts = function(opts){
   import(/* webpackChunkName: "charts" */ './charts').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadForms = function(opts){
   import(/* webpackChunkName: "forms" */ './forms').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadUi = function(opts){
   import(/* webpackChunkName: "ui" */ './ui').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadBasicTable = function(opts){
   import(/* webpackChunkName: "basic-table" */ './basic-table').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadDataTable = function(opts){
   import(/* webpackChunkName: "data-table" */ './data-table').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadGoogleMaps = function(opts){
   import(/* webpackChunkName: "google-maps" */ './google-maps').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
 _loadVectorMaps = function(opts){
   import(/* webpackChunkName: "vector-maps" */ './vector-maps').then(module => {
-    module.default.init({
-      $container: $container
-    });
+    module.default.init(opts);
   });
 };
 
-_onSignInClicked = function(event){
-  _loadSignIn();
-};
-
-_onClientChanged = function(event, client){
-
-};
-
-$.uriAnchor.configModule({
-  schema_map : {
-    module: ['signin','signup','dashboard', 'email', 'compose', 'calendar', 'chat', 'charts', 'forms', 'ui', 'basictable', 'datatable','googlemaps','vectormaps']
+_onClientChanged = function(event, c){
+  client = c;
+  if(client.currentUser.isAnonymous()){
+    localStorage.removeItem('token');
+  }else{
+    localStorage.setItem('token', client.token);  		
   }
-});
-
-
-$.gevent.subscribe($container, 'signInClicked',  _onSignInClicked);
-$.gevent.subscribe($container, 'clientChanged',  _onClientChanged);
-
-account.init({$container: $('.page-container .nav-right')});
+};
 
 $('.scrollable').each((index, el) => {
   new PerfectScrollbar(el,{suppressScrollX:true, wheelPropagation: true});
@@ -349,7 +304,7 @@ $('.search-toggle').on('click', e => {
 
 
 // Sidebar links
-$('.sidebar .sidebar-menu li a').on('click', function () {
+$('.sidebar .sidebar-menu').on('click','li>a', function () {
   const $this = $(this), $parent = $this.parent(), id = $parent.attr('id');
 
   if ($parent.hasClass('open')) {
@@ -368,7 +323,18 @@ $('.sidebar .sidebar-menu li a').on('click', function () {
   $('.sidebar').find('.sidebar-link').removeClass('active');
   $this.addClass('active');
 
-  _changeAnchorPart({module:id});
+  if($parent.hasClass('view')){
+    _changeAnchorPart({
+      module: 'view',
+      _module:{
+        viewId: $parent.attr('id')
+      }
+    });
+  }else{
+    _changeAnchorPart({module:id});
+  }
+  
+
 });
 
 // ٍSidebar Toggle
@@ -389,4 +355,57 @@ $('#sidebar-toggle').click(e => {
   }, 300);
 });
 
-$(window).bind('hashchange', _onHashchange).trigger('hashchange');
+_armViewListItem = function(name){
+  var item = String() + '<li id="' + name + '" class="view nav-item"><a class="sidebar-link">' + name + '</a></li>'
+  return item;
+};
+
+_init = function(client){
+  window.client = client;
+  client.moment = moment;
+  client.jiff = jiff;
+
+  $viewContainer = $('.viewContainer');
+  $viewList = $('.view-container .view-list');
+  account.init({$container: $('.page-container .nav-right'), client: client});
+
+  if(!client.currentUser.isAnonymous()){
+    client.getDomain(function(err, d){
+      window.currentDomain = domain = d;
+      domain.getCollection('.views', function(err, collection){
+//         if(err) return _showAlertMessage(err.message);
+        collection.findDocuments({}, function(err, viewDocs){
+          _.each(viewDocs.documents, function(viewDoc){
+            $(_armViewListItem(viewDoc.id)).data('item', viewDoc).appendTo($viewList);
+          });
+          
+          $(window).trigger('hashchange');
+        });
+      });
+    })
+  }
+};
+
+$.uriAnchor.configModule({
+  schema_map : {
+    module: ['signup','dashboard', 'email', 'compose', 'calendar', 'chat', 'charts', 'forms', 'ui', 'basic-table', 'data-table','google-maps','vector-maps'],
+    _module:{ viewId: true }
+  }
+});
+
+if(localStorage.token){
+  Client.connect(localStorage.token, function(err, c){
+    if(err) return console.log(err);
+    client = c;
+    _init(client);
+  });
+} else {
+  Client.login(function(err, c){
+    if(err) return console.log(err);
+    client = c;
+    _init(client);
+  });
+}
+
+$.gevent.subscribe($container, 'clientChanged',  _onClientChanged);
+$(window).bind('hashchange', _onHashchange);
