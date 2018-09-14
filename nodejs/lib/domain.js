@@ -15,9 +15,12 @@
 
 const
   extend = require('extend'),
+  uuidv4 = require('uuid/v4'),
   Collection = require('./collection'),
   domainWrapper = new __DomainWrapper(),  
-  collectionWrapper = new __CollectionWrapper();
+  collectionWrapper = new __CollectionWrapper(),
+  viewWrapper = new __ViewWrapper();
+  
 
 var
   domainProto, create;
@@ -27,10 +30,21 @@ var
 // ---------------- BEGIN INITIALIZE MODULE SCOPE VARIABLES -----------------
 
 domainProto = {
-  createCollection: function(collectionId, collectionRaw, callback){
-	const 
-	  token = this.token,
-	  domainId = this.id;
+  createCollection: function(){
+	const token = this.token, domainId = this.id;
+	var collectionId, collectionRaw, callback;
+
+	if(arguments.length == 2 && typeof arguments[1] == 'function'){
+	  collectionId = uuidv4();
+	  collectionRaw = arguments[0];
+	  callback = arguments[1];
+	} else if(arguments.length == 3 && typeof arguments[2] == 'function'){
+	  collectionId = arguments[0];
+	  collectionRaw = arguments[1];
+	  callback = arguments[2];
+	} else {
+	  throw utils.makeError('Error', 'Number or type of Arguments is not correct!', arguments);
+	}
 	
 	collectionWrapper.create(token, domainId, collectionId, collectionRaw, function(err, collectionData){
 	  callback(err, err ? null : Collection.create(token, domainId, collectionData));	  
@@ -50,6 +64,37 @@ domainProto = {
   findCollections: function(callback){
 	domainWrapper.findCollections(this.token, this.id, function(err, collectionInfos){
 	  callback(err, collectionInfos);	  
+	});
+  },
+  
+  createView: function(){
+	const token = this.token, domainId = this.id;
+	var viewId, viewRaw, callback;
+	  
+	if(arguments.length == 2 && typeof arguments[1] == 'function'){
+	  viewId = uuidv4();
+	  viewRaw = arguments[0];
+	  callback = arguments[1];
+	} else if(arguments.length == 3 && typeof arguments[2] == 'function'){
+	  viewId = arguments[0];
+	  viewRaw = arguments[1];
+	  callback = arguments[2];
+	} else {
+	  throw utils.makeError('Error', 'Number or type of Arguments is not correct!', arguments);
+	}
+	  
+	viewWrapper.create(token, domainId, viewId, viewRaw, function(err, viewData){
+	  callback(err, err ? null : View.create(token, domainId, viewData));	  
+	});
+  },
+	  
+  getView: function(viewId, callback){
+	const 
+	  token = this.token,
+	  domainId = this.id;
+
+	viewWrapper.get(token, domainId, viewId, function(err, viewData){
+	  callback(err, err ? null : View.create(token, domainId, viewData));
 	});
   },
   

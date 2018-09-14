@@ -25,7 +25,7 @@ function create(opts) {
     };
 
   var
-    name, title, collection, lowestValue, highestValue,
+    name, title, view, lowestValue, highestValue,
     $container, $numericRange, $numericRangeBtn, $dropdownMenu, $form, $lowestInput, $highestInput, $updateBtn, $resetBtn, $cancelBtn,
     _refreshButton, _onSubmit, _onReset, _onCancel, _doSubmit, getRange;
 
@@ -85,7 +85,7 @@ function create(opts) {
 
   title = opts.title;
   name = opts.name;
-  collection = opts.collection;
+  view = opts.view;
   lowestValue = opts.lowestValue;
   highestValue = opts.highestValue;
   

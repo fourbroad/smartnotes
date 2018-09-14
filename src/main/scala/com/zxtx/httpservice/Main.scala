@@ -16,6 +16,7 @@ import com.eclipsesource.v8.V8Object
 import com.typesafe.config.ConfigFactory
 import com.zxtx.actors.CollectionActor
 import com.zxtx.actors.UserActor
+import com.zxtx.actors.ViewActor
 import com.zxtx.actors.DocumentActor
 import com.zxtx.actors.DomainActor
 import com.zxtx.actors.DomainActor._
@@ -24,6 +25,7 @@ import com.zxtx.actors.wrappers.CollectionWrapper
 import com.zxtx.actors.wrappers.DocumentWrapper
 import com.zxtx.actors.wrappers.DomainWrapper
 import com.zxtx.actors.wrappers.UserWrapper
+import com.zxtx.actors.wrappers.ViewWrapper
 
 import akka.Done
 import akka.actor.ActorSystem
@@ -76,6 +78,12 @@ object Main extends App {
     settings = ClusterShardingSettings(system),
     extractEntityId = UserActor.idExtractor,
     extractShardId = UserActor.shardResolver)
+  val viewRegion = ClusterSharding(system).start(
+    typeName = ViewActor.shardName,
+    entityProps = ViewActor.props(),
+    settings = ClusterShardingSettings(system),
+    extractEntityId = ViewActor.idExtractor,
+    extractShardId = ViewActor.shardResolver)
 
   val rootDomain = system.settings.config.getString("domain.root-domain")
   val adminName = system.settings.config.getString("domain.administrator.name")
@@ -101,6 +109,7 @@ object Main extends App {
   val collectionWrapper = CollectionWrapper(system, callbackQueue)
   val documentWrapper = DocumentWrapper(system, callbackQueue)
   val userWrapper = UserWrapper(system, callbackQueue)
+  val viewWrapper = ViewWrapper(system, callbackQueue)
 
   import scala.sys.process._
   val processId = Seq("sh", "-c", "echo $PPID").!!.trim.toInt
@@ -128,6 +137,7 @@ object Main extends App {
       runtime.registerJavaMethod(callback, "asyncCallback")
       runtime.registerJavaMethod(domainWrapper, "bind", "__DomainWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(collectionWrapper, "bind", "__CollectionWrapper", Array[Class[_]](classOf[V8Object]), true)
+      runtime.registerJavaMethod(viewWrapper, "bind", "__ViewWrapper", Array[Class[_]](classOf[V8Object]), true)      
       runtime.registerJavaMethod(documentWrapper, "bind", "__DocumentWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(userWrapper, "bind", "__UserWrapper", Array[Class[_]](classOf[V8Object]), true)
 

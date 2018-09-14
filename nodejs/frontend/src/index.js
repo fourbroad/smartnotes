@@ -372,15 +372,13 @@ _init = function(client){
   if(!client.currentUser.isAnonymous()){
     client.getDomain(function(err, d){
       window.currentDomain = domain = d;
-      domain.getCollection('.views', function(err, collection){
-//         if(err) return _showAlertMessage(err.message);
-        collection.findDocuments({}, function(err, viewDocs){
-          _.each(viewDocs.documents, function(viewDoc){
-            $(_armViewListItem(viewDoc.id)).data('item', viewDoc).appendTo($viewList);
-          });
-          
-          $(window).trigger('hashchange');
+      domain.findViews(function(err, views){
+        if(err) return console.log(err);
+        _.each(views.views, function(view){
+          $(_armViewListItem(view.id)).data('item', view).appendTo($viewList);
         });
+          
+        $(window).trigger('hashchange');
       });
     })
   }

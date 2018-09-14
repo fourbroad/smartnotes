@@ -93,7 +93,7 @@ collectionProto = {
   
   findDocuments: function(query, callback) {
     const domainId = this.domainId, collectionId = this.id, socket = this.socket;
-	socket.emit('findDocuments', domainId, collectionId, query, function(err, docsData) {
+	socket.emit('findCollectionDocuments', domainId, collectionId, query, function(err, docsData) {
       if(err) return callback(err);
 
       var documents = _.map(docsData.hits.hits, function(docData){
@@ -101,6 +101,12 @@ collectionProto = {
       })
 
 	  callback(null, {total:docsData.hits.total, documents: documents});
+	});
+  },
+
+  refresh: function(callback) {
+	this.socket.emit('refreshCollection', this.domainId, this.id, function(err, result){
+	  callback(err, result);	  
 	});
   }
 };

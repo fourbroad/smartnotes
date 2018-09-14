@@ -45,6 +45,7 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
     prototype.registerJavaMethod(this, "patch", "patch", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "remove", "remove", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "findDocuments", "findDocuments", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "refresh", "refresh", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
 
     prototype.registerJavaMethod(this, "getACL", "getACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "replaceACL", "replaceACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
@@ -118,6 +119,9 @@ class CollectionWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrappe
     }
   }
 
+  def refresh(receiver: V8Object, token: String, domainId: String, collectionId: String, callback: V8Function) =
+    commandWithSuccess(receiver, token, callback) { user => collectionRegion ? Refresh(collectionPID(domainId, collectionId), user) }
+  
   private def commandWithCollection(receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any]) =
     command[Collection](receiver, token, callback)(cmd) { (cbw, c) => collectionCallback(cbw, c) }
 

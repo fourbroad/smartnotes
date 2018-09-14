@@ -32,7 +32,7 @@ function create(opts) {
     };
 
   var
-    name, title, collection, earliest, latest,
+    name, title, view, earliest, latest,
     $container, $datetimeRange, $earliestPicker, $latestPicker, $datetimeRangeBtn, $dropdownMenu, $form, 
     $earliestInput, $latestInput, $earliestIcon, $latestIcon, $updateBtn, $resetBtn, $cancelBtn,
     _refreshButton, _onSubmit, _onReset, _onCancel, _doSubmit, getRange;
@@ -104,7 +104,7 @@ function create(opts) {
 
   title = opts.title;
   name = opts.name;
-  collection = opts.collection;
+  view = opts.view;
   earliest = opts.earliest;
   latest = opts.latest;
 

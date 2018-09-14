@@ -14,6 +14,7 @@
 const
   domainWrapper = new __DomainWrapper(),
   collectionWrapper = new __CollectionWrapper(),
+  viewWrapper = new __ViewWrapper(),
   documentWrapper = new __DocumentWrapper(),
   userWrapper = new __UserWrapper(),
   socketIO = require('socket.io'),
@@ -184,9 +185,61 @@ io = {
       socket.on('removeCollectionPermissionSubject', function(domainId, collectionId, acl, callback){
         collectionWrapper.removePermissionSubject(token, domainId, collectionId, acl, callback);
       });
-      
-      socket.on('findDocuments', function(domainId, collectionId, query, callback){
+
+      socket.on('findCollectionDocuments', function(domainId, collectionId, query, callback){
         collectionWrapper.findDocuments(token, domainId, collectionId, query, callback);
+      });
+      
+      socket.on('refreshCollection', function(domainId, collectionId, callback){
+        collectionWrapper.refresh(token, domainId, collectionId, callback);
+      });
+
+      socket.on('findViews', function(domainId, callback){
+       	domainWrapper.findViews(token, domainId, callback);
+      });
+        
+      socket.on('createView', function(domainId, viewId, viewRaw, callback){
+      	viewWrapper.create(token, domainId, viewId, viewRaw, callback);
+      });
+          
+      socket.on('getView', function(domainId, viewId, callback){
+      	viewWrapper.get(token, domainId, viewId, callback);
+      });
+
+      socket.on('replaceView', function(domainId, viewId, viewRaw, callback){
+        viewWrapper.replace(token, domainId, viewId, viewRaw, callback);
+      });
+
+      socket.on('patchView', function(domainId, viewId, patch, callback){
+        viewWrapper.patch(token, domainId, viewId, patch, callback);
+      });
+
+      socket.on('removeView', function(domainId, viewId, callback){
+        viewWrapper.remove(token, domainId, viewId, callback);
+      });
+
+      socket.on('getViewACL', function(domainId, viewId, callback){
+        viewWrapper.getACL(token, domainId, viewId, callback);
+      });
+
+      socket.on('replaceViewACL', function(domainId, viewId, acl, callback){
+        viewWrapper.replaceACL(token, domainId, viewId, acl, callback);
+      });
+        
+      socket.on('patchViewACL', function(domainId, viewId, aclPatch, callback){
+        viewWrapper.patchACL(token, domainId, viewId, aclPatch, callback);
+      });
+          
+      socket.on('removeViewPermissionSubject', function(domainId, viewId, acl, callback){
+        viewWrapper.removePermissionSubject(token, domainId, viewId, acl, callback);
+      });
+
+      socket.on('findViewDocuments', function(domainId, viewId, query, callback){
+        viewWrapper.findDocuments(token, domainId, viewId, query, callback);
+      });
+ 
+      socket.on('refreshView', function(domainId, viewId, callback){
+        viewWrapper.refresh(token, domainId, viewId, callback);
       });
       
       socket.on('createDocument', function(domainId, collectionId, docId, docRaw, callback){

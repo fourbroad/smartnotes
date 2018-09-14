@@ -59,6 +59,7 @@ object CollectionActor {
   case class PatchCollection(pid: String, user: String, patch: JsonPatch) extends Command
   case class RemoveCollection(pid: String, user: String) extends Command
   case class FindDocuments(pid: String, user: String, query: JsObject) extends Command
+  case class Refresh(pid: String, user: String) extends Command
   case class GarbageCollection(pid: String, user: String, request: Option[Any] = None) extends Command
 
   private case class DoCreateCollection(user: String, raw: JsObject, request: Option[Any] = None)
@@ -67,6 +68,7 @@ object CollectionActor {
   private case class DoPatchCollection(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
   private case class DoRemoveCollection(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoFindDocuments(user: String, query: JsObject, request: Option[Any] = None)
+  private case class DoRefresh(user: String, request: Option[Any] = None)  
   private case class DoGarbageCollection(user: String, request: Option[Any] = None)
   private case class ClearCacheSuccess(user: String, request: Option[Any] = None)
   private case class InitializeIndices(user: String, raw: JsObject, request: Option[Any] = None)
@@ -75,6 +77,7 @@ object CollectionActor {
   case class CollectionReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
   case class CollectionPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends Event
   case class CollectionRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
+  case object Refreshed extends Event  
 
   case object GarbageCollectionCompleted extends Event
 
@@ -270,6 +273,10 @@ object CollectionActor {
             "roles":["administrator","user"],
             "users":["${user}"]
         },
+        "refresh":{
+            "roles":["administrator","user"],
+            "users":["${user}"]
+        },
         "gc":{
             "roles":["administrator"],
             "users":["${user}"]
@@ -441,6 +448,12 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
         case DoFindDocuments(_, _, Some(result)) => replyTo ! result
         case other                               => replyTo ! other
       }
+    case Refresh(pid, user) =>
+      val replyTo = sender
+      refresh(user).foreach {
+        case dr: DoRefresh => replyTo ! Refreshed
+        case other         => replyTo ! other
+      }
     case GetACL(_, user) =>
       val replyTo = sender
       getACL(user).foreach {
@@ -606,16 +619,22 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
     case other => Future.successful(other)
   }.recover { case e => e }
 
+  private def refresh(user: String) = checkPermission(user, Refresh).flatMap {
+    case Granted => store.refresh(s"${domain}~${id}~all~snapshots").map {
+      case (StatusCodes.OK, _) => DoRefresh(user)
+      case (code, jv)          => throw new RuntimeException(s"Find documents error: $jv")
+    }
+    case other => Future.successful(other)
+  }.recover { case e => e }
+  
   private def findDocuments(user: String, query: JsObject) = checkPermission(user, FindDocuments).flatMap {
-    case Granted =>
-      store.search(s"${domain}~${id}~all~snapshots", query.compactPrint).map {
-        case (StatusCodes.OK, jo: JsObject) =>
-          //          val fields = jo.fields
-          //          val hitsFields = jo.fields("hits").asJsObject.fields
-          //          DoFindDocuments(user, query, Some(JsObject(hitsFields + ("_metadata" -> JsObject((fields - "hits"))))))
-          DoFindDocuments(user, query, Some(jo))
-        case (code, jv) => throw new RuntimeException(s"Find documents error: $jv")
+    case Granted => filterQuery(domain, user, query).flatMap {
+      case fq: JsObject => store.search(s"${domain}~${id}~all~snapshots", fq.compactPrint).map {
+        case (StatusCodes.OK, jo: JsObject) => DoFindDocuments(user, query, Some(jo))
+        case (code, jv)                     => throw new RuntimeException(s"Find documents error: $jv")
       }
+      case other => throw new RuntimeException(s"Find documents error: $other")
+    }
     case other => Future.successful(other)
   }.recover { case e => e }
 
@@ -668,6 +687,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
     PatchACL -> "patchACL",
     PatchEventACL -> "patchEventACL",
     FindDocuments -> "findDocuments",
+    Refresh -> "refresh",
     GarbageCollection -> "gc",
     RemovePermissionSubject -> "removePermissionSubject",
     RemoveEventPermissionSubject -> "removeEventPermissionSubject")

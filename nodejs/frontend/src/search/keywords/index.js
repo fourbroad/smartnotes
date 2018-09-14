@@ -9,7 +9,7 @@ import keywordsHtml from './keywords.html';
 function create(opts) {
 
   var
-    name, title, selectedItems, collection,
+    name, title, selectedItems, view,
     $container, $keywords, $keywordsBtn, $dropdownMenu, $itemContainer, $input, $inputIcon, $clearLink,
     changeCallback, _armItem, _armItems, _refresh, _refreshButton, _refreshClearLink, 
     _setSearchIcon, _setClearIcon, _distinctQuery, _fetchMenuItems,
@@ -61,7 +61,7 @@ function create(opts) {
   };
 
   _fetchMenuItems = function(name, wildcard){
-    collection.findDocuments(_distinctQuery(name, wildcard), function(err, docs){
+    view.findDocuments(_distinctQuery(name, wildcard), function(err, docs){
       if(err) return console.log(err);
       var items = _.map(docs.documents, function(doc){
       	return {label:eval('doc.'+name), value:eval('doc.'+name)};
@@ -121,7 +121,7 @@ function create(opts) {
 
   title = opts.title;
   name = opts.name;
-  collection = opts.collection;
+  view = opts.view;
   selectedItems = opts.selectedItems||[];
   $container = opts.$container;
   $keywords = $(keywordsHtml).appendTo($container);
@@ -137,7 +137,7 @@ function create(opts) {
   $input.on('keyup change', function(){
     var filter = $input.val();
     if(filter != ''){
-      _setClearIcon();      
+      _setClearIcon();
     }else{
       _setSearchIcon();
     }

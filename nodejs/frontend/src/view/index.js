@@ -3,6 +3,7 @@ import './view.scss';
 // import 'datatables.net';
 import 'datatables.net-bs4';
 import 'datatables.net-bs4/css/dataTables.bootstrap4.css';
+import validate from "validate.js";
 import utils from 'utils';
 import Keywords from 'search/keywords';
 import NumericRange from 'search/numeric-range';
@@ -13,17 +14,18 @@ import viewHtml from './view.html';
 function create(opts) {
   const 
     constraints = {
-      username: {
+      title: {
         presence: true
       }
     };
 
   var
-    domain = opts.domain, viewId = opts.viewId, view, collection, table, columns, searchColumns,
-    $container = opts.$container, $view, $viewHeader, $title, $modified, $dropdownToggle, 
+    domain = opts.domain, viewId = opts.viewId, view, table, columns, searchColumns,
+    $container = opts.$container, $view, $viewHeader, $viewTitle, $modified, $dropdownToggle, 
     $searchContainer, $searchGroup, $saveBtn, $itemSaveAs, $itemDiscard, $form, $submitBtn,
+    $newViewModel, $viewTable, $titleInput,
     _init, _initSearchBar, _armSearchColOpts, _searchColumnType, _kvMap, _buildSearch, _isDirty, 
-    _refreshHeader, _onSubmit,
+    _refreshHeader, _onSubmit, _setRowActive, _clearRowActive, _isRowActive, _showDocMenu,
     save, saveAs, discard;
 
   _initSearchBar = function(){
@@ -36,7 +38,7 @@ function create(opts) {
             name: sc.name,
             selectedItems: sc.selectedItems,
             $container: $searchContainer,
-            collection: collection
+            view: view
           });
           break;
         case 'numericRange':
@@ -46,7 +48,7 @@ function create(opts) {
             lowestValue: sc.lowestValue,
             highestValue: sc.highestValue,
             $container: $searchContainer,
-            collection: collection
+            view: view
           });
           break;
         case 'datetimeRange':
@@ -56,7 +58,7 @@ function create(opts) {
             earliest: sc.earliest,
             latest: sc.latest,
             $container: $searchContainer,
-            collection: collection
+            view: view
           });
           break;
       }
@@ -64,7 +66,7 @@ function create(opts) {
 
     FullText.create({
       $container: $searchContainer,
-      collection: collection
+      view: view
     });
 
     $searchGroup.detach().appendTo($searchContainer);
@@ -87,7 +89,7 @@ function create(opts) {
             break;
         }
       }else{
-        searchCols.push(null);        
+        searchCols.push(null);
       }
 
       return searchCols;            
@@ -187,7 +189,7 @@ function create(opts) {
     }
 
     return {
-      query:mustArray.length > 0 ? {bool:{must:mustArray}}:{match_all:{}},
+      query:{bool:{must:mustArray}},
       sort:sort,
       from:kvMap['iDisplayStart'],
       size:kvMap['iDisplayLength']
@@ -199,28 +201,56 @@ function create(opts) {
     if (errors) {
       utils.showErrors($form, errors);
     } else {
-      var values = validate.collectFormValues($form, {trim: true}), title = values.title;
-      
+      var values = validate.collectFormValues($form, {trim: true}), title = values.title, viewInfo = _.cloneDeep(view);
+      delete viewInfo.id;
+      delete viewInfo.collectionId;
+      delete viewInfo.domainId;
+      viewInfo.title = title;
+      currentDomain.createView(viewInfo, function(err, v){
+        view.refresh(function(){
+          table.draw(false);
+          $newViewModel.modal('toggle')
+        })
+      })
       utils.clearErrors($form);
-    }        
+    }
   };
 
-  _init = function(v, c){
+  _showDocMenu = function($dropdownMenu, doc){
+    $('<li class="dropdown-item delete"><span>Delete</span></li>').appendTo($dropdownMenu.empty());
+  };
+
+  _setRowActive = function($row){
+    table.$('tr.table-active').removeClass('table-active');
+    $row.addClass('table-active');
+  };
+
+  _clearRowActive = function($row){
+    $row.removeClass('table-active');
+  };
+
+  _isRowActive = function($row){
+    return $row.hasClass('table-active');
+  };
+
+  _init = function(v){
     view = v;
-    collection = c;
     columns = _.cloneDeep(view.columns);
     searchColumns = _.cloneDeep(view.searchColumns);
     $view = $(viewHtml);
     $viewHeader = ('.view-header', $view);
+    $viewTable = $('#viewTable', $view);
     $modified = $('.modified', $viewHeader);
     $dropdownToggle = $('.dropdown-toggle', $viewHeader);
     $saveBtn =$('.save.btn', $viewHeader);
-    $title = $('h4', $viewHeader);
-    $title.html(view.title||view.id);
+    $viewTitle = $('h4', $viewHeader);
+    $viewTitle.html(view.title||view.id);
     $itemSaveAs = $('.dropdown-item.save-as', $viewHeader);
     $itemDiscard = $('.dropdown-item.discard', $viewHeader);
-    $form = $('form.new-view', $viewHeader);
-    $submitBtn = $('.btn.submit', $viewHeader);
+    $newViewModel = $('#newView', $viewHeader);
+    $titleInput = $('input[name="title"]', $newViewModel);
+    $form = $('form.new-view', $newViewModel);
+    $submitBtn = $('.btn.submit', $newViewModel);
     $searchContainer = $('.search-container', $view);
     $searchGroup = $('.search-group', $searchContainer);
     $container.empty();
@@ -229,16 +259,16 @@ function create(opts) {
     _refreshHeader();
     _initSearchBar();
 
-    table = $('#dataTable').DataTable({
+    table = $viewTable.DataTable({
       dom: '<"top"i>rt<"bottom"lp><"clear">',
       lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],      
       processing: true,
       serverSide: true,
       columns: columns,
       searchCols: _armSearchColOpts(),
-      order: [[ 4, "desc" ],[ 5, "desc" ]],
+      order: [[ 5, "desc" ],[ 6, "desc" ]],
       columnDefs : [{
-        targets : [4,5],
+        targets : [5,6],
         searchable: false,
         type : 'date',
         render: function(data, type, row){
@@ -250,14 +280,16 @@ function create(opts) {
         }
       },{
         targets: -1,
+        width: "30px",
         data: null,
-        defaultContent: "<button>Click!</button>"
+        defaultContent: '<button type="button" class="btn btn-outline-secondary btn-sm btn-light" data-toggle="dropdown"><i class="fa fa-ellipsis-h"></i></button><ul class="dropdown-menu dropdown-menu-right"></ul>'
       }],
       sAjaxSource: "view",
       fnServerData: function (sSource, aoData, fnCallback, oSettings ) {
         var kvMap = _kvMap(aoData), query = _buildSearch(kvMap);
-        collection.findDocuments(query, function(err, docs){
+        view.findDocuments(query, function(err, docs){
           if(err) return console.log(err);
+          console.log(docs);
           fnCallback({
             "sEcho": kvMap['sEcho'],
             "iTotalRecords": docs.total,
@@ -267,6 +299,41 @@ function create(opts) {
         });
       }
     });
+
+    $('tbody', $viewTable).on('click show.bs.dropdown', 'tr', function(evt){
+      var $this = $(this);
+      if(evt.type == 'show'){
+        if(!_isRowActive($this)){
+          _setRowActive($this);
+        }
+        _showDocMenu($(evt.target).find('.dropdown-menu'), table.row(this).data());
+      } else {
+        if(_isRowActive($this)){
+          _clearRowActive($this);
+        } else {
+          _setRowActive($this);
+        }
+      }
+    });
+
+    $('tbody', $viewTable).on('click','li.dropdown-item', function(evt){
+      var $this = $(this), $tr = $this.parents('tr'), v = table.row($tr).data();
+
+//       table.row('.table-active').remove().draw( false );
+      v.remove(function(err, result){
+        setTimeout(function(){
+          table.draw(false);
+        }, 1000);
+      });
+
+      evt.stopPropagation();
+    });
+
+
+    $newViewModel.on('shown.bs.modal', function () {
+      $titleInput.val('');
+      $titleInput.trigger('focus')
+    })    
 
     $saveBtn.on('click', save);
     $itemDiscard.on('click', discard);
@@ -308,18 +375,8 @@ function create(opts) {
     });
   };
 
-  domain.getCollection('.views', function(err1, views){
-    views.getDocument(viewId, function(err2, viewDoc){
-      domain.getCollection(viewDoc.collections[0], function(err3, collection){
-        _init(viewDoc, collection);
-      });
-
-//       if(err) return _showAlertMessage(err.message);
-//       _.each(collections, function(collection){
-//         $(_armListGroupItem(collection.id)).data('item', collection).appendTo($listGroup);
-//       });
-
-    });
+  domain.getView(viewId, function(err, view){
+    _init(view);
   });
 
   save = function(){
@@ -328,7 +385,6 @@ function create(opts) {
       view.patch(jiff.diff(view, newView), function(err, result){
         columns = _.cloneDeep(view.columns);
         searchColumns = _.cloneDeep(view.searchColumns);
-        console.log(arguments);
         _refreshHeader();
       });
     }

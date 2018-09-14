@@ -52,8 +52,9 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     prototype.registerJavaMethod(this, "replaceACL", "replaceACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "patchACL", "patchACL", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Array], classOf[V8Function]), true)
 
-    prototype.registerJavaMethod(this, "garbageCollection", "garbageCollection", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "findCollections", "findCollections", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "findViews", "findViews", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "garbageCollection", "garbageCollection", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
 
     dw.setPrototype(prototype)
     prototype.release
@@ -105,15 +106,21 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
   def refresh(receiver: V8Object, token: String, domainId: String, callback: V8Function) =
     commandWithSuccess(receiver, token, callback) { user => domainRegion ? RefreshDomain(domainPID(domainId), user) }
   
+  def findCollections(receiver: V8Object, token: String, domainId: String, callback: V8Function) =
+    findDocuments(receiver, token, domainId, callback)((user, domainId)=>domainRegion ? FindCollections(domainPID(domainId), user)) 
+  
+  def findViews(receiver: V8Object, token: String, domainId: String, callback: V8Function) = 
+    findDocuments(receiver, token, domainId, callback)((user, domainId)=>domainRegion ? FindViews(domainPID(domainId), user)) 
+
   def garbageCollection(receiver: V8Object, token: String, domainId: String, callback: V8Function) =
     commandWithSuccess(receiver, token, callback) { user => domainRegion ? GarbageCollection(domainPID(domainId), user) }
 
-  def findCollections(receiver: V8Object, token: String, domainId: String, callback: V8Function) = {
+  private def findDocuments(receiver: V8Object, token: String, domainId: String, callback: V8Function)(cmd:(String, String)=>Future[Any])={
     val cbw = CallbackWrapper(receiver, callback)
     validateToken(token).map {
       case TokenValid(user) => user
       case other            => "anonymous"
-    }.flatMap { user => domainRegion ? FindCollections(domainPID(domainId), user) }.recover { case e => e }.foreach {
+    }.flatMap {user => cmd(user, domainId)}.recover{ case e => e }.foreach {
       case ja: JsObject =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {

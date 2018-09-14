@@ -16,6 +16,14 @@ import CollectionActor.JsonProtocol.CollectionCreatedFormat
 import CollectionActor.JsonProtocol.CollectionPatchedFormat
 import CollectionActor.JsonProtocol.CollectionRemovedFormat
 import CollectionActor.JsonProtocol.CollectionReplacedFormat
+import ViewActor.ViewCreated
+import ViewActor.ViewPatched
+import ViewActor.ViewRemoved
+import ViewActor.ViewReplaced
+import ViewActor.JsonProtocol.ViewCreatedFormat
+import ViewActor.JsonProtocol.ViewPatchedFormat
+import ViewActor.JsonProtocol.ViewRemovedFormat
+import ViewActor.JsonProtocol.ViewReplacedFormat
 import DocumentActor.DocumentCreated
 import DocumentActor.DocumentPatched
 import DocumentActor.DocumentRemoved
@@ -64,6 +72,11 @@ class DocumentEventAdapter extends EventAdapter {
   final val MANIFEST_COLLECTION_PATCHED = classOf[CollectionPatched].getName
   final val MANIFEST_COLLECTION_REMOVED = classOf[CollectionRemoved].getName
 
+  final val MANIFEST_VIEW_CREATED = classOf[ViewCreated].getName
+  final val MANIFEST_VIEW_REPLACED = classOf[ViewReplaced].getName
+  final val MANIFEST_VIEW_PATCHED = classOf[ViewPatched].getName
+  final val MANIFEST_VIEW_REMOVED = classOf[ViewRemoved].getName
+  
   final val MANIFEST_DOMAIN_CREATED = classOf[DomainCreated].getName
   final val MANIFEST_DOMAIN_REPLACED = classOf[DomainReplaced].getName
   final val MANIFEST_DOMAIN_PATCHED = classOf[DomainPatched].getName
@@ -106,10 +119,14 @@ class DocumentEventAdapter extends EventAdapter {
     case docr: DocumentReplaced              => docr.toJson
     case docp: DocumentPatched               => docp.toJson
     case docd: DocumentRemoved               => docd.toJson
-    case dsc: CollectionCreated              => dsc.toJson
-    case dsr: CollectionReplaced             => dsr.toJson
-    case dsp: CollectionPatched              => dsp.toJson
-    case dsd: CollectionRemoved              => dsd.toJson
+    case cc: CollectionCreated               => cc.toJson
+    case cr: CollectionReplaced              => cr.toJson
+    case cp: CollectionPatched               => cp.toJson
+    case cr: CollectionRemoved               => cr.toJson
+    case vc: ViewCreated                     => vc.toJson
+    case vr: ViewReplaced                    => vr.toJson
+    case vp: ViewPatched                     => vp.toJson
+    case vr: ViewRemoved                     => vr.toJson
     case dc: DomainCreated                   => dc.toJson
     case dr: DomainReplaced                  => dr.toJson
     case dp: DomainPatched                   => dp.toJson
@@ -151,6 +168,10 @@ class DocumentEventAdapter extends EventAdapter {
     case MANIFEST_COLLECTION_REPLACED => convertTo(event)(_.convertTo[CollectionReplaced])
     case MANIFEST_COLLECTION_PATCHED => convertTo(event)(_.convertTo[CollectionPatched])
     case MANIFEST_COLLECTION_REMOVED => convertTo(event)(_.convertTo[CollectionRemoved])
+    case MANIFEST_VIEW_CREATED => convertTo(event)(_.convertTo[ViewCreated])
+    case MANIFEST_VIEW_REPLACED => convertTo(event)(_.convertTo[ViewReplaced])
+    case MANIFEST_VIEW_PATCHED => convertTo(event)(_.convertTo[ViewPatched])
+    case MANIFEST_VIEW_REMOVED => convertTo(event)(_.convertTo[ViewRemoved])
     case MANIFEST_DOMAIN_CREATED => convertTo(event)(_.convertTo[DomainCreated])
     case MANIFEST_DOMAIN_REPLACED => convertTo(event)(_.convertTo[DomainReplaced])
     case MANIFEST_DOMAIN_PATCHED => convertTo(event)(_.convertTo[DomainPatched])

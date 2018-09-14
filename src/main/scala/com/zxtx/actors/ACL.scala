@@ -78,6 +78,36 @@ trait ACL { this: Actor =>
     case "anonymous" => Future.successful(Document("", "anonymous", 0L, 0L, 0L, None, JsObject("roles" -> JsArray(JsString("anonymous")))))
     case _           => documentRegion ? GetDocument(profilePID(domain, user), user)
   }
+  
+  def filterQuery(domain:String, user: String, query: JsObject): Future[JsObject] = {
+    val qObj = query.getFields("query") match {
+      case Seq(qo: JsObject) => qo
+      case _                 => JsObject();
+    }
+    val bObj = qObj.getFields("bool") match {
+      case Seq(b: JsObject) => b
+      case _                => JsObject();
+    }
+    val fObj = bObj.getFields("filter") match {
+      case Seq(f: JsObject) => JsArray(f)
+      case Seq(f: JsArray)  => f
+      case _                => JsArray()
+    }
+    val removedObj = JsObject("term" -> JsObject("_metadata.removed" -> JsBoolean(true)))
+
+    fetchProfile(domain, user).map {
+      case Document(_, _, _, _, _, _, profile) =>
+        val roles = profileValue(profile, "roles").map { r => JsObject("term" -> JsObject("_metadata.acl.get.roles.keyword" -> JsString(r))) }
+        val groups = profileValue(profile, "groups").map { g => JsObject("term" -> JsObject("_metadata.acl.get.groups.keyword" -> JsString(g)))}
+        val userObj = JsObject("term" -> JsObject("_metadata.acl.get.users.keyword" -> JsString(user)))
+        val should = JsArray(roles ++ groups ++ Vector(userObj))
+        val filter = JsObject("bool" -> JsObject("should" -> should))
+        JsObject(query.fields + ("query" -> JsObject(qObj.fields + ("bool" -> JsObject(bObj.fields + ("filter" -> JsArray(fObj.elements :+ filter)) + ("must_not"->JsArray(Vector(removedObj))))))))
+      case _ =>
+        val filter = JsObject("bool" -> JsObject("should" -> JsArray(Vector(JsObject("term" -> JsObject("_metadata.acl.get.users.keyword" -> JsString("anonymous")))))))
+        JsObject(query.fields + ("query" -> JsObject(qObj.fields + ("bool" -> JsObject(bObj.fields + ("filter" -> JsArray(fObj.elements :+ filter))+ ("must_not"->JsArray(Vector(removedObj))))))))
+    }
+  }
 
   def hitCache(domainId: String): Future[Option[Boolean]] = (replicator ? Get(LWWMapKey[String, Boolean](cacheKey), ReadLocal)).map {
     case g @ GetSuccess(LWWMapKey(_), _) =>

@@ -7,12 +7,35 @@
     }
   }
 
-  .btn{
-    border-color: lightgray;
+  .table{
+    .btn{
+      border: none;
+      visibility: hidden;
+    }
+
+    .table-active{
+      .btn{
+        visibility: visible;
+      }      
+    }
+    
+    tr:hover{
+      .btn{
+        visibility: visible;
+      }      
+    }
+  }  
+
+  .view-header{
+    .btn{
+      border-color: lightgray;
+      border-radius: 0.2rem;
+    }
   }
 
   .search-container {
     .btn{
+      border-color: lightgray;
       max-width: 220px;
       overflow: hidden;
       text-overflow: ellipsis;

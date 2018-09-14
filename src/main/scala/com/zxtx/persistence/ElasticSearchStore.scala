@@ -58,7 +58,7 @@ class ElasticSearchStore(system: ActorSystem) {
   def deleteIndices(pattern: String): Future[(StatusCode, JsValue)] = delete(s"${host}/${pattern}")
   
   def refresh: Future[(StatusCode, JsValue)] = post(uri=s"${host}/_refresh", entity = emptyEntity)
-  def refresh(index:String): Future[(StatusCode, JsValue)] = post(uri=s"${host}/${index}*/_refresh", entity = emptyEntity)
+  def refresh(index:String): Future[(StatusCode, JsValue)] = post(uri=s"${host}/${index}/_refresh", entity = emptyEntity)
 
   def search(index: String, entity: RequestEntity): Future[(StatusCode, JsValue)] = get(s"${host}/${index}/_search", entity)
 
@@ -69,6 +69,7 @@ class ElasticSearchStore(system: ActorSystem) {
 
   def get(uri: Uri): Future[(StatusCode, JsValue)] = request(HttpMethods.GET, uri = uri)
   def get(uri: Uri, entity: RequestEntity): Future[(StatusCode, JsValue)] = request(HttpMethods.GET, uri = uri, entity = entity)
+  def post(uri:Uri): Future[(StatusCode, JsValue)] = post(uri = uri, emptyEntity)
   def post(uri: Uri, entity: RequestEntity): Future[(StatusCode, JsValue)] = request(HttpMethods.POST, uri = uri, entity = entity)
   def put(uri: Uri): Future[(StatusCode, JsValue)] = put(uri = uri, entity = emptyEntity)
   def put(uri: Uri, entity: RequestEntity): Future[(StatusCode, JsValue)] = request(HttpMethods.PUT, uri = uri, entity = entity)

@@ -1,13 +1,12 @@
 import './full-text.scss';
 
-import * as $ from 'jquery';
 import fullTextHtml from './full-text.html';
 
 
 function create(opts) {
 
   var
-    collection,
+    view,
     $container, $fullTextSearch, $input, $inputIcon,
     changeCallback, _setSearchIcon, _setCancelIcon, _fireChange, getKeyword;
 
@@ -29,7 +28,7 @@ function create(opts) {
     return $input.val().trim();
   };
 
-  collection = opts.collection;
+  view = opts.view;
   $container = opts.$container;
   $fullTextSearch = $(fullTextHtml).appendTo($container);
   $input = $('input', $fullTextSearch);

@@ -122,6 +122,12 @@ collectionProto = {
 	collectionWrapper.findDocuments(this.token, this.domainId, this.id, query, function(err, docsData) {
 	  callback(err, docsData);
 	});
+  },
+  
+  refresh: function(callback) {
+	collectionWrapper.refresh(this.token, this.domainId, this.id, function(err, result){
+	  callback(err, result);	  
+	});
   }
 };
 
