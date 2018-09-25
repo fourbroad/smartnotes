@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for client/document.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">client/</a> document.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">71.43% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>25/35</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">75% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>6/8</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">46.67% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>7/15</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">74.19% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>23/31</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">23×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/*
+ * notes.js - module to provide CRUD db capabilities
+ */
+&nbsp;
+/*jslint         node    : true, continue : true,
+ devel  : true, indent  : 2,    maxerr   : 50,
+ newcap : true, nomen   : true, plusplus : true,
+ regexp : true, sloppy  : true, vars     : false,
+ white  : true
+ */
+&nbsp;
+import utils from './utils';
+&nbsp;
+'use strict';
+&nbsp;
+var documentProto, create;
+&nbsp;
+documentProto = {
+  replace: function(docRaw, callback) {
+	const self = this;
+	this.socket.emit('replaceDocument', this.domainId, this.collectionId, this.id, docRaw, function(err, docData) {
+	  if(<span class="missing-if-branch" title="if path not taken" >I</span>err) retu<span class="cstat-no" title="statement not covered" >rn callback(err);</span>
+		  
+	  for(var key in self) {
+		if(self.hasOwnProperty(key)) try{delete self[key];}catch(e){}
+	  }
+&nbsp;
+	  utils.extend(self, docData);
+	  callback(null, true);	  
+	});
+  },
+  
+  patch: function(patch, callback) {
+	const self = this;
+	this.socket.emit('patchDocument', this.domainId, this.collectionId, this.id, patch, function(err, docData) {
+	  if(err) return callback(err);
+			  
+	  for<span class="missing-if-branch" title="if path not taken" >I</span>(var key <span class="cstat-no" title="statement not covered" >in self) {</span>
+		if(self.hasOwnProperty(key)) try{delete self[key];}catch(e){}
+	  }
+&nbsp;
+	  utils.extend(self, docData);
+	  callback(null, true);	  
+	});
+  },
+  
+  remove: function(callback) {
+	  this.socket.emit('removeDocument', this.domainId, this.collectionId, this.id, function(err, result) {
+	  callback(err, result);	  
+	});
+  },
+&nbsp;
+  getACL: function(callback) {
+	this.socket.emit('getDocumentACL', this.domainId, this.collectionId, this.id, function(err, acl) {
+	  callback(err, acl);
+	});
+  },<span class="fstat-no" title="function not covered" ></span>
+  <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span>
+  repl<span class="cstat-no" title="statement not covered" >aceACL: function(acl</span>, callback) {
+	this.socket.emit('replaceDocumentACL', this.domainId, this.collectionId, this.id, acl, function(err, result) {
+	  callback(err, result);
+	});
+  },<span class="fstat-no" title="function not covered" ></span>
+  <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span>
+  patc<span class="cstat-no" title="statement not covered" >hACL: function(aclPatch</span>, callback) {
+	this.socket.emit('patchDocumentACL', this.domainId, this.collectionId, this.id, aclPatch, function(err, result) {
+	  callback(err, result);
+	});
+  },<span class="fstat-no" title="function not covered" ></span>
+  <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span>
+  remo<span class="cstat-no" title="statement not covered" >vePermissionSubject: fu</span>nction(acl, callback) {
+	this.socket.emit('removeDocumentPermissionSubject', this.domainId, this.collectionId, this.id, acl, function(err, result) {
+	  callback(err, result);
+	});
+  }<span class="fstat-no" title="function not covered" ></span>
+};<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ></span></span>
+<span class="cstat-no" title="statement not covered" ></span>
+create = function(socket, domainId, collectionId, docData) {
+  var 
+    document = Object.create(documentProto, {
+      socket:{
+  	    value: socket,
+  	    configurable: false,
+  	    writable: false,
+  	    enumerable: false   	  
+      },
+      domainId:{
+  	    value: domainId,
+    	configurable: false,
+  	    writable: false,
+  	    enumerable: true   	  
+      },
+      collectionId:{
+    	value: collectionId,
+      	configurable: false,
+    	writable: false,
+    	enumerable: true   	  
+      }
+    });
+&nbsp;
+  return utils.extend(true, document, docData)
+};
+&nbsp;
+export default {
+  create     : create
+};</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Jul 26 2018 18:16:49 GMT+0800 (CST)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>
