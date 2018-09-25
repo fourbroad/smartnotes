@@ -1,5 +1,6 @@
 var
-  showErrorsForInput, showErrors, clearErrors;
+  showErrorsForInput, showErrors, clearErrors,
+  pluginIdent, pluginChunk, loadPlugin;
 
 showErrorsForInput = function($input, errors) {
   var $formGroup = $input.closest(".form-group"), $messages = $formGroup.find(".messages");
@@ -23,15 +24,38 @@ showErrors = function($form, errors){
   $form.find("input[name]").each(function() {
     showErrorsForInput($(this), errors[this.name]);
   });
-}
+};
 
 clearErrors = function($form){
   $('.messages', $form).removeClass("invalid-feedback valid-feedback").empty();
   $('input', $form).removeClass("is-valid is-invalid");
 };
 
+pluginIdent = function(pluginUri) {
+  return '_' + pluginUri.replace(/[\.,-]/g,'_');
+};
+
+pluginChunk = function(pluginUri, name) {
+  return '/' + pluginUri + '/' + name + '.js'
+};
+
+loadPlugin = function(pluginUri, callback) {
+  var script = document.createElement('script');
+  var _pluginIdent = pluginIdent(pluginUri);
+  script.type = 'text/javascript';
+  script.charset = 'utf-8';
+  script.src = pluginChunk(pluginUri, 'main');
+  script.onload = function () {
+    document.head.removeChild(script);
+    callback && callback(window[_pluginIdent]);
+    delete window[_pluginIdent];
+  }
+  document.head.appendChild(script);
+};
+
 export default {
   showErrorsForInput: showErrorsForInput,
   showErrors: showErrors,
-  clearErrors: clearErrors
+  clearErrors: clearErrors,
+  loadPlugin: loadPlugin
 }

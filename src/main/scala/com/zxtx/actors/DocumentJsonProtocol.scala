@@ -1,12 +1,7 @@
 package com.zxtx.actors
 
-import spray.json.JsValue
-import spray.json.JsObject
-import spray.json.JsNumber
-import spray.json.DefaultJsonProtocol
-import spray.json.JsBoolean
-import spray.json.JsString
-import spray.json.DeserializationException
+import spray.json._
+import spray.json.DefaultJsonProtocol._
 import gnieh.diffson.sprayJson.JsonPatch
 
 trait DocumentJsonProtocol extends DefaultJsonProtocol {
@@ -57,13 +52,39 @@ trait DocumentJsonProtocol extends DefaultJsonProtocol {
     case _ => throw new DeserializationException(errorMsg)
   }
 
+  def patchValueToString(patch: JsValue, errorMsg: String) = patch match {
+    case ja: JsArray => JsArray(ja.elements.map {
+      case jo: JsObject =>
+        val vStr = jo.getFields("value") match {
+          case Seq(jv) => jv.compactPrint
+          case _       => throw new SerializationException(errorMsg)
+        }
+        JsObject(jo.fields + ("value" -> JsString(vStr)))
+      case _ => throw new SerializationException(errorMsg)
+    })
+    case _ => throw new SerializationException(errorMsg)
+  }
+
+  def patchValueFromString(patch: JsValue, errorMsg: String) = patch match {
+    case ja: JsArray => JsArray(ja.elements.map {
+      case jo: JsObject =>
+        val vObj = jo.getFields("value") match {
+          case Seq(JsString(vStr))=> vStr.parseJson
+          case _ => throw new DeserializationException(errorMsg)
+        }
+        JsObject(jo.fields + ("value" -> vObj))
+      case _ => throw new DeserializationException(errorMsg)
+    })
+    case _ => throw new DeserializationException(errorMsg)
+  }
+
   def extractFieldsWithPatch(jv: JsValue, errorMsg: String) = jv match {
     case jo: JsObject =>
       val id = jo.fields("id").asInstanceOf[JsString].value
       val patch = jo.fields("patch")
       val meta = jo.fields("_metadata").asJsObject
       meta.getFields("author", "revision", "created") match {
-        case Seq(JsString(author), JsNumber(revision), JsNumber(created)) => (id, author, revision.toLong, created.toLong, JsonPatch(patch), JsObject())
+        case Seq(JsString(author), JsNumber(revision), JsNumber(created)) => (id, author, revision.toLong, created.toLong, JsonPatch(patchValueFromString(patch, errorMsg)), JsObject())
         case _ => throw new DeserializationException(errorMsg)
       }
     case _ => throw new DeserializationException(errorMsg)
@@ -80,5 +101,5 @@ trait DocumentJsonProtocol extends DefaultJsonProtocol {
       }
     case _ => throw new DeserializationException(errorMsg)
   }
-  
+
 }

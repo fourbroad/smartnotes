@@ -5,36 +5,15 @@
     h4 {
       display: inline-block;
     }
-  }
 
-  .table{
-    .btn{
-      border: none;
-      visibility: hidden;
-    }
-
-    .table-active{
-      .btn{
-        visibility: visible;
-      }      
-    }
-    
-    tr:hover{
-      .btn{
-        visibility: visible;
-      }      
-    }
-  }  
-
-  .view-header{
-    .btn{
+    .btn {
       border-color: lightgray;
       border-radius: 0.2rem;
     }
   }
 
   .search-container {
-    .btn{
+    .btn {
       border-color: lightgray;
       max-width: 220px;
       overflow: hidden;
@@ -42,4 +21,28 @@
       white-space: nowrap;
     }
   }
+
+  .table {
+    .btn {
+      border: none;
+      visibility: hidden;
+    }
+
+    .table-active {
+      .btn {
+        visibility: visible;
+      }      
+    }
+    
+    tr:hover {
+      .btn {
+        visibility: visible;
+      }      
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  }  
+
 }

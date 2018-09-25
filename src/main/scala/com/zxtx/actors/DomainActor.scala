@@ -155,7 +155,7 @@ object DomainActor {
       import gnieh.diffson.sprayJson.provider.patchMarshaller
       def write(dp: DomainPatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
-        JsObject(("id" -> JsString(dp.id)) :: ("patch" -> marshall(dp.patch)) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"DomainPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
         val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "DomainPatched event expected!")
@@ -201,7 +201,8 @@ object DomainActor {
   private case class State(domain: Domain, removed: Boolean) {
     def updated(evt: Event): State = evt match {
       case DomainCreated(id, author, revision, created, raw) =>
-        val metadata = JsObject("author" -> JsString(author), "revision" -> JsNumber(revision), "created" -> JsNumber(created), "updated" -> JsNumber(created), "acl" -> acl(author))
+        val metaFields = raw.fields("_metadata").asJsObject.fields
+        val metadata = JsObject(metaFields+("author" -> JsString(author))+("revision" -> JsNumber(revision))+("created" -> JsNumber(created))+("updated" -> JsNumber(created))+("acl" -> acl(author)))
         copy(domain = Domain(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
       case DomainReplaced(_, _, revision, created, raw) =>
         val oldMetaFields = domain.raw.fields("_metadata").asJsObject.fields
@@ -585,7 +586,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
   }
 
   private def createDomain(user: String, raw: JsObject) = {
-    val newRaw = JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user))))
+    val newRaw = JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("domain"))))
     id match {
       case `rootDomain` => initRootDomainCollections(user).flatMap {
         case Done => setCache(s"${rootDomain}", true).map {
@@ -900,11 +901,11 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     val profile = JsObject("roles" -> JsArray(JsString("administrator"), JsString("user")))
 
     for {
-      r1 <- createCollection(user, id, ".collections", JsObject(), Some(true))
-      r2 <- createCollection(user, id, ".roles", JsObject(), Some(true))
-      r3 <- createCollection(user, id, ".profiles", JsObject(), Some(true))
-      r4 <- createCollection(user, id, ".views", JsObject(), Some(true))
-      r5 <- createCollection(user, id, ".forms", JsObject(), Some(true))
+      r1 <- createCollection(user, id, ".collections", JsObject("title" -> JsString("Collections")), Some(true))
+      r2 <- createCollection(user, id, ".roles", JsObject("title" -> JsString("Roles")), Some(true))
+      r3 <- createCollection(user, id, ".profiles", JsObject("title" -> JsString("Profiles")), Some(true))
+      r4 <- createCollection(user, id, ".views", JsObject("title" -> JsString("Views")), Some(true))
+      r5 <- createCollection(user, id, ".forms", JsObject("title" -> JsString("Forms")), Some(true))
       
       r6 <- createDocument(user, id, ".roles", "administrator", adminRole, Some(true))
       r7 <- createDocument(user, id, ".roles", "user", userRole, Some(true))
@@ -929,13 +930,13 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     val adminUser = JsObject("password" -> JsString(password.md5.hex))
 
     for {
-      r1 <- createCollection(adminName, rootDomain, ".collections", JsObject(), Some(true))
-      r2 <- createCollection(adminName, rootDomain, ".domains", JsObject(), Some(true))
-      r3 <- createCollection(adminName, rootDomain, ".users", JsObject(), Some(true))
-      r4 <- createCollection(adminName, rootDomain, ".roles", JsObject(), Some(true))
-      r5 <- createCollection(adminName, rootDomain, ".profiles", JsObject(), Some(true))
-      r6 <- createCollection(adminName, rootDomain, ".forms", JsObject(), Some(true))
-      r7 <- createCollection(adminName, rootDomain, ".views", JsObject(), Some(true))
+      r1 <- createCollection(adminName, rootDomain, ".collections", JsObject("title" -> JsString("Collections")), Some(true))
+      r2 <- createCollection(adminName, rootDomain, ".domains", JsObject("title" -> JsString("Domains")), Some(true))
+      r3 <- createCollection(adminName, rootDomain, ".users", JsObject("title" -> JsString("Users")), Some(true))
+      r4 <- createCollection(adminName, rootDomain, ".roles", JsObject("title" -> JsString("roles")), Some(true))
+      r5 <- createCollection(adminName, rootDomain, ".profiles", JsObject("title" -> JsString("Profiles")), Some(true))
+      r6 <- createCollection(adminName, rootDomain, ".forms", JsObject("title" -> JsString("Forms")), Some(true))
+      r7 <- createCollection(adminName, rootDomain, ".views", JsObject("title" -> JsString("Views")), Some(true))
       
       r8 <- createDocument(adminName, rootDomain, ".users", adminName, adminUser, Some(true))
       r9 <- createDocument(adminName, rootDomain, ".roles", "administrator", adminRole, Some(true))

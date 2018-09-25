@@ -31,6 +31,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(express.static(path.join(__dirname,'frontend/dist')));
+app.use('/plugins', express.static(path.join(__dirname, 'frontend/plugins')));
 //app.use(function(req, res, next){
 //	var hostName = utils.getHostName(req);
 //	req["domain"] = new Domain(hostName, "");

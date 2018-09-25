@@ -120,7 +120,7 @@ object ViewActor {
 
       def write(dp: ViewPatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
-        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> marshall(dp.patch)) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"ViewPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
         val (id, author, revision, created, patch, raw) = extractFieldsWithPatch(value, "ViewPatched event expected!")
@@ -194,7 +194,8 @@ object ViewActor {
   private case class State(document: View) {
     def updated(evt: Event): State = evt match {
       case ViewCreated(id, author, revision, created, raw) =>
-        val metadata = JsObject("author" -> JsString(author), "revision" -> JsNumber(revision), "created" -> JsNumber(created), "updated" -> JsNumber(created), "acl" -> acl(author))
+        val metaFields = raw.fields("_metadata").asJsObject.fields
+        val metadata = JsObject(metaFields+("author" -> JsString(author))+("revision" -> JsNumber(revision))+("created" -> JsNumber(created))+("updated" -> JsNumber(created))+("acl" -> acl(author)))
         copy(document = View(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
       case ViewReplaced(_, _, revision, created, raw) =>
         val oldMetaFields = document.raw.fields("_metadata").asJsObject.fields
@@ -469,7 +470,7 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
   }
 
   private def createView(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
-    val dcd = DoCreateView(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+    val dcd = DoCreateView(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("view")))))
     initFlag match {
       case Some(true) => Future.successful(dcd)
       case other => (domainRegion ? CheckPermission(DomainActor.persistenceId(rootDomain, domain), user, CreateView)).map {

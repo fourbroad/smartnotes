@@ -130,7 +130,7 @@ object CollectionActor {
     implicit object CollectionPatchedFormat extends RootJsonFormat[CollectionPatched] {
       def write(dsp: CollectionPatched) = {
         val metaObj = newMetaObject(dsp.raw.getFields("_metadata"), dsp.author, dsp.revision, dsp.created)
-        JsObject(("id" -> JsString(dsp.id)) :: ("patch" -> marshall(dsp.patch)) :: dsp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        JsObject(("id" -> JsString(dsp.id)) :: ("patch" -> patchValueToString(marshall(dsp.patch),"CollectionPatched event expected!")) :: dsp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
         val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "CollectionPatched event expected!")
@@ -153,7 +153,8 @@ object CollectionActor {
   private case class State(collection: Collection, removed: Boolean) {
     def updated(evt: Event): State = evt match {
       case CollectionCreated(id, author, revision, created, raw) =>
-        val metadata = JsObject("author" -> JsString(author), "revision" -> JsNumber(revision), "created" -> JsNumber(created), "updated" -> JsNumber(created), "acl" -> acl(author))
+        val metaFields = raw.fields("_metadata").asJsObject.fields
+        val metadata = JsObject(metaFields+("author" -> JsString(author))+("revision" -> JsNumber(revision))+("created" -> JsNumber(created))+("updated" -> JsNumber(created))+("acl" -> acl(author)))
         copy(collection = Collection(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
       case CollectionReplaced(_, _, revision, created, raw) =>
         val oldMetaFields = collection.raw.fields("_metadata").asJsObject.fields
@@ -578,7 +579,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
     val templates = Map("event_index_template" -> eventIndexTemplate, "snapshot_index_template" -> snapshotIndexTemplate)
     initIndices(templates).flatMap {
       case Done => setCache(s"${domain}~${id}", true).map {
-        case CacheUpdated     => DoCreateCollection(user, JsObject(raw.fields + ("indexTemplates" -> JsObject(templates)) + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+        case CacheUpdated     => DoCreateCollection(user, JsObject(raw.fields + ("indexTemplates" -> JsObject(templates)) + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("collection")))))
         case UpdateCacheError => UpdateCacheError
       }
       case other => Future.successful(other)

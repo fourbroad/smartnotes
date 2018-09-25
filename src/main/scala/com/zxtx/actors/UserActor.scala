@@ -129,7 +129,7 @@ object UserActor {
       import gnieh.diffson.sprayJson.provider.patchMarshaller
       def write(dp: UserPatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
-        JsObject(("id" -> JsString(dp.id)) :: ("patch" -> marshall(dp.patch)) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"UserPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
         val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "UserPatched event expected!")
@@ -214,7 +214,8 @@ object UserActor {
           case "anonymous" => raw.fields("id").asInstanceOf[JsString].value
           case other       => other
         }
-        val metadata = JsObject("author" -> JsString(author), "revision" -> JsNumber(revision), "created" -> JsNumber(created), "updated" -> JsNumber(created), "acl" -> acl(user))
+        val metaFields = raw.fields("_metadata").asJsObject.fields
+        val metadata = JsObject(metaFields+("author" -> JsString(author))+("revision" -> JsNumber(revision))+("created" -> JsNumber(created))+("updated" -> JsNumber(created))+("acl" -> acl(user)))
         copy(user = User(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
       case UserReplaced(_, _, revision, created, raw) =>
         val oldMetaFields = user.raw.fields("_metadata").asJsObject.fields
@@ -490,7 +491,7 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
       fields.get("id") match {
         case Some(JsString(id)) =>
           fields.get("password") match {
-            case Some(JsString(password)) => DoCreateUser(user, JsObject(fields + ("password" -> JsString(password.md5.hex)) + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+            case Some(JsString(password)) => DoCreateUser(user, JsObject(fields + ("password" -> JsString(password.md5.hex)) + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("user")))))
             case None                     => PasswordNotExists
           }
         case None => UserIdNotExists

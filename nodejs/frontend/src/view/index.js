@@ -12,21 +12,25 @@ import FullText from 'search/full-text'
 import viewHtml from './view.html';
 
 function create(opts) {
-  const 
+  const
+    domain = opts.domain,
+    viewId = opts.viewId,
     constraints = {
       title: {
         presence: true
       }
-    };
+    },
+    viewLinkTemplate = _.template('<a href="#!module=${module}:viewId,${viewId}">${text}</a>'),
+    docLinkTemplate = _.template('<a href="#!module=${module}:docId,${docId}">${text}</a>');
 
   var
-    domain = opts.domain, viewId = opts.viewId, view, table, columns, searchColumns,
+    view, table, columns, searchColumns,
     $container = opts.$container, $view, $viewHeader, $viewTitle, $modified, $dropdownToggle, 
-    $searchContainer, $searchGroup, $saveBtn, $itemSaveAs, $itemDiscard, $form, $submitBtn,
+    $searchContainer, $saveBtn, $itemSaveAs, $itemDiscard, $form, $submitBtn,
     $newViewModel, $viewTable, $titleInput,
-    _init, _initSearchBar, _armSearchColOpts, _searchColumnType, _kvMap, _buildSearch, _isDirty, 
+    _init, _initSearchBar, _armSearchCol, _searchColumnType, _kvMap, _buildSearch, _isDirty, 
     _refreshHeader, _onSubmit, _setRowActive, _clearRowActive, _isRowActive, _showDocMenu,
-    save, saveAs, discard;
+    save, saveAs, onDiscard;
 
   _initSearchBar = function(){
     $searchContainer.empty();
@@ -68,12 +72,9 @@ function create(opts) {
       $container: $searchContainer,
       view: view
     });
-
-    $searchGroup.detach().appendTo($searchContainer);
-
   };
 
-  _armSearchColOpts = function(){
+  _armSearchCol = function(){
     return _.reduce(columns, function(searchCols, col){
       var sc = _.find(searchColumns, {'name': col.name});
       if(sc){
@@ -107,7 +108,7 @@ function create(opts) {
       $saveBtn.attr({'data-toggle':'modal'});      
       $modified.hide();
       $dropdownToggle.hide();
-    }   
+    }
   };
 
   _isDirty = function(){
@@ -197,6 +198,9 @@ function create(opts) {
   };
 
   _onSubmit = function(evt){
+    evt.preventDefault();
+    evt.stopPropagation();
+
     var errors = validate($form, constraints);
     if (errors) {
       utils.showErrors($form, errors);
@@ -252,7 +256,6 @@ function create(opts) {
     $form = $('form.new-view', $newViewModel);
     $submitBtn = $('.btn.submit', $newViewModel);
     $searchContainer = $('.search-container', $view);
-    $searchGroup = $('.search-group', $searchContainer);
     $container.empty();
     $view.appendTo($container);
 
@@ -265,18 +268,25 @@ function create(opts) {
       processing: true,
       serverSide: true,
       columns: columns,
-      searchCols: _armSearchColOpts(),
-      order: [[ 5, "desc" ],[ 6, "desc" ]],
+      searchCols: _armSearchCol(),
+      order: JSON.parse(view.order)||[],
       columnDefs : [{
-        targets : [5,6],
-        searchable: false,
-        type : 'date',
-        render: function(data, type, row){
-          if(data){
-            var date = moment.utc(data);
-            return (date && date.isValid()) ? date.format('YYYY-MM-DD HH:mm:ss') : '';
+        targets:'_all',
+        render:function(data, type, row, meta){
+          var column = meta.settings.aoColumns[meta.col], text = data;
+          switch(column.className){
+            case 'id':
+            case 'title':
+              text = row._metadata.type =='view' ? viewLinkTemplate({module:'view', viewId: row.id, text: data}) : docLinkTemplate({module:'document', docId: row.id, text: data});
+              break;
+            case 'datetime':
+              var date = moment.utc(data);
+              text = (date && date.isValid()) ? date.format('YYYY-MM-DD HH:mm:ss') : '';
+              break;
+            default:
+              break;
           }
-          return "";
+          return text;
         }
       },{
         targets: -1,
@@ -289,7 +299,6 @@ function create(opts) {
         var kvMap = _kvMap(aoData), query = _buildSearch(kvMap);
         view.findDocuments(query, function(err, docs){
           if(err) return console.log(err);
-          console.log(docs);
           fnCallback({
             "sEcho": kvMap['sEcho'],
             "iTotalRecords": docs.total,
@@ -336,7 +345,7 @@ function create(opts) {
     })    
 
     $saveBtn.on('click', save);
-    $itemDiscard.on('click', discard);
+    $itemDiscard.on('click', onDiscard);
     $submitBtn.on('click', _onSubmit);
     $form.bind('submit', _onSubmit);
 
@@ -394,7 +403,7 @@ function create(opts) {
 
   };
 
-  discard = function(){
+  onDiscard = function(){
     columns = _.cloneDeep(view.columns);
     searchColumns = _.cloneDeep(view.searchColumns);
     _refreshHeader();
@@ -420,7 +429,7 @@ function create(opts) {
     table.draw();
   };
 
-  return {save: save, saveAs:saveAs, discard: discard};
+  return {save: save, saveAs:saveAs};
 };
 
 export default {

@@ -2,6 +2,7 @@ import 'bootstrap';
 import 'index.scss';
 
 import Client from 'client';
+import utils from 'utils';
 import 'jquery.urianchor';
 import 'jquery.event.gevent';
 import 'jquery.event.ue';
@@ -17,8 +18,8 @@ var
   $viewContainer, $viewList,
   _init, _armViewListItem, _onClientChanged, _onHashchange,
   _loadSignUp, _loadDashboard, _loadEmail, _loadCompose, _loadCalendar, _loadChat, 
-  _loadView, _loadCharts, _loadForms, _loadUi, _loadBasicTable, _loadDataTable, _loadGoogleMaps,
-  _loadVectorMaps; 
+  _loadView, _loadDocument, _loadCharts, _loadForms, _loadUi, _loadBasicTable, _loadDataTable, 
+  _loadGoogleMaps, _loadVectorMaps;
 
 _setAchor = function(anchor){
   uriAnchor = anchor;
@@ -133,6 +134,12 @@ _onHashchange = function(event){
         opts.viewId = anchorProposed._module.viewId;
         _loadView(opts);
         break;
+      case 'document':
+        opts.domain = domain;
+        opts.formId = anchorProposed._module.formId;
+        opts.docId = anchorProposed._module.docId;
+        _loadDocument(opts);
+        break;
       case 'charts':
         _loadCharts(opts);
         break;
@@ -198,8 +205,15 @@ _loadChat = function(opts){
 };
 
 _loadView = function(opts){
-  import(/* webpackChunkName: "view" */ './view').then(module => {
-    module.default.create(opts);
+  import(/* webpackChunkName: "view" */ './view').then(({default: View}) => {
+    View.create(opts);
+  });
+};
+
+_loadDocument = function(opts){
+  utils.loadPlugin("com.ins24.webpack-numbers",function(webpackNumbers){
+    console.log(webpackNumbers);
+    console.log(webpackNumbers.wordToNum('Five'));
   });
 };
 
@@ -386,8 +400,8 @@ _init = function(client){
 
 $.uriAnchor.configModule({
   schema_map : {
-    module: ['signup','dashboard', 'email', 'compose', 'calendar', 'chat', 'charts', 'forms', 'ui', 'basic-table', 'data-table','google-maps','vector-maps'],
-    _module:{ viewId: true }
+    module: ['signup','dashboard', 'email', 'compose', 'calendar', 'chat', 'view', 'document', 'charts', 'forms', 'ui', 'basic-table', 'data-table','google-maps','vector-maps'],
+    _module:{ viewId: true, docId:true, formId:true }
   }
 });
 

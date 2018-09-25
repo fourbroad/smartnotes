@@ -118,7 +118,7 @@ object DocumentActor {
 
       def write(dp: DocumentPatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
-        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> marshall(dp.patch)) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"DocumentPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
         val (id, author, revision, created, patch, raw) = extractFieldsWithPatch(value, "DocumentPatched event expected!")
@@ -188,7 +188,8 @@ object DocumentActor {
   private case class State(document: Document) {
     def updated(evt: Event): State = evt match {
       case DocumentCreated(id, author, revision, created, raw) =>
-        val metadata = JsObject("author" -> JsString(author), "revision" -> JsNumber(revision), "created" -> JsNumber(created), "updated" -> JsNumber(created), "acl" -> acl(author))
+        val metaFields = raw.fields("_metadata").asJsObject.fields
+        val metadata = JsObject(metaFields+("author" -> JsString(author))+("revision" -> JsNumber(revision))+("created" -> JsNumber(created))+("updated" -> JsNumber(created))+("acl" -> acl(author)))
         copy(document = Document(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
       case DocumentReplaced(_, _, revision, created, raw) =>
         val oldMetaFields = document.raw.fields("_metadata").asJsObject.fields
@@ -456,7 +457,7 @@ class DocumentActor extends PersistentActor with ACL with ActorLogging {
   }
 
   private def createDocument(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
-    val dcd = DoCreateDocument(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+    val dcd = DoCreateDocument(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("document")))))
     initFlag match {
       case Some(true) => Future.successful(dcd)
       case other => (collectionRegion ? CheckPermission(s"${domain}~.collections~${collection}", user, CreateDocument)).map {
