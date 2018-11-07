@@ -36,15 +36,15 @@ pluginIdent = function(pluginUri) {
 };
 
 pluginChunk = function(pluginUri, name) {
-  return '/' + pluginUri + '/' + name + '.js'
+  return '/plugins/' + pluginUri + '/dist/' + name + '.bundle.js'
 };
 
-loadPlugin = function(pluginUri, callback) {
+loadPlugin = function(pluginUri, name, callback) {
   var script = document.createElement('script');
   var _pluginIdent = pluginIdent(pluginUri);
   script.type = 'text/javascript';
   script.charset = 'utf-8';
-  script.src = pluginChunk(pluginUri, 'main');
+  script.src = pluginChunk(pluginUri, name);
   script.onload = function () {
     document.head.removeChild(script);
     callback && callback(window[_pluginIdent]);

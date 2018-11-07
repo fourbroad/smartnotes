@@ -1,8 +1,9 @@
 import 'bootstrap';
 import 'index.scss';
 
-import Client from 'client';
-import utils from 'utils';
+import Loader from '@notesabc/loader';
+import Client from '@notesabc/frontend-client';
+
 import 'jquery.urianchor';
 import 'jquery.event.gevent';
 import 'jquery.event.ue';
@@ -108,7 +109,7 @@ _onHashchange = function(event){
 
   // Adjust chat component if changed
   if(anchorPrevious._s_module !== anchorProposed._s_module) {
-    var opts = {$container: $container, error: errorCallback};
+    var opts = {$container: $container, error: errorCallback}, params = anchorProposed._module;
     moduleProposed = anchorProposed.module;
     switch(moduleProposed){
       case 'signup':
@@ -131,13 +132,14 @@ _onHashchange = function(event){
         break;
       case 'view':
         opts.domain = domain;
-        opts.viewId = anchorProposed._module.viewId;
+        opts.viewId = anchorProposed._module.id;
         _loadView(opts);
         break;
       case 'document':
         opts.domain = domain;
-        opts.formId = anchorProposed._module.formId;
-        opts.docId = anchorProposed._module.docId;
+        opts.domainId = params.domainId;
+        opts.collectionId = params.collectionId;
+        opts.documentId = params.documentId;
         _loadDocument(opts);
         break;
       case 'charts':
@@ -169,38 +171,38 @@ _onHashchange = function(event){
 };
 
 _loadSignUp = function(opts){
-  import(/* webpackChunkName: "signup" */ './signup').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "signup" */ './signup').then(({default: signUp}) => {
+    signUp.init(opts);
   });
 };
 
 _loadDashboard = function(opts){
-  import(/* webpackChunkName: "dashboard" */ './dashboard').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "dashboard" */ './dashboard').then(({default: dashboard}) => {
+    dashboard.init(opts);
   });
 };
 
 _loadEmail = function(opts){
-  import(/* webpackChunkName: "email" */ './email').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "email" */ './email').then(({default: email}) => {
+    email.init(opts);
   });
 };
 
 _loadCompose = function(opts){
-  import(/* webpackChunkName: "compose" */ './compose').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "compose" */ './compose').then(({default: compose}) => {
+    compose.init(opts);
   });
 };
 
 _loadCalendar = function(opts){
-  import(/* webpackChunkName: "calendar" */ './calendar').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "calendar" */ './calendar').then(({default: calendar}) => {
+    calendar.init(opts);
   });
 };
 
 _loadChat = function(opts){
-  import(/* webpackChunkName: "chat" */ './chat').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "chat" */ './chat').then(({default: chat}) => {
+    chat.init(opts);
   });
 };
 
@@ -211,60 +213,72 @@ _loadView = function(opts){
 };
 
 _loadDocument = function(opts){
-  utils.loadPlugin("com.ins24.webpack-numbers",function(webpackNumbers){
-    console.log(webpackNumbers);
-    console.log(webpackNumbers.wordToNum('Five'));
+  domain.getDocument(opts.collectionId, opts.documentId, function(err1, doc){
+    if(err1) return console.log(err1);
+    var formId = doc.getFormId()||'json-form';
+    domain.getForm(formId, function(err2, form){
+      if(err2) return console.log(err2);
+      Loader.load(form.plugin, function(module){
+        var JsonForm = module.default;
+        JsonForm.create({
+          client: client,
+          $container:opts.$container,
+          form: form,
+          document: doc
+        });
+      });
+    });
   });
 };
 
 _loadCharts = function(opts){
-  import(/* webpackChunkName: "charts" */ './charts').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "charts" */ './charts').then(({default: charts}) => {
+    charts.init(opts);
   });
 };
 
 _loadForms = function(opts){
-  import(/* webpackChunkName: "forms" */ './forms').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "forms" */ './forms').then(({default: forms}) => {
+    forms.init(opts);
   });
 };
 
 _loadUi = function(opts){
-  import(/* webpackChunkName: "ui" */ './ui').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "ui" */ './ui').then(({default: ui}) => {
+    ui.init(opts);
   });
 };
 
 _loadBasicTable = function(opts){
-  import(/* webpackChunkName: "basic-table" */ './basic-table').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "basic-table" */ './basic-table').then(({default: basicTable}) => {
+    basicTable.init(opts);
   });
 };
 
 _loadDataTable = function(opts){
-  import(/* webpackChunkName: "data-table" */ './data-table').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "data-table" */ './data-table').then(({default: dataTable}) => {
+    dataTable.init(opts);
   });
 };
 
 _loadGoogleMaps = function(opts){
-  import(/* webpackChunkName: "google-maps" */ './google-maps').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "google-maps" */ './google-maps').then(({default: googleMaps}) => {
+    googleMaps.init(opts);
   });
 };
 
 _loadVectorMaps = function(opts){
-  import(/* webpackChunkName: "vector-maps" */ './vector-maps').then(module => {
-    module.default.init(opts);
+  import(/* webpackChunkName: "vector-maps" */ './vector-maps').then(({default: vectorMaps}) => {
+    vectorMaps.init(opts);
   });
 };
 
 _onClientChanged = function(event, c){
   client = c;
-  if(client.currentUser.isAnonymous()){
+  if(client.getCurrentUser().isAnonymous()){
     localStorage.removeItem('token');
   }else{
-    localStorage.setItem('token', client.token);  		
+    localStorage.setItem('token', client.getToken());  		
   }
 };
 
@@ -340,9 +354,7 @@ $('.sidebar .sidebar-menu').on('click','li>a', function () {
   if($parent.hasClass('view')){
     _changeAnchorPart({
       module: 'view',
-      _module:{
-        viewId: $parent.attr('id')
-      }
+      _module:{id: $parent.attr('id')}
     });
   }else{
     _changeAnchorPart({module:id});
@@ -383,10 +395,10 @@ _init = function(client){
   $viewList = $('.view-container .view-list');
   account.init({$container: $('.page-container .nav-right'), client: client});
 
-  if(!client.currentUser.isAnonymous()){
+  if(!client.getCurrentUser().isAnonymous()){
     client.getDomain(function(err, d){
       window.currentDomain = domain = d;
-      domain.findViews(function(err, views){
+      domain.findViews({}, function(err, views){
         if(err) return console.log(err);
         _.each(views.views, function(view){
           $(_armViewListItem(view.id)).data('item', view).appendTo($viewList);
@@ -401,7 +413,7 @@ _init = function(client){
 $.uriAnchor.configModule({
   schema_map : {
     module: ['signup','dashboard', 'email', 'compose', 'calendar', 'chat', 'view', 'document', 'charts', 'forms', 'ui', 'basic-table', 'data-table','google-maps','vector-maps'],
-    _module:{ viewId: true, docId:true, formId:true }
+    _module:{ id: true, formId:true, type:true }
   }
 });
 

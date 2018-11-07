@@ -703,7 +703,7 @@ class CollectionActor extends PersistentActor with ACL with ActorLogging {
           case Some(permission) => (aclValue(aclObj, permission, "roles"), aclValue(aclObj, permission, "groups"), aclValue(aclObj, permission, "users"))
           case None             => (Vector[String](), Vector[String](), Vector[String]())
         }
-        if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
+        if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && aclUsers.intersect(Vector[String](user,"anonymous")).isEmpty) Denied else Granted
       case _ => Denied
     }
     case _ => Future.successful(Denied)

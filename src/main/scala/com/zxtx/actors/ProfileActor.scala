@@ -37,105 +37,100 @@ import spray.json._
 import gnieh.diffson.sprayJson.JsonPatch
 import akka.persistence.SnapshotSelectionCriteria
 
-object ViewActor {
+object ProfileActor {
 
-  def props(): Props = Props[ViewActor]
+  def props(): Props = Props[ProfileActor]
 
-  object View {
-    val empty = new View("", "", 0L, 0L, 0L, None, spray.json.JsObject())
+  object Profile {
+    val empty = new Profile("", "", 0L, 0L, 0L, None, spray.json.JsObject())
   }
-  case class View(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, removed: Option[Boolean], raw: JsObject)
+  case class Profile(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, removed: Option[Boolean], raw: JsObject)
 
-  case class GetView(pid: String, user: String) extends Command
-  case class CreateView(pid: String, user: String, raw: JsObject, initFlag: Option[Boolean] = None) extends Command
-  case class ReplaceView(pid: String, user: String, raw: JsObject) extends Command
-  case class PatchView(pid: String, user: String, patch: JsonPatch) extends Command
-  case class RemoveView(pid: String, user: String) extends Command
-  case class Refresh(pid: String, user: String) extends Command
-  case class FindDocuments(pid: String, user: String, query: JsObject) extends Command
+  case class GetProfile(pid: String, user: String) extends Command
+  case class CreateProfile(pid: String, user: String, raw: JsObject, initFlag: Option[Boolean] = None) extends Command
+  case class ReplaceProfile(pid: String, user: String, raw: JsObject) extends Command
+  case class PatchProfile(pid: String, user: String, patch: JsonPatch) extends Command
+  case class RemoveProfile(pid: String, user: String) extends Command
 
-  private case class DoGetView(user: String, request: Option[Any] = None)
-  private case class DoCreateView(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoReplaceView(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoPatchView(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
-  private case class DoRemoveView(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoFindDocuments(user: String, query: JsObject, request: Option[Any] = None)
-  private case class DoRefresh(user: String, request: Option[Any] = None)
+  private case class DoGetProfile(user: String, request: Option[Any] = None)
+  private case class DoCreateProfile(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoReplaceProfile(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoPatchProfile(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
+  private case class DoRemoveProfile(user: String, raw: JsObject, request: Option[Any] = None)
 
-  case class ViewCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
-  case class ViewReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
-  case class ViewPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends Event
-  case class ViewRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
-  case object Refreshed extends Event
+  case class ProfileCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
+  case class ProfileReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
+  case class ProfilePatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends Event
+  case class ProfileRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
 
-  case object ViewNotFound extends Exception
-  case object ViewAlreadyExists extends Exception
-  case object ViewIsCreating extends Exception
-  case object ViewSoftRemoved extends Exception
-  case class PatchViewException(exception: Throwable) extends Exception
+  case object ProfileNotFound extends Exception
+  case object ProfileAlreadyExists extends Exception
+  case object ProfileIsCreating extends Exception
+  case object ProfileSoftRemoved extends Exception
+  case class PatchProfileException(exception: Throwable) extends Exception
 
   val idExtractor: ShardRegion.ExtractEntityId = { case cmd: Command => (cmd.pid, cmd) }
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
-  val shardName: String = "Views"
+  val shardName: String = "Profiles"
 
-  def persistenceId(domain: String, viewId: String) = s"${domain}~.views~${viewId}"
+  def persistenceId(domain: String, profileId: String) = s"${domain}~.profiles~${profileId}"
 
   object JsonProtocol extends DocumentJsonProtocol {
-    implicit object ViewFormat extends RootJsonFormat[View] {
-      def write(view: View) = {
-        val metaObj = newMetaObject(view.raw.getFields("_metadata"), view.author, view.revision, view.created, view.updated, view.removed)
-        JsObject(("id" -> JsString(view.id)) :: view.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+    implicit object ProfileFormat extends RootJsonFormat[Profile] {
+      def write(profile: Profile) = {
+        val metaObj = newMetaObject(profile.raw.getFields("_metadata"), profile.author, profile.revision, profile.created, profile.updated, profile.removed)
+        JsObject(("id" -> JsString(profile.id)) :: profile.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, updated, removed, raw) = extractFieldsWithUpdatedRemoved(value, "View expected!")
-        View(id, author, revision, created, updated, removed, raw)
+        val (id, author, revision, created, updated, removed, raw) = extractFieldsWithUpdatedRemoved(value, "Profile expected!")
+        Profile(id, author, revision, created, updated, removed, raw)
       }
     }
 
-    implicit object ViewCreatedFormat extends RootJsonFormat[ViewCreated] {
-      def write(dc: ViewCreated) = {
+    implicit object ProfileCreatedFormat extends RootJsonFormat[ProfileCreated] {
+      def write(dc: ProfileCreated) = {
         val metaObj = newMetaObject(dc.raw.getFields("_metadata"), dc.author, dc.revision, dc.created)
         JsObject(("id" -> JsString(dc.id)) :: dc.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, raw) = extractFields(value, "ViewCreated event expected!")
-        ViewCreated(id, author, revision, created, raw)
+        val (id, author, revision, created, raw) = extractFields(value, "ProfileCreated event expected!")
+        ProfileCreated(id, author, revision, created, raw)
       }
     }
 
-    implicit object ViewReplacedFormat extends RootJsonFormat[ViewReplaced] {
-      def write(dr: ViewReplaced) = {
+    implicit object ProfileReplacedFormat extends RootJsonFormat[ProfileReplaced] {
+      def write(dr: ProfileReplaced) = {
         val metaObj = newMetaObject(dr.raw.getFields("_metadata"), dr.author, dr.revision, dr.created)
         JsObject(("id" -> JsString(dr.id)) :: dr.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, raw) = extractFields(value, "ViewReplaced event expected!")
-        ViewReplaced(id, author, revision, created, raw)
+        val (id, author, revision, created, raw) = extractFields(value, "ProfileReplaced event expected!")
+        ProfileReplaced(id, author, revision, created, raw)
       }
     }
 
-    implicit object ViewPatchedFormat extends RootJsonFormat[ViewPatched] {
+    implicit object ProfilePatchedFormat extends RootJsonFormat[ProfilePatched] {
       import gnieh.diffson.sprayJson.provider._
       import gnieh.diffson.sprayJson.provider.marshall
 
-      def write(dp: ViewPatched) = {
+      def write(dp: ProfilePatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
-        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"ViewPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"ProfilePatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, patch, raw) = extractFieldsWithPatch(value, "ViewPatched event expected!")
-        ViewPatched(id, author, revision, created, patch, raw)
+        val (id, author, revision, created, patch, raw) = extractFieldsWithPatch(value, "ProfilePatched event expected!")
+        ProfilePatched(id, author, revision, created, patch, raw)
       }
     }
 
-    implicit object ViewRemovedFormat extends RootJsonFormat[ViewRemoved] {
-      def write(dd: ViewRemoved) = {
+    implicit object ProfileRemovedFormat extends RootJsonFormat[ProfileRemoved] {
+      def write(dd: ProfileRemoved) = {
         val metaObj = newMetaObject(dd.raw.getFields("_metadata"), dd.author, dd.revision, dd.created)
         JsObject(("id" -> JsString(dd.id)) :: dd.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, raw) = extractFields(value, "ViewRemoved event expected!")
-        ViewRemoved(id, author, revision, created, raw)
+        val (id, author, revision, created, raw) = extractFields(value, "ProfileRemoved event expected!")
+        ProfileRemoved(id, author, revision, created, raw)
       }
     }
   }
@@ -191,55 +186,55 @@ object ViewActor {
         }
       }""".parseJson.asJsObject
 
-  private case class State(view: View) {
+  private case class State(profile: Profile) {
     def updated(evt: Event): State = evt match {
-      case ViewCreated(id, author, revision, created, raw) =>
+      case ProfileCreated(id, author, revision, created, raw) =>
         val metaFields = raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(metaFields+("author" -> JsString(author))+("revision" -> JsNumber(revision))+("created" -> JsNumber(created))+("updated" -> JsNumber(created))+("acl" -> acl(author)))
-        copy(view = View(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
-      case ViewReplaced(_, _, revision, created, raw) =>
-        val oldMetaFields = view.raw.fields("_metadata").asJsObject.fields
+        copy(profile = Profile(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
+      case ProfileReplaced(_, _, revision, created, raw) =>
+        val oldMetaFields = profile.raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(raw.fields + ("_metadata" -> metadata))))
-      case ViewPatched(_, _, revision, created, patch, _) =>
-        val patchedDoc = patch(view.raw).asJsObject
+        copy(profile = profile.copy(revision = revision, updated = created, raw = JsObject(raw.fields + ("_metadata" -> metadata))))
+      case ProfilePatched(_, _, revision, created, patch, _) =>
+        val patchedDoc = patch(profile.raw).asJsObject
         val oldMetaFields = patchedDoc.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject((patchedDoc.fields - "_metadata") + ("_metadata" -> metadata))))
-      case ViewRemoved(_, _, revision, created, _) =>
-        val oldMetaFields = view.raw.fields("_metadata").asJsObject.fields
+        copy(profile = profile.copy(revision = revision, updated = created, raw = JsObject((patchedDoc.fields - "_metadata") + ("_metadata" -> metadata))))
+      case ProfileRemoved(_, _, revision, created, _) =>
+        val oldMetaFields = profile.raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("removed" -> JsBoolean(true)))
-        copy(view = view.copy(revision = revision, updated = created, removed = Some(true), raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
+        copy(profile = profile.copy(revision = revision, updated = created, removed = Some(true), raw = JsObject(profile.raw.fields + ("_metadata" -> metadata))))
       case ACLReplaced(_, _, revision, created, raw) =>
-        val oldMetadata = view.raw.fields("_metadata").asJsObject
+        val oldMetadata = profile.raw.fields("_metadata").asJsObject
         val replacedACL = JsObject(raw.fields - "_metadata" - "id")
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> replacedACL))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
+        copy(profile = profile.copy(revision = revision, updated = created, raw = JsObject(profile.raw.fields + ("_metadata" -> metadata))))
       case ACLPatched(_, _, revision, created, patch, _) =>
-        val oldMetadata = view.raw.fields("_metadata").asJsObject
+        val oldMetadata = profile.raw.fields("_metadata").asJsObject
         val patchedACL = patch(oldMetadata.fields("acl"))
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedACL))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
+        copy(profile = profile.copy(revision = revision, updated = created, raw = JsObject(profile.raw.fields + ("_metadata" -> metadata))))
       case PermissionSubjectRemoved(_, _, revision, created, raw) =>
-        val oldMetadata = view.raw.fields("_metadata").asJsObject
+        val oldMetadata = profile.raw.fields("_metadata").asJsObject
         val operation = raw.fields("operation").asInstanceOf[JsString].value
         val kind = raw.fields("kind").asInstanceOf[JsString].value
         val subject = raw.fields("subject").asInstanceOf[JsString].value
         val acl = doRemovePermissionSubject(oldMetadata.fields("acl").asJsObject, operation, kind, subject)
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> acl))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
-      case _ => copy(view = view)
+        copy(profile = profile.copy(revision = revision, updated = created, raw = JsObject(profile.raw.fields + ("_metadata" -> metadata))))
+      case _ => copy(profile = profile)
     }
 
-    def updated(view: View): State = view match {
-      case View(id, author, revision, created, updated, removed, raw) => copy(view = View(id, author, revision, created, updated, removed, raw))
+    def updated(profile: Profile): State = profile match {
+      case Profile(id, author, revision, created, updated, removed, raw) => copy(profile = Profile(id, author, revision, created, updated, removed, raw))
     }
   }
 }
 
-class ViewActor extends PersistentActor with ACL with ActorLogging {
-  import ViewActor._
-  import ViewActor.JsonProtocol._
+class ProfileActor extends PersistentActor with ACL with ActorLogging {
+  import ProfileActor._
+  import ProfileActor.JsonProtocol._
   import DomainActor._
   import DocumentActor._
   import com.zxtx.persistence.ElasticSearchStore._
@@ -270,116 +265,104 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
   mediator ! Subscribe(domain, self)
   mediator ! Subscribe(s"${domain}~${collection}", self)
 
-  private var state = State(View.empty)
+  private var state = State(Profile.empty)
 
   override def receiveRecover: Receive = {
-    case evt: ViewCreated =>
+    case evt: ProfileCreated =>
       state = state.updated(evt)
       context.become(created)
-    case evt: ViewRemoved =>
+    case evt: ProfileRemoved =>
       state = state.updated(evt)
       context.become(removed)
     case evt: Event =>
       state = state.updated(evt)
     case SnapshotOffer(_, jo: JsObject) =>
-      val view = jo.convertTo[View]
-      state = state.updated(view)
-      view.removed match {
+      val profile = jo.convertTo[Profile]
+      state = state.updated(profile)
+      profile.removed match {
         case Some(true) => context.become(removed)
         case _          => context.become(created)
       }
     case RecoveryCompleted =>
-      log.debug("ViewActor recovery completed.")
+      log.debug("ProfileActor recovery completed.")
   }
 
   override def receiveCommand: Receive = initial
 
   def initial: Receive = {
-    case CreateView(_, user, raw, initFlag) =>
+    case CreateProfile(_, user, raw, initFlag) =>
       val replyTo = sender
       val parent = context.parent
-      createView(user, raw, initFlag).foreach {
-        case dcd: DoCreateView => self ! dcd.copy(request = Some(replyTo))
+      createProfile(user, raw, initFlag).foreach {
+        case dcd: DoCreateProfile => self ! dcd.copy(request = Some(replyTo))
         case other =>
           replyTo ! other
           parent ! Passivate(stopMessage = PoisonPill)
       }
       context.become(creating)
-    case _: Command => sender ! ViewNotFound
+    case _: Command => sender ! ProfileNotFound
   }
 
   def creating: Receive = {
-    case DoCreateView(user, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+    case DoCreateProfile(user, raw, Some(replyTo: ActorRef)) =>
+      persist(ProfileCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         state = state.updated(evt)
-        val view = state.view.toJson.asJsObject
-        saveSnapshot(view)
+        val profile = state.profile.toJson.asJsObject
+        saveSnapshot(profile)
         context.become(created)
-        replyTo ! state.view
+        replyTo ! state.profile
       }
-    case _: Command => sender ! ViewIsCreating
+    case _: Command => sender ! ProfileIsCreating
   }
 
   def created: Receive = {
-    case GetView(pid, user) =>
+    case GetProfile(pid, user) =>
       val replyTo = sender
-      getView(user).foreach {
-        case dgd: DoGetView => replyTo ! state.view
+      getProfile(user).foreach {
+        case dgd: DoGetProfile => replyTo ! state.profile
         case other          => replyTo ! other
       }
-    case ReplaceView(_, user, raw) =>
+    case ReplaceProfile(_, user, raw) =>
       val replyTo = sender
-      replaceView(user, raw).foreach {
-        case drd: DoReplaceView => self ! drd.copy(request = Some(replyTo))
+      replaceProfile(user, raw).foreach {
+        case drd: DoReplaceProfile => self ! drd.copy(request = Some(replyTo))
         case other              => replyTo ! other
       }
-    case DoReplaceView(user, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+    case DoReplaceProfile(user, raw, Some(replyTo: ActorRef)) =>
+      persist(ProfileReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         replyTo ! updateAndSave(evt)
       }
-    case PatchView(_, user, patch) =>
+    case PatchProfile(_, user, patch) =>
       val replyTo = sender
-      patchView(user, patch).foreach {
-        case dpd: DoPatchView => self ! dpd.copy(request = Some(replyTo))
+      patchProfile(user, patch).foreach {
+        case dpd: DoPatchProfile => self ! dpd.copy(request = Some(replyTo))
         case other            => replyTo ! other
       }
-    case DoPatchView(user, patch, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
+    case DoPatchProfile(user, patch, raw, Some(replyTo: ActorRef)) =>
+      persist(ProfilePatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
         replyTo ! updateAndSave(evt)
       }
-    case RemoveView(_, user) =>
+    case RemoveProfile(_, user) =>
       val replyTo = sender
-      removeView(user).foreach {
-        case ddd: DoRemoveView => self ! ddd.copy(request = Some(replyTo))
+      removeProfile(user).foreach {
+        case ddd: DoRemoveProfile => self ! ddd.copy(request = Some(replyTo))
         case other             => replyTo ! other
       }
-    case DoRemoveView(user, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
+    case DoRemoveProfile(user, raw, Some(replyTo: ActorRef)) =>
+      persist(ProfileRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
         state = state.updated(evt)
         deleteMessages(lastSequenceNr)
         deleteSnapshots(SnapshotSelectionCriteria.Latest)
-        val view = state.view.toJson.asJsObject
-        saveSnapshot(view)
+        val profile = state.profile.toJson.asJsObject
+        saveSnapshot(profile)
         context.become(removed)
-        replyTo ! evt.copy(raw = view)
+        replyTo ! evt.copy(raw = profile)
         context.parent ! Passivate(stopMessage = PoisonPill)
-      }
-    case FindDocuments(_, user, query) =>
-      val replyTo = sender
-      findDocuments(user, query).foreach {
-        case DoFindDocuments(_, _, Some(result)) => replyTo ! result
-        case other                               => replyTo ! other
-      }
-    case Refresh(pid, user) =>
-      val replyTo = sender
-      refresh(user).foreach {
-        case dr: DoRefresh => replyTo ! Refreshed
-        case other         => replyTo ! other
       }
     case GetACL(_, user) =>
       val replyTo = sender
       getACL(user).foreach {
-        case dga: DoGetACL => replyTo ! state.view.raw.fields("_metadata").asJsObject.fields("acl")
+        case dga: DoGetACL => replyTo ! state.profile.raw.fields("_metadata").asJsObject.fields("acl")
         case other         => replyTo ! other
       }
     case ReplaceACL(_, user, raw) =>
@@ -394,7 +377,7 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
       }
     case PatchACL(_, user, patch) =>
       val replyTo = sender
-      patchACL(user, state.view.raw.fields("_metadata").asJsObject.fields("acl"), patch).foreach {
+      patchACL(user, state.profile.raw.fields("_metadata").asJsObject.fields("acl"), patch).foreach {
         case dsa: DoPatchACL => self ! dsa.copy(request = Some(replyTo))
         case other           => replyTo ! other
       }
@@ -436,24 +419,24 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
       }
     case SaveSnapshotSuccess(metadata) =>
     case SaveSnapshotFailure(metadata, reason) =>
-    case _: CreateView => sender ! ViewAlreadyExists
+    case _: CreateProfile => sender ! ProfileAlreadyExists
     case _: DomainRemoved | _: CollectionActor.CollectionRemoved => context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   def removed: Receive = {
-    case GetView(_, user) =>
+    case GetProfile(_, user) =>
       val replyTo = sender
       val parent = context.parent
-      getView(user).foreach {
-        case dgd: DoGetView =>
-          replyTo ! state.view
+      getProfile(user).foreach {
+        case dgd: DoGetProfile =>
+          replyTo ! state.profile
           parent ! Passivate(stopMessage = PoisonPill)
         case other =>
           replyTo ! other
           parent ! Passivate(stopMessage = PoisonPill)
       }
     case _: Command =>
-      sender ! ViewSoftRemoved
+      sender ! ProfileSoftRemoved
       context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
@@ -465,82 +448,56 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
   private def updateAndSave(evt: Event) = {
     state = state.updated(evt)
     deleteSnapshots(SnapshotSelectionCriteria.Latest)
-    saveSnapshot(state.view.toJson.asJsObject)
-    state.view
+    saveSnapshot(state.profile.toJson.asJsObject)
+    state.profile
   }
 
-  private def createView(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
-    val dcd = DoCreateView(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("view")))))
+  private def createProfile(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
+    val dcd = DoCreateProfile(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("profile")))))
     initFlag match {
       case Some(true) => Future.successful(dcd)
-      case other => (domainRegion ? CheckPermission(DomainActor.persistenceId(rootDomain, domain), user, CreateView)).map {
+      case other => (domainRegion ? CheckPermission(DomainActor.persistenceId(rootDomain, domain), user, CreateProfile)).map {
         case Granted => dcd
         case Denied  => Denied
       }
     }
   }
 
-  private def getView(user: String) = checkPermission(user, GetView).map {
-    case Granted => DoGetView(user)
+  private def getProfile(user: String) = checkPermission(user, GetProfile).map {
+    case Granted => DoGetProfile(user)
     case other   => other
   }.recover { case e => e }
 
-  private def replaceView(user: String, raw: JsObject) = checkPermission(user, ReplaceView).map {
-    case Granted => DoReplaceView(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+  private def replaceProfile(user: String, raw: JsObject) = checkPermission(user, ReplaceProfile).map {
+    case Granted => DoReplaceProfile(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
     case other   => other
   }.recover { case e => e }
 
-  private def patchView(user: String, patch: JsonPatch) = checkPermission(user, PatchView).map {
+  private def patchProfile(user: String, patch: JsonPatch) = checkPermission(user, PatchProfile).map {
     case Granted =>
       Try {
-        patch(state.view.raw)
+        patch(state.profile.raw)
       } match {
-        case Success(_) => DoPatchView(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
-        case Failure(e) => PatchViewException(e)
+        case Success(_) => DoPatchProfile(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+        case Failure(e) => PatchProfileException(e)
       }
     case other => other
   }.recover { case e => e }
 
-  private def removeView(user: String) = checkPermission(user, RemoveView).map {
-    case Granted => DoRemoveView(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+  private def removeProfile(user: String) = checkPermission(user, RemoveProfile).map {
+    case Granted => DoRemoveProfile(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
     case other   => other
   }.recover { case e => e }
 
-  private def getIndexAliases: String = state.view.raw.getFields("collections") match {
-    case Seq(collections: JsArray) => collections.elements.map { jv => s"${domain}~${jv.asInstanceOf[JsString].value}~all~snapshots" }.reduceLeft(_ + "," + _)
-    case _                         => "_all"
-  }
-
-  private def refresh(user: String) = checkPermission(user, Refresh).flatMap {
-    case Granted => store.refresh(getIndexAliases).map {
-      case (StatusCodes.OK, _) => DoRefresh(user)
-      case (code, jv)          => throw new RuntimeException(s"Find views error: $jv")
-    }
-    case other => Future.successful(other)
-  }.recover { case e => e }
-
-  private def findDocuments(user: String, query: JsObject) = checkPermission(user, FindDocuments).flatMap {
-    case Granted => filterQuery(domain, user, query).flatMap {
-      case fq: JsObject => println(fq.prettyPrint);store.search(getIndexAliases, fq.compactPrint).map {
-        case (StatusCodes.OK, jo: JsObject) => DoFindDocuments(user, query, Some(jo))
-        case (code, jv)                     => throw new RuntimeException(s"Find views error: $jv")
-      }
-      case other => throw new RuntimeException(s"Find views error: $other")
-    }
-    case other => Future.successful(other)
-  }.recover { case e => e }
-
   val commandPermissionMap = Map[Any, String](
-    GetView -> "get",
-    ReplaceView -> "replace",
-    PatchView -> "patch",
-    RemoveView -> "remove",
+    GetProfile -> "get",
+    ReplaceProfile -> "replace",
+    PatchProfile -> "patch",
+    RemoveProfile -> "remove",
     GetACL -> "getACL",
     ReplaceACL -> "replaceACL",
     PatchACL -> "patchACL",
     PatchEventACL -> "patchEventACL",
-    FindDocuments -> "findDocuments",
-    Refresh -> "refresh",
     RemovePermissionSubject -> "removePermissionSubject",
     RemoveEventPermissionSubject -> "removeEventPermissionSubject")
 
@@ -550,7 +507,7 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
         case (".profiles", `user`) => Future.successful(Granted)
         case _ => fetchProfile(domain, user).map {
           case Document(_, _, _, _, _, _, profile) =>
-            val aclObj = state.view.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
+            val aclObj = state.profile.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
             val userRoles = profileValue(profile, "roles")
             val userGroups = profileValue(profile, "groups")
             val (aclRoles, aclGroups, aclUsers) = commandPermissionMap.get(command) match {

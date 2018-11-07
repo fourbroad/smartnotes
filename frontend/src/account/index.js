@@ -1,4 +1,5 @@
-import Client from 'client';
+import Client from '@notesabc/frontend-client';
+
 import utils from 'utils';
 import validate from "validate.js";
 import 'jquery.event.ue';
@@ -57,14 +58,14 @@ _onSignoff = function(event){
 };
 
 _refresh = function(){
-  if(client.currentUser.isAnonymous()){
+  if(client.getCurrentUser().isAnonymous()){
     $profileMenu.detach();
     $loginMenu.appendTo($account);
     $nickname.text('Please sign-in');
   } else {
     $loginMenu.detach();
     $profileMenu.appendTo($account);
-    $nickname.text(client.currentUser.id);
+    $nickname.text(client.getCurrentUser().id);
   }
 };
 

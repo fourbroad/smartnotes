@@ -17,15 +17,13 @@ import com.typesafe.config.ConfigFactory
 import com.zxtx.actors.CollectionActor
 import com.zxtx.actors.UserActor
 import com.zxtx.actors.ViewActor
+import com.zxtx.actors.FormActor
+import com.zxtx.actors.RoleActor
+import com.zxtx.actors.ProfileActor
 import com.zxtx.actors.DocumentActor
 import com.zxtx.actors.DomainActor
 import com.zxtx.actors.DomainActor._
-import com.zxtx.actors.wrappers.CallbackWrapper
-import com.zxtx.actors.wrappers.CollectionWrapper
-import com.zxtx.actors.wrappers.DocumentWrapper
-import com.zxtx.actors.wrappers.DomainWrapper
-import com.zxtx.actors.wrappers.UserWrapper
-import com.zxtx.actors.wrappers.ViewWrapper
+import com.zxtx.actors.wrappers._
 
 import akka.Done
 import akka.actor.ActorSystem
@@ -84,6 +82,24 @@ object Main extends App {
     settings = ClusterShardingSettings(system),
     extractEntityId = ViewActor.idExtractor,
     extractShardId = ViewActor.shardResolver)
+  val formRegion = ClusterSharding(system).start(
+    typeName = FormActor.shardName,
+    entityProps = FormActor.props(),
+    settings = ClusterShardingSettings(system),
+    extractEntityId = FormActor.idExtractor,
+    extractShardId = FormActor.shardResolver)
+  val roleRegion = ClusterSharding(system).start(
+    typeName = RoleActor.shardName,
+    entityProps = RoleActor.props(),
+    settings = ClusterShardingSettings(system),
+    extractEntityId = RoleActor.idExtractor,
+    extractShardId = RoleActor.shardResolver)
+  val profileRegion = ClusterSharding(system).start(
+    typeName = ProfileActor.shardName,
+    entityProps = ProfileActor.props(),
+    settings = ClusterShardingSettings(system),
+    extractEntityId = ProfileActor.idExtractor,
+    extractShardId = ProfileActor.shardResolver)
 
   val rootDomain = system.settings.config.getString("domain.root-domain")
   val adminName = system.settings.config.getString("domain.administrator.name")
@@ -110,6 +126,9 @@ object Main extends App {
   val documentWrapper = DocumentWrapper(system, callbackQueue)
   val userWrapper = UserWrapper(system, callbackQueue)
   val viewWrapper = ViewWrapper(system, callbackQueue)
+  val formWrapper = FormWrapper(system, callbackQueue)
+  val roleWrapper = RoleWrapper(system, callbackQueue)
+  val profileWrapper = ProfileWrapper(system, callbackQueue)
 
   import scala.sys.process._
   val processId = Seq("sh", "-c", "echo $PPID").!!.trim.toInt
@@ -138,11 +157,14 @@ object Main extends App {
       runtime.registerJavaMethod(domainWrapper, "bind", "__DomainWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(collectionWrapper, "bind", "__CollectionWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(viewWrapper, "bind", "__ViewWrapper", Array[Class[_]](classOf[V8Object]), true)      
+      runtime.registerJavaMethod(formWrapper, "bind", "__FormWrapper", Array[Class[_]](classOf[V8Object]), true)      
+      runtime.registerJavaMethod(roleWrapper, "bind", "__RoleWrapper", Array[Class[_]](classOf[V8Object]), true)      
+      runtime.registerJavaMethod(profileWrapper, "bind", "__ProfileWrapper", Array[Class[_]](classOf[V8Object]), true)      
       runtime.registerJavaMethod(documentWrapper, "bind", "__DocumentWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(userWrapper, "bind", "__UserWrapper", Array[Class[_]](classOf[V8Object]), true)
 
-      nodeJS.exec(new File("nodejs/www.js"))
-//      nodeJS.exec(new File("nodejs/test.js"))
+      nodeJS.exec(new File("backend/www.js"))
+//      nodeJS.exec(new File("backend/test.js"))
 
       while (nodeJS.isRunning() && running) {
         nodeJS.handleMessage()

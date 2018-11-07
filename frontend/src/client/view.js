@@ -82,14 +82,14 @@ viewProto = {
 
       var documents = _.map(docsData.hits.hits, function(docData){
       	return Document.create(socket, domainId, viewId, docData._source);
-      })
+      });
 
 	  callback(null, {total:docsData.hits.total, documents: documents});
 	});
   },
 
   refresh: function(callback) {
-	  this.socket.emit('refreshView', this.domainId, this.id, function(err, result) {
+    this.socket.emit('refreshView', this.domainId, this.id, function(err, result) {
 	  callback(err, result);	  
 	});
   }

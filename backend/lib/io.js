@@ -16,6 +16,9 @@ const
   collectionWrapper = new __CollectionWrapper(),
   viewWrapper = new __ViewWrapper(),
   documentWrapper = new __DocumentWrapper(),
+  formWrapper = new __FormWrapper(),
+  profileWrapper = new __ProfileWrapper(),
+  roleWrapper = new __RoleWrapper(),  
   userWrapper = new __UserWrapper(),
   socketIO = require('socket.io'),
   extend = require('extend'),
@@ -146,8 +149,12 @@ io = {
        	domainWrapper.quit(token, domainId, userId, callback);
       });
 
-      socket.on('findCollections', function(domainId, callback){
-      	domainWrapper.findCollections(token, domainId, callback);
+      socket.on('findDomains', function(userId, query, callback){
+       	domainWrapper.findDomains(token, userId, query, callback);
+      });
+
+      socket.on('findCollections', function(domainId, query, callback){
+      	domainWrapper.findCollections(token, domainId, query, callback);
       });
       
       socket.on('createCollection', function(domainId, collectionId, collectionRaw, callback){
@@ -194,8 +201,8 @@ io = {
         collectionWrapper.refresh(token, domainId, collectionId, callback);
       });
 
-      socket.on('findViews', function(domainId, callback){
-       	domainWrapper.findViews(token, domainId, callback);
+      socket.on('findViews', function(domainId, query, callback){
+       	domainWrapper.findViews(token, domainId, query, callback);
       });
         
       socket.on('createView', function(domainId, viewId, viewRaw, callback){
@@ -241,7 +248,115 @@ io = {
       socket.on('refreshView', function(domainId, viewId, callback){
         viewWrapper.refresh(token, domainId, viewId, callback);
       });
+
+      socket.on('createForm', function(domainId, formId, formRaw, callback){
+    	formWrapper.create(token, domainId, formId, formRaw, callback);
+      });
+
+      socket.on('getForm', function(domainId, formId, callback){
+      	formWrapper.get(token, domainId, formId, callback);
+      });
       
+      socket.on('replaceForm', function(domainId, formId, formRaw, callback){
+      	formWrapper.replace(token, domainId, formId, formRaw, callback);
+      });
+
+      socket.on('patchForm', function(domainId, formId, patch, callback){
+      	formWrapper.patch(token, domainId, formId, patch, callback);
+      });
+      
+      socket.on('removeForm', function(domainId, formId, callback){
+       	formWrapper.remove(token, domainId, formId, callback);
+      });
+
+      socket.on('getFormACL', function(domainId, formId, callback){
+       	formWrapper.getACL(token, domainId, formId, callback);
+      });
+
+      socket.on('replaceFormACL', function(domainId, formId, acl, callback){
+       	formWrapper.replaceACL(token, domainId, formId, acl, callback);
+      });
+
+      socket.on('patchFormACL', function(domainId, formId, aclPatch, callback){
+       	formWrapper.patchACL(token, domainId, formId, aclPatch, callback);
+      });
+
+      socket.on('removeFormPermissionSubject', function(domainId, formId, acl, callback){
+       	formWrapper.removePermissionSubject(token, domainId, formId, acl, callback);
+      });
+
+      socket.on('createRole', function(domainId, roleId, roleRaw, callback){
+    	roleWrapper.create(token, domainId, roleId, roleRaw, callback);
+      });
+
+      socket.on('getRole', function(domainId, roleId, callback){
+      	roleWrapper.get(token, domainId, roleId, callback);
+      });
+      
+      socket.on('replaceRole', function(domainId, roleId, roleRaw, callback){
+      	roleWrapper.replace(token, domainId, roleId, roleRaw, callback);
+      });
+
+      socket.on('patchRole', function(domainId, roleId, patch, callback){
+      	roleWrapper.patch(token, domainId, roleId, patch, callback);
+      });
+      
+      socket.on('removeRole', function(domainId, roleId, callback){
+       	roleWrapper.remove(token, domainId, roleId, callback);
+      });
+
+      socket.on('getRoleACL', function(domainId, roleId, callback){
+       	roleWrapper.getACL(token, domainId, roleId, callback);
+      });
+
+      socket.on('replaceRoleACL', function(domainId, roleId, acl, callback){
+       	roleWrapper.replaceACL(token, domainId, roleId, acl, callback);
+      });
+
+      socket.on('patchRoleACL', function(domainId, roleId, aclPatch, callback){
+       	roleWrapper.patchACL(token, domainId, roleId, aclPatch, callback);
+      });
+
+      socket.on('removeRolePermissionSubject', function(domainId, roleId, acl, callback){
+       	roleWrapper.removePermissionSubject(token, domainId, roleId, acl, callback);
+      });
+
+      socket.on('createProfile', function(domainId, profileId, profileRaw, callback){
+    	profileWrapper.create(token, domainId, profileId, profileRaw, callback);
+      });
+
+      socket.on('getProfile', function(domainId, profileId, callback){
+      	profileWrapper.get(token, domainId, profileId, callback);
+      });
+      
+      socket.on('replaceProfile', function(domainId, profileId, profileRaw, callback){
+      	profileWrapper.replace(token, domainId, profileId, profileRaw, callback);
+      });
+
+      socket.on('patchProfile', function(domainId, profileId, patch, callback){
+      	profileWrapper.patch(token, domainId, profileId, patch, callback);
+      });
+      
+      socket.on('removeProfile', function(domainId, profileId, callback){
+       	profileWrapper.remove(token, domainId, profileId, callback);
+      });
+
+      socket.on('getProfileACL', function(domainId, profileId, callback){
+       	profileWrapper.getACL(token, domainId, profileId, callback);
+      });
+
+      socket.on('replaceProfileACL', function(domainId, profileId, acl, callback){
+       	profileWrapper.replaceACL(token, domainId, profileId, acl, callback);
+      });
+
+      socket.on('patchProfileACL', function(domainId, profileId, aclPatch, callback){
+       	profileWrapper.patchACL(token, domainId, profileId, aclPatch, callback);
+      });
+
+      socket.on('removeProfilePermissionSubject', function(domainId, profileId, acl, callback){
+       	profileWrapper.removePermissionSubject(token, domainId, profileId, acl, callback);
+      });
+
       socket.on('createDocument', function(domainId, collectionId, docId, docRaw, callback){
     	documentWrapper.create(token, domainId, collectionId, docId, docRaw, callback);
       });

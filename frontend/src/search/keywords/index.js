@@ -29,7 +29,7 @@ function create(opts) {
     };
 
     if(wildcard){
-      query.query = { wildcard:{}};
+      query.query = {wildcard:{}};
       query.query.wildcard[name+".keyword"] = wildcard;
     }
 
@@ -64,7 +64,7 @@ function create(opts) {
     view.findDocuments(_distinctQuery(name, wildcard), function(err, docs){
       if(err) return console.log(err);
       var items = _.map(docs.documents, function(doc){
-      	return {label:eval('doc.'+name), value:eval('doc.'+name)};
+      	return {label:doc[name], value:doc[name]};
       });
 
       _refreshClearLink();
@@ -142,7 +142,7 @@ function create(opts) {
       _setSearchIcon();
     }
 
-    _fetchMenuItems(name, '*'+filter.trim().toLowerCase()+'*');
+    _fetchMenuItems(name, '*'+filter.trim()+'*');
   });
 
   $inputIcon.on('click', function(){

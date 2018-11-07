@@ -37,105 +37,100 @@ import spray.json._
 import gnieh.diffson.sprayJson.JsonPatch
 import akka.persistence.SnapshotSelectionCriteria
 
-object ViewActor {
+object FormActor {
 
-  def props(): Props = Props[ViewActor]
+  def props(): Props = Props[FormActor]
 
-  object View {
-    val empty = new View("", "", 0L, 0L, 0L, None, spray.json.JsObject())
+  object Form {
+    val empty = new Form("", "", 0L, 0L, 0L, None, spray.json.JsObject())
   }
-  case class View(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, removed: Option[Boolean], raw: JsObject)
+  case class Form(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, removed: Option[Boolean], raw: JsObject)
 
-  case class GetView(pid: String, user: String) extends Command
-  case class CreateView(pid: String, user: String, raw: JsObject, initFlag: Option[Boolean] = None) extends Command
-  case class ReplaceView(pid: String, user: String, raw: JsObject) extends Command
-  case class PatchView(pid: String, user: String, patch: JsonPatch) extends Command
-  case class RemoveView(pid: String, user: String) extends Command
-  case class Refresh(pid: String, user: String) extends Command
-  case class FindDocuments(pid: String, user: String, query: JsObject) extends Command
+  case class GetForm(pid: String, user: String) extends Command
+  case class CreateForm(pid: String, user: String, raw: JsObject, initFlag: Option[Boolean] = None) extends Command
+  case class ReplaceForm(pid: String, user: String, raw: JsObject) extends Command
+  case class PatchForm(pid: String, user: String, patch: JsonPatch) extends Command
+  case class RemoveForm(pid: String, user: String) extends Command
 
-  private case class DoGetView(user: String, request: Option[Any] = None)
-  private case class DoCreateView(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoReplaceView(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoPatchView(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
-  private case class DoRemoveView(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoFindDocuments(user: String, query: JsObject, request: Option[Any] = None)
-  private case class DoRefresh(user: String, request: Option[Any] = None)
+  private case class DoGetForm(user: String, request: Option[Any] = None)
+  private case class DoCreateForm(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoReplaceForm(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoPatchForm(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
+  private case class DoRemoveForm(user: String, raw: JsObject, request: Option[Any] = None)
 
-  case class ViewCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
-  case class ViewReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
-  case class ViewPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends Event
-  case class ViewRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
-  case object Refreshed extends Event
+  case class FormCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
+  case class FormReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
+  case class FormPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends Event
+  case class FormRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
 
-  case object ViewNotFound extends Exception
-  case object ViewAlreadyExists extends Exception
-  case object ViewIsCreating extends Exception
-  case object ViewSoftRemoved extends Exception
-  case class PatchViewException(exception: Throwable) extends Exception
+  case object FormNotFound extends Exception
+  case object FormAlreadyExists extends Exception
+  case object FormIsCreating extends Exception
+  case object FormSoftRemoved extends Exception
+  case class PatchFormException(exception: Throwable) extends Exception
 
   val idExtractor: ShardRegion.ExtractEntityId = { case cmd: Command => (cmd.pid, cmd) }
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
-  val shardName: String = "Views"
+  val shardName: String = "Forms"
 
-  def persistenceId(domain: String, viewId: String) = s"${domain}~.views~${viewId}"
+  def persistenceId(domain: String, formId: String) = s"${domain}~.forms~${formId}"
 
   object JsonProtocol extends DocumentJsonProtocol {
-    implicit object ViewFormat extends RootJsonFormat[View] {
-      def write(view: View) = {
-        val metaObj = newMetaObject(view.raw.getFields("_metadata"), view.author, view.revision, view.created, view.updated, view.removed)
-        JsObject(("id" -> JsString(view.id)) :: view.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+    implicit object FormFormat extends RootJsonFormat[Form] {
+      def write(form: Form) = {
+        val metaObj = newMetaObject(form.raw.getFields("_metadata"), form.author, form.revision, form.created, form.updated, form.removed)
+        JsObject(("id" -> JsString(form.id)) :: form.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, updated, removed, raw) = extractFieldsWithUpdatedRemoved(value, "View expected!")
-        View(id, author, revision, created, updated, removed, raw)
+        val (id, author, revision, created, updated, removed, raw) = extractFieldsWithUpdatedRemoved(value, "Form expected!")
+        Form(id, author, revision, created, updated, removed, raw)
       }
     }
 
-    implicit object ViewCreatedFormat extends RootJsonFormat[ViewCreated] {
-      def write(dc: ViewCreated) = {
+    implicit object FormCreatedFormat extends RootJsonFormat[FormCreated] {
+      def write(dc: FormCreated) = {
         val metaObj = newMetaObject(dc.raw.getFields("_metadata"), dc.author, dc.revision, dc.created)
         JsObject(("id" -> JsString(dc.id)) :: dc.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, raw) = extractFields(value, "ViewCreated event expected!")
-        ViewCreated(id, author, revision, created, raw)
+        val (id, author, revision, created, raw) = extractFields(value, "FormCreated event expected!")
+        FormCreated(id, author, revision, created, raw)
       }
     }
 
-    implicit object ViewReplacedFormat extends RootJsonFormat[ViewReplaced] {
-      def write(dr: ViewReplaced) = {
+    implicit object FormReplacedFormat extends RootJsonFormat[FormReplaced] {
+      def write(dr: FormReplaced) = {
         val metaObj = newMetaObject(dr.raw.getFields("_metadata"), dr.author, dr.revision, dr.created)
         JsObject(("id" -> JsString(dr.id)) :: dr.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, raw) = extractFields(value, "ViewReplaced event expected!")
-        ViewReplaced(id, author, revision, created, raw)
+        val (id, author, revision, created, raw) = extractFields(value, "FormReplaced event expected!")
+        FormReplaced(id, author, revision, created, raw)
       }
     }
 
-    implicit object ViewPatchedFormat extends RootJsonFormat[ViewPatched] {
+    implicit object FormPatchedFormat extends RootJsonFormat[FormPatched] {
       import gnieh.diffson.sprayJson.provider._
       import gnieh.diffson.sprayJson.provider.marshall
 
-      def write(dp: ViewPatched) = {
+      def write(dp: FormPatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
-        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"ViewPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"FormPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, patch, raw) = extractFieldsWithPatch(value, "ViewPatched event expected!")
-        ViewPatched(id, author, revision, created, patch, raw)
+        val (id, author, revision, created, patch, raw) = extractFieldsWithPatch(value, "FormPatched event expected!")
+        FormPatched(id, author, revision, created, patch, raw)
       }
     }
 
-    implicit object ViewRemovedFormat extends RootJsonFormat[ViewRemoved] {
-      def write(dd: ViewRemoved) = {
+    implicit object FormRemovedFormat extends RootJsonFormat[FormRemoved] {
+      def write(dd: FormRemoved) = {
         val metaObj = newMetaObject(dd.raw.getFields("_metadata"), dd.author, dd.revision, dd.created)
         JsObject(("id" -> JsString(dd.id)) :: dd.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, raw) = extractFields(value, "ViewRemoved event expected!")
-        ViewRemoved(id, author, revision, created, raw)
+        val (id, author, revision, created, raw) = extractFields(value, "FormRemoved event expected!")
+        FormRemoved(id, author, revision, created, raw)
       }
     }
   }
@@ -191,55 +186,55 @@ object ViewActor {
         }
       }""".parseJson.asJsObject
 
-  private case class State(view: View) {
+  private case class State(form: Form) {
     def updated(evt: Event): State = evt match {
-      case ViewCreated(id, author, revision, created, raw) =>
+      case FormCreated(id, author, revision, created, raw) =>
         val metaFields = raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(metaFields+("author" -> JsString(author))+("revision" -> JsNumber(revision))+("created" -> JsNumber(created))+("updated" -> JsNumber(created))+("acl" -> acl(author)))
-        copy(view = View(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
-      case ViewReplaced(_, _, revision, created, raw) =>
-        val oldMetaFields = view.raw.fields("_metadata").asJsObject.fields
+        copy(form = Form(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
+      case FormReplaced(_, _, revision, created, raw) =>
+        val oldMetaFields = form.raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(raw.fields + ("_metadata" -> metadata))))
-      case ViewPatched(_, _, revision, created, patch, _) =>
-        val patchedDoc = patch(view.raw).asJsObject
+        copy(form = form.copy(revision = revision, updated = created, raw = JsObject(raw.fields + ("_metadata" -> metadata))))
+      case FormPatched(_, _, revision, created, patch, _) =>
+        val patchedDoc = patch(form.raw).asJsObject
         val oldMetaFields = patchedDoc.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject((patchedDoc.fields - "_metadata") + ("_metadata" -> metadata))))
-      case ViewRemoved(_, _, revision, created, _) =>
-        val oldMetaFields = view.raw.fields("_metadata").asJsObject.fields
+        copy(form = form.copy(revision = revision, updated = created, raw = JsObject((patchedDoc.fields - "_metadata") + ("_metadata" -> metadata))))
+      case FormRemoved(_, _, revision, created, _) =>
+        val oldMetaFields = form.raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("removed" -> JsBoolean(true)))
-        copy(view = view.copy(revision = revision, updated = created, removed = Some(true), raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
+        copy(form = form.copy(revision = revision, updated = created, removed = Some(true), raw = JsObject(form.raw.fields + ("_metadata" -> metadata))))
       case ACLReplaced(_, _, revision, created, raw) =>
-        val oldMetadata = view.raw.fields("_metadata").asJsObject
+        val oldMetadata = form.raw.fields("_metadata").asJsObject
         val replacedACL = JsObject(raw.fields - "_metadata" - "id")
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> replacedACL))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
+        copy(form = form.copy(revision = revision, updated = created, raw = JsObject(form.raw.fields + ("_metadata" -> metadata))))
       case ACLPatched(_, _, revision, created, patch, _) =>
-        val oldMetadata = view.raw.fields("_metadata").asJsObject
+        val oldMetadata = form.raw.fields("_metadata").asJsObject
         val patchedACL = patch(oldMetadata.fields("acl"))
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedACL))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
+        copy(form = form.copy(revision = revision, updated = created, raw = JsObject(form.raw.fields + ("_metadata" -> metadata))))
       case PermissionSubjectRemoved(_, _, revision, created, raw) =>
-        val oldMetadata = view.raw.fields("_metadata").asJsObject
+        val oldMetadata = form.raw.fields("_metadata").asJsObject
         val operation = raw.fields("operation").asInstanceOf[JsString].value
         val kind = raw.fields("kind").asInstanceOf[JsString].value
         val subject = raw.fields("subject").asInstanceOf[JsString].value
         val acl = doRemovePermissionSubject(oldMetadata.fields("acl").asJsObject, operation, kind, subject)
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> acl))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
-      case _ => copy(view = view)
+        copy(form = form.copy(revision = revision, updated = created, raw = JsObject(form.raw.fields + ("_metadata" -> metadata))))
+      case _ => copy(form = form)
     }
 
-    def updated(view: View): State = view match {
-      case View(id, author, revision, created, updated, removed, raw) => copy(view = View(id, author, revision, created, updated, removed, raw))
+    def updated(form: Form): State = form match {
+      case Form(id, author, revision, created, updated, removed, raw) => copy(form = Form(id, author, revision, created, updated, removed, raw))
     }
   }
 }
 
-class ViewActor extends PersistentActor with ACL with ActorLogging {
-  import ViewActor._
-  import ViewActor.JsonProtocol._
+class FormActor extends PersistentActor with ACL with ActorLogging {
+  import FormActor._
+  import FormActor.JsonProtocol._
   import DomainActor._
   import DocumentActor._
   import com.zxtx.persistence.ElasticSearchStore._
@@ -270,116 +265,104 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
   mediator ! Subscribe(domain, self)
   mediator ! Subscribe(s"${domain}~${collection}", self)
 
-  private var state = State(View.empty)
+  private var state = State(Form.empty)
 
   override def receiveRecover: Receive = {
-    case evt: ViewCreated =>
+    case evt: FormCreated =>
       state = state.updated(evt)
       context.become(created)
-    case evt: ViewRemoved =>
+    case evt: FormRemoved =>
       state = state.updated(evt)
       context.become(removed)
     case evt: Event =>
       state = state.updated(evt)
     case SnapshotOffer(_, jo: JsObject) =>
-      val view = jo.convertTo[View]
-      state = state.updated(view)
-      view.removed match {
+      val form = jo.convertTo[Form]
+      state = state.updated(form)
+      form.removed match {
         case Some(true) => context.become(removed)
         case _          => context.become(created)
       }
     case RecoveryCompleted =>
-      log.debug("ViewActor recovery completed.")
+      log.debug("FormActor recovery completed.")
   }
 
   override def receiveCommand: Receive = initial
 
   def initial: Receive = {
-    case CreateView(_, user, raw, initFlag) =>
+    case CreateForm(_, user, raw, initFlag) =>
       val replyTo = sender
       val parent = context.parent
-      createView(user, raw, initFlag).foreach {
-        case dcd: DoCreateView => self ! dcd.copy(request = Some(replyTo))
+      createForm(user, raw, initFlag).foreach {
+        case dcd: DoCreateForm => self ! dcd.copy(request = Some(replyTo))
         case other =>
           replyTo ! other
           parent ! Passivate(stopMessage = PoisonPill)
       }
       context.become(creating)
-    case _: Command => sender ! ViewNotFound
+    case _: Command => sender ! FormNotFound
   }
 
   def creating: Receive = {
-    case DoCreateView(user, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+    case DoCreateForm(user, raw, Some(replyTo: ActorRef)) =>
+      persist(FormCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         state = state.updated(evt)
-        val view = state.view.toJson.asJsObject
-        saveSnapshot(view)
+        val form = state.form.toJson.asJsObject
+        saveSnapshot(form)
         context.become(created)
-        replyTo ! state.view
+        replyTo ! state.form
       }
-    case _: Command => sender ! ViewIsCreating
+    case _: Command => sender ! FormIsCreating
   }
 
   def created: Receive = {
-    case GetView(pid, user) =>
+    case GetForm(pid, user) =>
       val replyTo = sender
-      getView(user).foreach {
-        case dgd: DoGetView => replyTo ! state.view
+      getForm(user).foreach {
+        case dgd: DoGetForm => replyTo ! state.form
         case other          => replyTo ! other
       }
-    case ReplaceView(_, user, raw) =>
+    case ReplaceForm(_, user, raw) =>
       val replyTo = sender
-      replaceView(user, raw).foreach {
-        case drd: DoReplaceView => self ! drd.copy(request = Some(replyTo))
+      replaceForm(user, raw).foreach {
+        case drd: DoReplaceForm => self ! drd.copy(request = Some(replyTo))
         case other              => replyTo ! other
       }
-    case DoReplaceView(user, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+    case DoReplaceForm(user, raw, Some(replyTo: ActorRef)) =>
+      persist(FormReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         replyTo ! updateAndSave(evt)
       }
-    case PatchView(_, user, patch) =>
+    case PatchForm(_, user, patch) =>
       val replyTo = sender
-      patchView(user, patch).foreach {
-        case dpd: DoPatchView => self ! dpd.copy(request = Some(replyTo))
+      patchForm(user, patch).foreach {
+        case dpd: DoPatchForm => self ! dpd.copy(request = Some(replyTo))
         case other            => replyTo ! other
       }
-    case DoPatchView(user, patch, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
+    case DoPatchForm(user, patch, raw, Some(replyTo: ActorRef)) =>
+      persist(FormPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
         replyTo ! updateAndSave(evt)
       }
-    case RemoveView(_, user) =>
+    case RemoveForm(_, user) =>
       val replyTo = sender
-      removeView(user).foreach {
-        case ddd: DoRemoveView => self ! ddd.copy(request = Some(replyTo))
+      removeForm(user).foreach {
+        case ddd: DoRemoveForm => self ! ddd.copy(request = Some(replyTo))
         case other             => replyTo ! other
       }
-    case DoRemoveView(user, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
+    case DoRemoveForm(user, raw, Some(replyTo: ActorRef)) =>
+      persist(FormRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
         state = state.updated(evt)
         deleteMessages(lastSequenceNr)
         deleteSnapshots(SnapshotSelectionCriteria.Latest)
-        val view = state.view.toJson.asJsObject
-        saveSnapshot(view)
+        val form = state.form.toJson.asJsObject
+        saveSnapshot(form)
         context.become(removed)
-        replyTo ! evt.copy(raw = view)
+        replyTo ! evt.copy(raw = form)
         context.parent ! Passivate(stopMessage = PoisonPill)
-      }
-    case FindDocuments(_, user, query) =>
-      val replyTo = sender
-      findDocuments(user, query).foreach {
-        case DoFindDocuments(_, _, Some(result)) => replyTo ! result
-        case other                               => replyTo ! other
-      }
-    case Refresh(pid, user) =>
-      val replyTo = sender
-      refresh(user).foreach {
-        case dr: DoRefresh => replyTo ! Refreshed
-        case other         => replyTo ! other
       }
     case GetACL(_, user) =>
       val replyTo = sender
       getACL(user).foreach {
-        case dga: DoGetACL => replyTo ! state.view.raw.fields("_metadata").asJsObject.fields("acl")
+        case dga: DoGetACL => replyTo ! state.form.raw.fields("_metadata").asJsObject.fields("acl")
         case other         => replyTo ! other
       }
     case ReplaceACL(_, user, raw) =>
@@ -394,7 +377,7 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
       }
     case PatchACL(_, user, patch) =>
       val replyTo = sender
-      patchACL(user, state.view.raw.fields("_metadata").asJsObject.fields("acl"), patch).foreach {
+      patchACL(user, state.form.raw.fields("_metadata").asJsObject.fields("acl"), patch).foreach {
         case dsa: DoPatchACL => self ! dsa.copy(request = Some(replyTo))
         case other           => replyTo ! other
       }
@@ -436,24 +419,24 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
       }
     case SaveSnapshotSuccess(metadata) =>
     case SaveSnapshotFailure(metadata, reason) =>
-    case _: CreateView => sender ! ViewAlreadyExists
+    case _: CreateForm => sender ! FormAlreadyExists
     case _: DomainRemoved | _: CollectionActor.CollectionRemoved => context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   def removed: Receive = {
-    case GetView(_, user) =>
+    case GetForm(_, user) =>
       val replyTo = sender
       val parent = context.parent
-      getView(user).foreach {
-        case dgd: DoGetView =>
-          replyTo ! state.view
+      getForm(user).foreach {
+        case dgd: DoGetForm =>
+          replyTo ! state.form
           parent ! Passivate(stopMessage = PoisonPill)
         case other =>
           replyTo ! other
           parent ! Passivate(stopMessage = PoisonPill)
       }
     case _: Command =>
-      sender ! ViewSoftRemoved
+      sender ! FormSoftRemoved
       context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
@@ -465,82 +448,56 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
   private def updateAndSave(evt: Event) = {
     state = state.updated(evt)
     deleteSnapshots(SnapshotSelectionCriteria.Latest)
-    saveSnapshot(state.view.toJson.asJsObject)
-    state.view
+    saveSnapshot(state.form.toJson.asJsObject)
+    state.form
   }
 
-  private def createView(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
-    val dcd = DoCreateView(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("view")))))
+  private def createForm(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
+    val dcd = DoCreateForm(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("form")))))
     initFlag match {
       case Some(true) => Future.successful(dcd)
-      case other => (domainRegion ? CheckPermission(DomainActor.persistenceId(rootDomain, domain), user, CreateView)).map {
+      case other => (domainRegion ? CheckPermission(DomainActor.persistenceId(rootDomain, domain), user, CreateForm)).map {
         case Granted => dcd
         case Denied  => Denied
       }
     }
   }
 
-  private def getView(user: String) = checkPermission(user, GetView).map {
-    case Granted => DoGetView(user)
+  private def getForm(user: String) = checkPermission(user, GetForm).map {
+    case Granted => DoGetForm(user)
     case other   => other
   }.recover { case e => e }
 
-  private def replaceView(user: String, raw: JsObject) = checkPermission(user, ReplaceView).map {
-    case Granted => DoReplaceView(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+  private def replaceForm(user: String, raw: JsObject) = checkPermission(user, ReplaceForm).map {
+    case Granted => DoReplaceForm(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
     case other   => other
   }.recover { case e => e }
 
-  private def patchView(user: String, patch: JsonPatch) = checkPermission(user, PatchView).map {
+  private def patchForm(user: String, patch: JsonPatch) = checkPermission(user, PatchForm).map {
     case Granted =>
       Try {
-        patch(state.view.raw)
+        patch(state.form.raw)
       } match {
-        case Success(_) => DoPatchView(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
-        case Failure(e) => PatchViewException(e)
+        case Success(_) => DoPatchForm(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+        case Failure(e) => PatchFormException(e)
       }
     case other => other
   }.recover { case e => e }
 
-  private def removeView(user: String) = checkPermission(user, RemoveView).map {
-    case Granted => DoRemoveView(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+  private def removeForm(user: String) = checkPermission(user, RemoveForm).map {
+    case Granted => DoRemoveForm(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
     case other   => other
   }.recover { case e => e }
 
-  private def getIndexAliases: String = state.view.raw.getFields("collections") match {
-    case Seq(collections: JsArray) => collections.elements.map { jv => s"${domain}~${jv.asInstanceOf[JsString].value}~all~snapshots" }.reduceLeft(_ + "," + _)
-    case _                         => "_all"
-  }
-
-  private def refresh(user: String) = checkPermission(user, Refresh).flatMap {
-    case Granted => store.refresh(getIndexAliases).map {
-      case (StatusCodes.OK, _) => DoRefresh(user)
-      case (code, jv)          => throw new RuntimeException(s"Find views error: $jv")
-    }
-    case other => Future.successful(other)
-  }.recover { case e => e }
-
-  private def findDocuments(user: String, query: JsObject) = checkPermission(user, FindDocuments).flatMap {
-    case Granted => filterQuery(domain, user, query).flatMap {
-      case fq: JsObject => println(fq.prettyPrint);store.search(getIndexAliases, fq.compactPrint).map {
-        case (StatusCodes.OK, jo: JsObject) => DoFindDocuments(user, query, Some(jo))
-        case (code, jv)                     => throw new RuntimeException(s"Find views error: $jv")
-      }
-      case other => throw new RuntimeException(s"Find views error: $other")
-    }
-    case other => Future.successful(other)
-  }.recover { case e => e }
-
   val commandPermissionMap = Map[Any, String](
-    GetView -> "get",
-    ReplaceView -> "replace",
-    PatchView -> "patch",
-    RemoveView -> "remove",
+    GetForm -> "get",
+    ReplaceForm -> "replace",
+    PatchForm -> "patch",
+    RemoveForm -> "remove",
     GetACL -> "getACL",
     ReplaceACL -> "replaceACL",
     PatchACL -> "patchACL",
     PatchEventACL -> "patchEventACL",
-    FindDocuments -> "findDocuments",
-    Refresh -> "refresh",
     RemovePermissionSubject -> "removePermissionSubject",
     RemoveEventPermissionSubject -> "removeEventPermissionSubject")
 
@@ -550,7 +507,7 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
         case (".profiles", `user`) => Future.successful(Granted)
         case _ => fetchProfile(domain, user).map {
           case Document(_, _, _, _, _, _, profile) =>
-            val aclObj = state.view.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
+            val aclObj = state.form.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
             val userRoles = profileValue(profile, "roles")
             val userGroups = profileValue(profile, "groups")
             val (aclRoles, aclGroups, aclUsers) = commandPermissionMap.get(command) match {

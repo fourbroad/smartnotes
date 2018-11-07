@@ -10,6 +10,8 @@
  */
 
 import Document from './document';
+import Form from './form';
+import uuidv4 from 'uuid/v4';
 import utils from './utils';
 import _ from 'lodash';
 
@@ -19,8 +21,22 @@ import _ from 'lodash';
 var collectionProto, create;
 
 collectionProto = {
-  createDocument: function(docId, docRaw, callback) {
+  createDocument: function() {
 	const domainId = this.domainId, collectionId = this.id, socket = this.socket;
+	var docId, docRaw, callback;
+
+	if(arguments.length == 2 && typeof arguments[1] == 'function'){
+	  docId = uuidv4();
+	  docRaw = arguments[0];
+	  callback = arguments[1];
+	} else if(arguments.length == 3 && typeof arguments[2] == 'function'){
+	  docId = arguments[0];
+	  docRaw = arguments[1];
+	  callback = arguments[2];
+	} else {
+	  throw utils.makeError('Error', 'Number or type of Arguments is not correct!', arguments);
+	}
+	  	
 	socket.emit('createDocument', domainId, collectionId, docId, docRaw, function(err, docData) {
 	  callback(err, err ? null : Document.create(socket, domainId, collectionId, docData));
 	});
@@ -90,7 +106,7 @@ collectionProto = {
 	  callback(err, result);
 	});
   },
-  
+
   findDocuments: function(query, callback) {
     const domainId = this.domainId, collectionId = this.id, socket = this.socket;
 	socket.emit('findCollectionDocuments', domainId, collectionId, query, function(err, docsData) {
@@ -101,6 +117,17 @@ collectionProto = {
       })
 
 	  callback(null, {total:docsData.hits.total, documents: documents});
+	});
+  },
+
+  findForms: function(query, callback){
+    const domainId = this.domainId, collectionId = this.id, socket = this.socket;
+    socket.emit('findCollectionFoms', domainId, collectionId, query, function(err, formInfos){
+      if(err) return callback(err);
+      var forms = _.map(formInfos.hits.hits, function(formInfo){
+      	return Form.create(socket, domainId, formInfo._source);
+      });
+	  callback(null, {total:formInfos.hits.total, forms: forms});
 	});
   },
 

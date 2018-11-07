@@ -10,8 +10,12 @@
   white  : true
  */
 
-import View from './view';
 import Collection from './collection';
+import View from './view';
+import Form from './form';
+import Profile from './profile';
+import Role from './role';
+import User from './user';
 import utils from './utils';
 import uuidv4 from 'uuid/v4';
 import _ from 'lodash';
@@ -21,7 +25,7 @@ import _ from 'lodash';
 var domainProto, create;
 
 domainProto = {
-  createCollection: function(collectionId, collectionRaw, callback){
+  createCollection: function(){
     const domainId = this.id, socket = this.socket;
 	var collectionId, collectionRaw, callback; 
 	   
@@ -49,10 +53,56 @@ domainProto = {
 	});
   },
 
+  findCollections: function(query, callback){
+    const domainId = this.id, socket = this.socket;
+    socket.emit('findCollections', domainId, query, function(err, collectionInfos){
+      if(err) return callback(err);
+      var collections = _.map(collectionInfos.hits.hits, function(collectionInfo){
+      	return Collection.create(socket, domainId, collectionInfo._source);
+      })
+
+	  callback(null, {total:collectionInfos.hits.total, collections: collections});
+	});
+  },
+
+  getDocument: function(collectionId, documentId, callback){
+    const domainId = this.id, socket = this.socket;
+	socket.emit('getDocument', domainId, collectionId, documentId, function(err, docData) {
+      if(err) return callback(err);
+
+      switch(docData._metadata.type){
+      	case 'domain':
+      	  callback(null, create(socket, docData));
+      	  break;
+        case 'collection':
+          callback(null, Collection.create(socket, domainId, docData));
+          break;
+        case 'view':
+          callback(null, View.create(socket, domainId, docData));
+          break;
+        case 'form':
+          callback(null, Form.create(socket, domainId, docData));
+          break;
+        case 'role':
+          callback(null, Role.create(socket, domainId, docData));
+          break;
+        case 'profile':
+          callback(null, Profile.create(socket, domainId, docData));
+          break;
+        case 'user':
+          callback(null, View.create(socket, docData));
+          break;
+        default:
+          callback(null, Document.create(socket, domainId, collectionId, docData));
+          break;
+      }      
+	});
+  },
+
   createView: function(){
     const domainId = this.id, socket = this.socket;
 	var viewId, viewRaw, callback;
-	  
+
 	if(arguments.length == 2 && typeof arguments[1] == 'function'){
 	  viewId = uuidv4();
 	  viewRaw = arguments[0];
@@ -77,45 +127,85 @@ domainProto = {
 	});
   },
 
-  findCollections: function(callback){
+  findViews: function(query, callback){
     const domainId = this.id, socket = this.socket;
-    socket.emit('findCollections', this.id, function(err, collectionInfos){
-      if(err) return callback(err);
-      var collections = _.map(collectionInfos.hits.hits, function(collectionInfo){
-      	return Collection.create(socket, domainId, collectionInfo._source);
-      })
-
-	  callback(null, {total:collectionInfos.hits.total, collections: collections});
-	});
-  },
-
-  findViews: function(callback){
-    const domainId = this.id, socket = this.socket;
-    socket.emit('findViews', this.id, function(err, viewInfos){
+    socket.emit('findViews', domainId, query, function(err, viewInfos){
       if(err) return callback(err); 
       var views = _.map(viewInfos.hits.hits, function(viewInfo){
       	return View.create(socket, domainId, viewInfo._source);
       })
-
 	  callback(null, {total:viewInfos.hits.total, views: views});
 	});
   },
 
-  findForms: function(callback){
+  createForm: function(){
     const domainId = this.id, socket = this.socket;
-    socket.emit('findFoms', this.id, function(err, formInfos){
-      if(err) return callback(err);      	
+	var formId, formRaw, callback;
+
+	if(arguments.length == 2 && typeof arguments[1] == 'function'){
+	  formId = uuidv4();
+	  formRaw = arguments[0];
+	  callback = arguments[1];
+	} else if(arguments.length == 3 && typeof arguments[2] == 'function'){
+	  formId = arguments[0];
+	  formRaw = arguments[1];
+	  callback = arguments[2];
+	} else {
+	  throw utils.makeError('Error', 'Number or type of Arguments is not correct!', arguments);
+	}
+	    
+	socket.emit('createView', domainId, formId, formRaw, function(err, formData){
+	  callback(err, err ? null : View.create(socket, domainId, formData));	  
+	});
+  },
+  
+  getForm: function(formId, callback){
+    const domainId = this.id, socket = this.socket;
+	socket.emit('getForm', domainId, formId, function(err, formData){
+	  callback(err, err ? null : Form.create(socket, domainId, formData));
+	});
+  },
+
+  findForms: function(query, callback){
+    const domainId = this.id, socket = this.socket;
+    socket.emit('findDomainFoms', domainId, query, function(err, formInfos){
+      if(err) return callback(err);
       var forms = _.map(formInfos.hits.hits, function(formInfo){
       	return Form.create(socket, domainId, formInfo._source);
-      })
-
+      });
 	  callback(null, {total:formInfos.hits.total, forms: forms});
 	});
   },
 
-  findRoles: function(callback){
+  createRole: function(roleId, roleRaw, callback){
     const domainId = this.id, socket = this.socket;
-    socket.emit('findRoles', this.id, function(err, roleInfos){
+	if(arguments.length == 2 && typeof arguments[1] == 'function'){
+	  roleId = uuidv4();
+	  roleRaw = arguments[0];
+	  callback = arguments[1];
+	} else if(arguments.length == 3 && typeof arguments[2] == 'function'){
+	  roleId = arguments[0];
+	  roleRaw = arguments[1];
+	  callback = arguments[2];
+	} else {
+	  throw utils.makeError('Error', 'Number or type of Arguments is not correct!', arguments);
+	}
+	    
+	socket.emit('createRole', domainId, roleId, roleRaw, function(err, roleData){
+	  callback(err, err ? null : Role.create(socket, domainId, roleData));	  
+	});
+  },
+
+  getRole: function(roleId, callback){
+    const domainId = this.id, socket = this.socket;
+	socket.emit('getRole', domainId, roleId, function(err, roleData){
+	  callback(err, err ? null : Role.create(socket, domainId, roleData));
+	});
+  },  
+
+  findRoles: function(query, callback){
+    const domainId = this.id, socket = this.socket;
+    socket.emit('findRoles', domainId, query, function(err, roleInfos){
       if(err) return callback(err);      	
       var roles = _.map(roleInfos.hits.hits, function(roleInfo){
       	return Role.create(socket, domainId, roleInfo._source);
@@ -125,9 +215,35 @@ domainProto = {
 	});
   },
 
-  findProfiles: function(callback){
+  createProfile: function(profileId, profileRaw, callback){
     const domainId = this.id, socket = this.socket;
-    socket.emit('findProfiles', this.id, function(err, profileInfos){
+	if(arguments.length == 2 && typeof arguments[1] == 'function'){
+	  profileId = uuidv4();
+	  profileRaw = arguments[0];
+	  callback = arguments[1];
+	} else if(arguments.length == 3 && typeof arguments[2] == 'function'){
+	  profileId = arguments[0];
+	  profileRaw = arguments[1];
+	  callback = arguments[2];
+	} else {
+	  throw utils.makeError('Error', 'Number or type of Arguments is not correct!', arguments);
+	}
+	    
+	socket.emit('createProfile', domainId, profileId, profileRaw, function(err, profileData){
+	  callback(err, err ? null : Profile.create(socket, domainId, profileData));	  
+	});
+  },
+
+  getProfile: function(profileId, callback){
+    const domainId = this.id, socket = this.socket;
+	socket.emit('getProfile', domainId, profileId, function(err, profileData){
+	  callback(err, err ? null : Profile.create(socket, domainId, profileData));
+	});
+  },  
+
+  findProfiles: function(query, callback){
+    const domainId = this.id, socket = this.socket;
+    socket.emit('findProfiles', domainId, query, function(err, profileInfos){
       if(err) return callback(err);      	
       var profiles = _.map(profileInfos.hits.hits, function(profileInfo){
       	return Profile.create(socket, domainId, profileInfo._source);
@@ -137,9 +253,23 @@ domainProto = {
 	});
   },
 
-  findUsers: function(callback){
-    const domainId = this.id, socket = this.socket;
-    socket.emit('findUsers', this.id, function(err, userInfos){
+  createUser: function(userId, userRaw, callback){
+    const socket = this.socket;
+	socket.emit('createUser', userId, userRaw, function(err, userData){
+	  callback(err, err ? null : User.create(socket, domainId, userData));	  
+	});
+  },
+
+  getUser: function(userId, callback){
+    const socket = this.socket;
+	socket.emit('getUser', userId, function(err, userData){
+	  callback(err, err ? null : User.create(socket, domainId, userData));
+	});
+  },  
+
+  findUsers: function(query, callback){
+    const socket = this.socket;
+    socket.emit('findUsers', query, function(err, userInfos){
       if(err) return callback(err);      	
       var users = _.map(userInfos.hits.hits, function(userInfo){
       	return User.create(socket, domainId, userInfo._source);
@@ -149,12 +279,26 @@ domainProto = {
 	});
   },
 
-  findDomains: function(callback){
-    const domainId = this.id, socket = this.socket;
-    socket.emit('findDomains', this.id, function(err, domainInfos){
+  createDomain: function(domainId, domainRaw, callback){
+    const socket = this.socket;
+	socket.emit('createDomain', domainId, domainRaw, function(err, domainData){
+	  callback(err, err ? null : Domain.create(socket, domainData));	  
+	});
+  },
+
+  getDomain: function(domainId, callback){
+    const socket = this.socket;
+	socket.emit('getDomain', domainId, function(err, domainData){
+	  callback(err, err ? null : Domain.create(socket, domainData));
+	});
+  },  
+
+  findDomains: function(query, callback){
+    const socket = this.socket;
+    socket.emit('findDomains', query, function(err, domainInfos){
       if(err) return callback(err);
       var domains = _.map(domainInfos.hits.hits, function(domainInfo){
-        return Domain.create(socket, domainId, domainInfo._source)
+        return Domain.create(socket, domainInfo._source)
       })
 	  callback(null, {total:domainInfos.hits.total, domains: domains});
 	});
@@ -228,7 +372,7 @@ create = function(socket, domainData){
 	  enumerable: false
 	}
   });
-		  
+
   return utils.extend(true, domain, domainData);
 };
 

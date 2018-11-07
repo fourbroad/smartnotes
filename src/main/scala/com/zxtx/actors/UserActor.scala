@@ -54,7 +54,7 @@ object UserActor {
   }
   case class User(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, removed: Option[Boolean], raw: JsObject)
 
-  case class CreateUser(pid: String, user: String, raw: JsObject) extends Command
+  case class CreateUser(pid: String, user: String, raw: JsObject, initFlag: Option[Boolean] = None) extends Command
   case class GetUser(pid: String, user: String) extends Command
   case class ReplaceUser(pid: String, user: String, raw: JsObject) extends Command
   case class PatchUser(pid: String, user: String, patch: JsonPatch) extends Command
@@ -129,7 +129,7 @@ object UserActor {
       import gnieh.diffson.sprayJson.provider.patchMarshaller
       def write(dp: UserPatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
-        JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"UserPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch), "UserPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
         val (id, author, revision, created, patch, jo) = extractFieldsWithPatch(value, "UserPatched event expected!")
@@ -215,7 +215,7 @@ object UserActor {
           case other       => other
         }
         val metaFields = raw.fields("_metadata").asJsObject.fields
-        val metadata = JsObject(metaFields+("author" -> JsString(author))+("revision" -> JsNumber(revision))+("created" -> JsNumber(created))+("updated" -> JsNumber(created))+("acl" -> acl(user)))
+        val metadata = JsObject(metaFields + ("author" -> JsString(author)) + ("revision" -> JsNumber(revision)) + ("created" -> JsNumber(created)) + ("updated" -> JsNumber(created)) + ("acl" -> acl(user)))
         copy(user = User(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
       case UserReplaced(_, _, revision, created, raw) =>
         val oldMetaFields = user.raw.fields("_metadata").asJsObject.fields
@@ -270,7 +270,7 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
 
   val rootDomain = system.settings.config.getString("domain.root-domain")
   val adminName = system.settings.config.getString("domain.administrator.name")
-  val domainRegion = ClusterSharding(system).shardRegion(UserActor.shardName)
+  val domainRegion = ClusterSharding(system).shardRegion(DomainActor.shardName)
   val collectionRegion = ClusterSharding(system).shardRegion(CollectionActor.shardName)
 
   val userCollectionId = s"${rootDomain}~.collections~.users"
@@ -317,10 +317,10 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
   override def receiveCommand: Receive = initial
 
   def initial: Receive = {
-    case CreateUser(_, token, raw) =>
+    case CreateUser(_, token, raw, initFlag) =>
       val replyTo = sender
       val parent = context.parent
-      createUser(token, raw).foreach {
+      createUser(token, raw, initFlag).foreach {
         case dcd: DoCreateUser => self ! dcd.copy(request = Some(replyTo))
         case other =>
           replyTo ! other
@@ -455,7 +455,7 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
       }
     case SaveSnapshotSuccess(metadata)         =>
     case SaveSnapshotFailure(metadata, reason) =>
-    case CreateUser(_, _, _)                   => sender ! UserAlreadyExists
+    case CreateUser(_, _, _, _)                => sender ! UserAlreadyExists
   }
 
   def removed: Receive = {
@@ -485,19 +485,25 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
     state.user
   }
 
-  private def createUser(user: String, userInfo: JsObject) = (collectionRegion ? CheckPermission(userCollectionId, user, CreateDocument)).map {
-    case Granted =>
-      val fields = userInfo.fields
-      fields.get("id") match {
-        case Some(JsString(id)) =>
-          fields.get("password") match {
-            case Some(JsString(password)) => DoCreateUser(user, JsObject(fields + ("password" -> JsString(password.md5.hex)) + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("user")))))
-            case None                     => PasswordNotExists
-          }
-        case None => UserIdNotExists
-      }
-    case Denied => Denied
-  }.recover { case e => e }
+  private def createUser(user: String, userInfo: JsObject, initFlag: Option[Boolean]) = {
+    val fields = userInfo.fields
+    fields.get("id") match {
+      case Some(JsString(id)) =>
+        fields.get("password") match {
+          case Some(JsString(password)) =>
+            val dcu = DoCreateUser(user, JsObject(fields + ("password" -> JsString(password.md5.hex)) + ("_metadata" -> JsObject("acl" -> eventACL(user), "type" -> JsString("user")))))
+            initFlag match {
+              case Some(true) => Future.successful(dcu)
+              case other => (domainRegion ? CheckPermission(DomainActor.persistenceId(rootDomain, rootDomain), user, CreateUser)).map {
+                case Granted => dcu
+                case Denied  => Denied
+              }
+            }
+          case None => Future.successful(PasswordNotExists)
+        }
+      case None => Future.successful(UserIdNotExists)
+    }
+  }
 
   private def getUser(user: String) = checkPermission(user, GetUser).map {
     case Granted => DoGetUser(user)
@@ -551,7 +557,7 @@ class UserActor extends PersistentActor with ACL with ActorLogging {
         case Some(permission) => (aclValue(aclObj, permission, "roles"), aclValue(aclObj, permission, "groups"), aclValue(aclObj, permission, "users"))
         case None             => (Vector[String](), Vector[String](), Vector[String]())
       }
-      if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && !aclUsers.contains(user)) Denied else Granted
+      if (aclRoles.intersect(userRoles).isEmpty && aclGroups.intersect(userGroups).isEmpty && aclUsers.intersect(Vector[String](user,"anonymous")).isEmpty) Denied else Granted
     case _ => Denied
   }
 }

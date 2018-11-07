@@ -37,105 +37,100 @@ import spray.json._
 import gnieh.diffson.sprayJson.JsonPatch
 import akka.persistence.SnapshotSelectionCriteria
 
-object ViewActor {
+object RoleActor {
 
-  def props(): Props = Props[ViewActor]
+  def props(): Props = Props[RoleActor]
 
-  object View {
-    val empty = new View("", "", 0L, 0L, 0L, None, spray.json.JsObject())
+  object Role {
+    val empty = new Role("", "", 0L, 0L, 0L, None, spray.json.JsObject())
   }
-  case class View(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, removed: Option[Boolean], raw: JsObject)
+  case class Role(id: String, author: String = "anonymous", revision: Long, created: Long, updated: Long, removed: Option[Boolean], raw: JsObject)
 
-  case class GetView(pid: String, user: String) extends Command
-  case class CreateView(pid: String, user: String, raw: JsObject, initFlag: Option[Boolean] = None) extends Command
-  case class ReplaceView(pid: String, user: String, raw: JsObject) extends Command
-  case class PatchView(pid: String, user: String, patch: JsonPatch) extends Command
-  case class RemoveView(pid: String, user: String) extends Command
-  case class Refresh(pid: String, user: String) extends Command
-  case class FindDocuments(pid: String, user: String, query: JsObject) extends Command
+  case class GetRole(pid: String, user: String) extends Command
+  case class CreateRole(pid: String, user: String, raw: JsObject, initFlag: Option[Boolean] = None) extends Command
+  case class ReplaceRole(pid: String, user: String, raw: JsObject) extends Command
+  case class PatchRole(pid: String, user: String, patch: JsonPatch) extends Command
+  case class RemoveRole(pid: String, user: String) extends Command
 
-  private case class DoGetView(user: String, request: Option[Any] = None)
-  private case class DoCreateView(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoReplaceView(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoPatchView(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
-  private case class DoRemoveView(user: String, raw: JsObject, request: Option[Any] = None)
-  private case class DoFindDocuments(user: String, query: JsObject, request: Option[Any] = None)
-  private case class DoRefresh(user: String, request: Option[Any] = None)
+  private case class DoGetRole(user: String, request: Option[Any] = None)
+  private case class DoCreateRole(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoReplaceRole(user: String, raw: JsObject, request: Option[Any] = None)
+  private case class DoPatchRole(user: String, patch: JsonPatch, raw: JsObject, request: Option[Any] = None)
+  private case class DoRemoveRole(user: String, raw: JsObject, request: Option[Any] = None)
 
-  case class ViewCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
-  case class ViewReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
-  case class ViewPatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends Event
-  case class ViewRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
-  case object Refreshed extends Event
+  case class RoleCreated(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
+  case class RoleReplaced(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
+  case class RolePatched(id: String, author: String, revision: Long, created: Long, patch: JsonPatch, raw: JsObject) extends Event
+  case class RoleRemoved(id: String, author: String, revision: Long, created: Long, raw: JsObject) extends Event
 
-  case object ViewNotFound extends Exception
-  case object ViewAlreadyExists extends Exception
-  case object ViewIsCreating extends Exception
-  case object ViewSoftRemoved extends Exception
-  case class PatchViewException(exception: Throwable) extends Exception
+  case object RoleNotFound extends Exception
+  case object RoleAlreadyExists extends Exception
+  case object RoleIsCreating extends Exception
+  case object RoleSoftRemoved extends Exception
+  case class PatchRoleException(exception: Throwable) extends Exception
 
   val idExtractor: ShardRegion.ExtractEntityId = { case cmd: Command => (cmd.pid, cmd) }
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
-  val shardName: String = "Views"
+  val shardName: String = "Roles"
 
-  def persistenceId(domain: String, viewId: String) = s"${domain}~.views~${viewId}"
+  def persistenceId(domain: String, roleId: String) = s"${domain}~.roles~${roleId}"
 
   object JsonProtocol extends DocumentJsonProtocol {
-    implicit object ViewFormat extends RootJsonFormat[View] {
-      def write(view: View) = {
-        val metaObj = newMetaObject(view.raw.getFields("_metadata"), view.author, view.revision, view.created, view.updated, view.removed)
-        JsObject(("id" -> JsString(view.id)) :: view.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+    implicit object RoleFormat extends RootJsonFormat[Role] {
+      def write(role: Role) = {
+        val metaObj = newMetaObject(role.raw.getFields("_metadata"), role.author, role.revision, role.created, role.updated, role.removed)
+        JsObject(("id" -> JsString(role.id)) :: role.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, updated, removed, raw) = extractFieldsWithUpdatedRemoved(value, "View expected!")
-        View(id, author, revision, created, updated, removed, raw)
+        val (id, author, revision, created, updated, removed, raw) = extractFieldsWithUpdatedRemoved(value, "Role expected!")
+        Role(id, author, revision, created, updated, removed, raw)
       }
     }
 
-    implicit object ViewCreatedFormat extends RootJsonFormat[ViewCreated] {
-      def write(dc: ViewCreated) = {
+    implicit object RoleCreatedFormat extends RootJsonFormat[RoleCreated] {
+      def write(dc: RoleCreated) = {
         val metaObj = newMetaObject(dc.raw.getFields("_metadata"), dc.author, dc.revision, dc.created)
         JsObject(("id" -> JsString(dc.id)) :: dc.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, raw) = extractFields(value, "ViewCreated event expected!")
-        ViewCreated(id, author, revision, created, raw)
+        val (id, author, revision, created, raw) = extractFields(value, "RoleCreated event expected!")
+        RoleCreated(id, author, revision, created, raw)
       }
     }
 
-    implicit object ViewReplacedFormat extends RootJsonFormat[ViewReplaced] {
-      def write(dr: ViewReplaced) = {
+    implicit object RoleReplacedFormat extends RootJsonFormat[RoleReplaced] {
+      def write(dr: RoleReplaced) = {
         val metaObj = newMetaObject(dr.raw.getFields("_metadata"), dr.author, dr.revision, dr.created)
         JsObject(("id" -> JsString(dr.id)) :: dr.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, raw) = extractFields(value, "ViewReplaced event expected!")
-        ViewReplaced(id, author, revision, created, raw)
+        val (id, author, revision, created, raw) = extractFields(value, "RoleReplaced event expected!")
+        RoleReplaced(id, author, revision, created, raw)
       }
     }
 
-    implicit object ViewPatchedFormat extends RootJsonFormat[ViewPatched] {
+    implicit object RolePatchedFormat extends RootJsonFormat[RolePatched] {
       import gnieh.diffson.sprayJson.provider._
       import gnieh.diffson.sprayJson.provider.marshall
 
-      def write(dp: ViewPatched) = {
+      def write(dp: RolePatched) = {
         val metaObj = newMetaObject(dp.raw.getFields("_metadata"), dp.author, dp.revision, dp.created)
-        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"ViewPatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
+        spray.json.JsObject(("id" -> JsString(dp.id)) :: ("patch" -> patchValueToString(marshall(dp.patch),"RolePatched event expected!")) :: dp.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, patch, raw) = extractFieldsWithPatch(value, "ViewPatched event expected!")
-        ViewPatched(id, author, revision, created, patch, raw)
+        val (id, author, revision, created, patch, raw) = extractFieldsWithPatch(value, "RolePatched event expected!")
+        RolePatched(id, author, revision, created, patch, raw)
       }
     }
 
-    implicit object ViewRemovedFormat extends RootJsonFormat[ViewRemoved] {
-      def write(dd: ViewRemoved) = {
+    implicit object RoleRemovedFormat extends RootJsonFormat[RoleRemoved] {
+      def write(dd: RoleRemoved) = {
         val metaObj = newMetaObject(dd.raw.getFields("_metadata"), dd.author, dd.revision, dd.created)
         JsObject(("id" -> JsString(dd.id)) :: dd.raw.fields.toList ::: ("_metadata" -> metaObj) :: Nil)
       }
       def read(value: JsValue) = {
-        val (id, author, revision, created, raw) = extractFields(value, "ViewRemoved event expected!")
-        ViewRemoved(id, author, revision, created, raw)
+        val (id, author, revision, created, raw) = extractFields(value, "RoleRemoved event expected!")
+        RoleRemoved(id, author, revision, created, raw)
       }
     }
   }
@@ -191,55 +186,55 @@ object ViewActor {
         }
       }""".parseJson.asJsObject
 
-  private case class State(view: View) {
+  private case class State(role: Role) {
     def updated(evt: Event): State = evt match {
-      case ViewCreated(id, author, revision, created, raw) =>
+      case RoleCreated(id, author, revision, created, raw) =>
         val metaFields = raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(metaFields+("author" -> JsString(author))+("revision" -> JsNumber(revision))+("created" -> JsNumber(created))+("updated" -> JsNumber(created))+("acl" -> acl(author)))
-        copy(view = View(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
-      case ViewReplaced(_, _, revision, created, raw) =>
-        val oldMetaFields = view.raw.fields("_metadata").asJsObject.fields
+        copy(role = Role(id, author, revision, created, created, None, JsObject(raw.fields + ("_metadata" -> metadata))))
+      case RoleReplaced(_, _, revision, created, raw) =>
+        val oldMetaFields = role.raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(raw.fields + ("_metadata" -> metadata))))
-      case ViewPatched(_, _, revision, created, patch, _) =>
-        val patchedDoc = patch(view.raw).asJsObject
+        copy(role = role.copy(revision = revision, updated = created, raw = JsObject(raw.fields + ("_metadata" -> metadata))))
+      case RolePatched(_, _, revision, created, patch, _) =>
+        val patchedDoc = patch(role.raw).asJsObject
         val oldMetaFields = patchedDoc.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject((patchedDoc.fields - "_metadata") + ("_metadata" -> metadata))))
-      case ViewRemoved(_, _, revision, created, _) =>
-        val oldMetaFields = view.raw.fields("_metadata").asJsObject.fields
+        copy(role = role.copy(revision = revision, updated = created, raw = JsObject((patchedDoc.fields - "_metadata") + ("_metadata" -> metadata))))
+      case RoleRemoved(_, _, revision, created, _) =>
+        val oldMetaFields = role.raw.fields("_metadata").asJsObject.fields
         val metadata = JsObject(oldMetaFields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("removed" -> JsBoolean(true)))
-        copy(view = view.copy(revision = revision, updated = created, removed = Some(true), raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
+        copy(role = role.copy(revision = revision, updated = created, removed = Some(true), raw = JsObject(role.raw.fields + ("_metadata" -> metadata))))
       case ACLReplaced(_, _, revision, created, raw) =>
-        val oldMetadata = view.raw.fields("_metadata").asJsObject
+        val oldMetadata = role.raw.fields("_metadata").asJsObject
         val replacedACL = JsObject(raw.fields - "_metadata" - "id")
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> replacedACL))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
+        copy(role = role.copy(revision = revision, updated = created, raw = JsObject(role.raw.fields + ("_metadata" -> metadata))))
       case ACLPatched(_, _, revision, created, patch, _) =>
-        val oldMetadata = view.raw.fields("_metadata").asJsObject
+        val oldMetadata = role.raw.fields("_metadata").asJsObject
         val patchedACL = patch(oldMetadata.fields("acl"))
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> patchedACL))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
+        copy(role = role.copy(revision = revision, updated = created, raw = JsObject(role.raw.fields + ("_metadata" -> metadata))))
       case PermissionSubjectRemoved(_, _, revision, created, raw) =>
-        val oldMetadata = view.raw.fields("_metadata").asJsObject
+        val oldMetadata = role.raw.fields("_metadata").asJsObject
         val operation = raw.fields("operation").asInstanceOf[JsString].value
         val kind = raw.fields("kind").asInstanceOf[JsString].value
         val subject = raw.fields("subject").asInstanceOf[JsString].value
         val acl = doRemovePermissionSubject(oldMetadata.fields("acl").asJsObject, operation, kind, subject)
         val metadata = JsObject(oldMetadata.fields + ("revision" -> JsNumber(revision)) + ("updated" -> JsNumber(created)) + ("acl" -> acl))
-        copy(view = view.copy(revision = revision, updated = created, raw = JsObject(view.raw.fields + ("_metadata" -> metadata))))
-      case _ => copy(view = view)
+        copy(role = role.copy(revision = revision, updated = created, raw = JsObject(role.raw.fields + ("_metadata" -> metadata))))
+      case _ => copy(role = role)
     }
 
-    def updated(view: View): State = view match {
-      case View(id, author, revision, created, updated, removed, raw) => copy(view = View(id, author, revision, created, updated, removed, raw))
+    def updated(role: Role): State = role match {
+      case Role(id, author, revision, created, updated, removed, raw) => copy(role = Role(id, author, revision, created, updated, removed, raw))
     }
   }
 }
 
-class ViewActor extends PersistentActor with ACL with ActorLogging {
-  import ViewActor._
-  import ViewActor.JsonProtocol._
+class RoleActor extends PersistentActor with ACL with ActorLogging {
+  import RoleActor._
+  import RoleActor.JsonProtocol._
   import DomainActor._
   import DocumentActor._
   import com.zxtx.persistence.ElasticSearchStore._
@@ -270,116 +265,104 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
   mediator ! Subscribe(domain, self)
   mediator ! Subscribe(s"${domain}~${collection}", self)
 
-  private var state = State(View.empty)
+  private var state = State(Role.empty)
 
   override def receiveRecover: Receive = {
-    case evt: ViewCreated =>
+    case evt: RoleCreated =>
       state = state.updated(evt)
       context.become(created)
-    case evt: ViewRemoved =>
+    case evt: RoleRemoved =>
       state = state.updated(evt)
       context.become(removed)
     case evt: Event =>
       state = state.updated(evt)
     case SnapshotOffer(_, jo: JsObject) =>
-      val view = jo.convertTo[View]
-      state = state.updated(view)
-      view.removed match {
+      val role = jo.convertTo[Role]
+      state = state.updated(role)
+      role.removed match {
         case Some(true) => context.become(removed)
         case _          => context.become(created)
       }
     case RecoveryCompleted =>
-      log.debug("ViewActor recovery completed.")
+      log.debug("RoleActor recovery completed.")
   }
 
   override def receiveCommand: Receive = initial
 
   def initial: Receive = {
-    case CreateView(_, user, raw, initFlag) =>
+    case CreateRole(_, user, raw, initFlag) =>
       val replyTo = sender
       val parent = context.parent
-      createView(user, raw, initFlag).foreach {
-        case dcd: DoCreateView => self ! dcd.copy(request = Some(replyTo))
+      createRole(user, raw, initFlag).foreach {
+        case dcd: DoCreateRole => self ! dcd.copy(request = Some(replyTo))
         case other =>
           replyTo ! other
           parent ! Passivate(stopMessage = PoisonPill)
       }
       context.become(creating)
-    case _: Command => sender ! ViewNotFound
+    case _: Command => sender ! RoleNotFound
   }
 
   def creating: Receive = {
-    case DoCreateView(user, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+    case DoCreateRole(user, raw, Some(replyTo: ActorRef)) =>
+      persist(RoleCreated(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         state = state.updated(evt)
-        val view = state.view.toJson.asJsObject
-        saveSnapshot(view)
+        val role = state.role.toJson.asJsObject
+        saveSnapshot(role)
         context.become(created)
-        replyTo ! state.view
+        replyTo ! state.role
       }
-    case _: Command => sender ! ViewIsCreating
+    case _: Command => sender ! RoleIsCreating
   }
 
   def created: Receive = {
-    case GetView(pid, user) =>
+    case GetRole(pid, user) =>
       val replyTo = sender
-      getView(user).foreach {
-        case dgd: DoGetView => replyTo ! state.view
+      getRole(user).foreach {
+        case dgd: DoGetRole => replyTo ! state.role
         case other          => replyTo ! other
       }
-    case ReplaceView(_, user, raw) =>
+    case ReplaceRole(_, user, raw) =>
       val replyTo = sender
-      replaceView(user, raw).foreach {
-        case drd: DoReplaceView => self ! drd.copy(request = Some(replyTo))
+      replaceRole(user, raw).foreach {
+        case drd: DoReplaceRole => self ! drd.copy(request = Some(replyTo))
         case other              => replyTo ! other
       }
-    case DoReplaceView(user, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
+    case DoReplaceRole(user, raw, Some(replyTo: ActorRef)) =>
+      persist(RoleReplaced(id, user, lastSequenceNr + 1, System.currentTimeMillis, raw)) { evt =>
         replyTo ! updateAndSave(evt)
       }
-    case PatchView(_, user, patch) =>
+    case PatchRole(_, user, patch) =>
       val replyTo = sender
-      patchView(user, patch).foreach {
-        case dpd: DoPatchView => self ! dpd.copy(request = Some(replyTo))
+      patchRole(user, patch).foreach {
+        case dpd: DoPatchRole => self ! dpd.copy(request = Some(replyTo))
         case other            => replyTo ! other
       }
-    case DoPatchView(user, patch, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewPatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
+    case DoPatchRole(user, patch, raw, Some(replyTo: ActorRef)) =>
+      persist(RolePatched(id, user, lastSequenceNr + 1, System.currentTimeMillis, patch, raw)) { evt =>
         replyTo ! updateAndSave(evt)
       }
-    case RemoveView(_, user) =>
+    case RemoveRole(_, user) =>
       val replyTo = sender
-      removeView(user).foreach {
-        case ddd: DoRemoveView => self ! ddd.copy(request = Some(replyTo))
+      removeRole(user).foreach {
+        case ddd: DoRemoveRole => self ! ddd.copy(request = Some(replyTo))
         case other             => replyTo ! other
       }
-    case DoRemoveView(user, raw, Some(replyTo: ActorRef)) =>
-      persist(ViewRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
+    case DoRemoveRole(user, raw, Some(replyTo: ActorRef)) =>
+      persist(RoleRemoved(id, user, lastSequenceNr + 1, System.currentTimeMillis(), raw)) { evt =>
         state = state.updated(evt)
         deleteMessages(lastSequenceNr)
         deleteSnapshots(SnapshotSelectionCriteria.Latest)
-        val view = state.view.toJson.asJsObject
-        saveSnapshot(view)
+        val role = state.role.toJson.asJsObject
+        saveSnapshot(role)
         context.become(removed)
-        replyTo ! evt.copy(raw = view)
+        replyTo ! evt.copy(raw = role)
         context.parent ! Passivate(stopMessage = PoisonPill)
-      }
-    case FindDocuments(_, user, query) =>
-      val replyTo = sender
-      findDocuments(user, query).foreach {
-        case DoFindDocuments(_, _, Some(result)) => replyTo ! result
-        case other                               => replyTo ! other
-      }
-    case Refresh(pid, user) =>
-      val replyTo = sender
-      refresh(user).foreach {
-        case dr: DoRefresh => replyTo ! Refreshed
-        case other         => replyTo ! other
       }
     case GetACL(_, user) =>
       val replyTo = sender
       getACL(user).foreach {
-        case dga: DoGetACL => replyTo ! state.view.raw.fields("_metadata").asJsObject.fields("acl")
+        case dga: DoGetACL => replyTo ! state.role.raw.fields("_metadata").asJsObject.fields("acl")
         case other         => replyTo ! other
       }
     case ReplaceACL(_, user, raw) =>
@@ -394,7 +377,7 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
       }
     case PatchACL(_, user, patch) =>
       val replyTo = sender
-      patchACL(user, state.view.raw.fields("_metadata").asJsObject.fields("acl"), patch).foreach {
+      patchACL(user, state.role.raw.fields("_metadata").asJsObject.fields("acl"), patch).foreach {
         case dsa: DoPatchACL => self ! dsa.copy(request = Some(replyTo))
         case other           => replyTo ! other
       }
@@ -436,24 +419,24 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
       }
     case SaveSnapshotSuccess(metadata) =>
     case SaveSnapshotFailure(metadata, reason) =>
-    case _: CreateView => sender ! ViewAlreadyExists
+    case _: CreateRole => sender ! RoleAlreadyExists
     case _: DomainRemoved | _: CollectionActor.CollectionRemoved => context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
   def removed: Receive = {
-    case GetView(_, user) =>
+    case GetRole(_, user) =>
       val replyTo = sender
       val parent = context.parent
-      getView(user).foreach {
-        case dgd: DoGetView =>
-          replyTo ! state.view
+      getRole(user).foreach {
+        case dgd: DoGetRole =>
+          replyTo ! state.role
           parent ! Passivate(stopMessage = PoisonPill)
         case other =>
           replyTo ! other
           parent ! Passivate(stopMessage = PoisonPill)
       }
     case _: Command =>
-      sender ! ViewSoftRemoved
+      sender ! RoleSoftRemoved
       context.parent ! Passivate(stopMessage = PoisonPill)
   }
 
@@ -465,82 +448,56 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
   private def updateAndSave(evt: Event) = {
     state = state.updated(evt)
     deleteSnapshots(SnapshotSelectionCriteria.Latest)
-    saveSnapshot(state.view.toJson.asJsObject)
-    state.view
+    saveSnapshot(state.role.toJson.asJsObject)
+    state.role
   }
 
-  private def createView(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
-    val dcd = DoCreateView(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("view")))))
+  private def createRole(user: String, raw: JsObject, initFlag: Option[Boolean]) = {
+    val dcd = DoCreateRole(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user),"type" -> JsString("role")))))
     initFlag match {
       case Some(true) => Future.successful(dcd)
-      case other => (domainRegion ? CheckPermission(DomainActor.persistenceId(rootDomain, domain), user, CreateView)).map {
+      case other => (domainRegion ? CheckPermission(DomainActor.persistenceId(rootDomain, domain), user, CreateRole)).map {
         case Granted => dcd
         case Denied  => Denied
       }
     }
   }
 
-  private def getView(user: String) = checkPermission(user, GetView).map {
-    case Granted => DoGetView(user)
+  private def getRole(user: String) = checkPermission(user, GetRole).map {
+    case Granted => DoGetRole(user)
     case other   => other
   }.recover { case e => e }
 
-  private def replaceView(user: String, raw: JsObject) = checkPermission(user, ReplaceView).map {
-    case Granted => DoReplaceView(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
+  private def replaceRole(user: String, raw: JsObject) = checkPermission(user, ReplaceRole).map {
+    case Granted => DoReplaceRole(user, JsObject(raw.fields + ("_metadata" -> JsObject("acl" -> eventACL(user)))))
     case other   => other
   }.recover { case e => e }
 
-  private def patchView(user: String, patch: JsonPatch) = checkPermission(user, PatchView).map {
+  private def patchRole(user: String, patch: JsonPatch) = checkPermission(user, PatchRole).map {
     case Granted =>
       Try {
-        patch(state.view.raw)
+        patch(state.role.raw)
       } match {
-        case Success(_) => DoPatchView(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
-        case Failure(e) => PatchViewException(e)
+        case Success(_) => DoPatchRole(user, patch, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+        case Failure(e) => PatchRoleException(e)
       }
     case other => other
   }.recover { case e => e }
 
-  private def removeView(user: String) = checkPermission(user, RemoveView).map {
-    case Granted => DoRemoveView(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
+  private def removeRole(user: String) = checkPermission(user, RemoveRole).map {
+    case Granted => DoRemoveRole(user, JsObject("_metadata" -> JsObject("acl" -> eventACL(user))))
     case other   => other
   }.recover { case e => e }
 
-  private def getIndexAliases: String = state.view.raw.getFields("collections") match {
-    case Seq(collections: JsArray) => collections.elements.map { jv => s"${domain}~${jv.asInstanceOf[JsString].value}~all~snapshots" }.reduceLeft(_ + "," + _)
-    case _                         => "_all"
-  }
-
-  private def refresh(user: String) = checkPermission(user, Refresh).flatMap {
-    case Granted => store.refresh(getIndexAliases).map {
-      case (StatusCodes.OK, _) => DoRefresh(user)
-      case (code, jv)          => throw new RuntimeException(s"Find views error: $jv")
-    }
-    case other => Future.successful(other)
-  }.recover { case e => e }
-
-  private def findDocuments(user: String, query: JsObject) = checkPermission(user, FindDocuments).flatMap {
-    case Granted => filterQuery(domain, user, query).flatMap {
-      case fq: JsObject => println(fq.prettyPrint);store.search(getIndexAliases, fq.compactPrint).map {
-        case (StatusCodes.OK, jo: JsObject) => DoFindDocuments(user, query, Some(jo))
-        case (code, jv)                     => throw new RuntimeException(s"Find views error: $jv")
-      }
-      case other => throw new RuntimeException(s"Find views error: $other")
-    }
-    case other => Future.successful(other)
-  }.recover { case e => e }
-
   val commandPermissionMap = Map[Any, String](
-    GetView -> "get",
-    ReplaceView -> "replace",
-    PatchView -> "patch",
-    RemoveView -> "remove",
+    GetRole -> "get",
+    ReplaceRole -> "replace",
+    PatchRole -> "patch",
+    RemoveRole -> "remove",
     GetACL -> "getACL",
     ReplaceACL -> "replaceACL",
     PatchACL -> "patchACL",
     PatchEventACL -> "patchEventACL",
-    FindDocuments -> "findDocuments",
-    Refresh -> "refresh",
     RemovePermissionSubject -> "removePermissionSubject",
     RemoveEventPermissionSubject -> "removeEventPermissionSubject")
 
@@ -550,7 +507,7 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
         case (".profiles", `user`) => Future.successful(Granted)
         case _ => fetchProfile(domain, user).map {
           case Document(_, _, _, _, _, _, profile) =>
-            val aclObj = state.view.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
+            val aclObj = state.role.raw.fields("_metadata").asJsObject.fields("acl").asJsObject
             val userRoles = profileValue(profile, "roles")
             val userGroups = profileValue(profile, "groups")
             val (aclRoles, aclGroups, aclUsers) = commandPermissionMap.get(command) match {

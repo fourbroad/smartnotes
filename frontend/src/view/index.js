@@ -20,8 +20,8 @@ function create(opts) {
         presence: true
       }
     },
-    viewLinkTemplate = _.template('<a href="#!module=${module}:viewId,${viewId}">${text}</a>'),
-    docLinkTemplate = _.template('<a href="#!module=${module}:docId,${docId}">${text}</a>');
+    viewLinkTemplate = _.template('<a href="#!module=view:id,${id}">${text}</a>'),
+    docLinkTemplate = _.template('<a href="#!module=document:domainId,${domainId}|collectionId,${collectionId}|documentId,${documentId}">${text}</a>');
 
   var
     view, table, columns, searchColumns,
@@ -190,7 +190,7 @@ function create(opts) {
     }
 
     return {
-      query:{bool:{must:mustArray}},
+      query:mustArray.length > 0 ? {bool:{must:mustArray}} : {match_all:{}},
       sort:sort,
       from:kvMap['iDisplayStart'],
       size:kvMap['iDisplayLength']
@@ -273,11 +273,11 @@ function create(opts) {
       columnDefs : [{
         targets:'_all',
         render:function(data, type, row, meta){
-          var column = meta.settings.aoColumns[meta.col], text = data;
+          var column = meta.settings.aoColumns[meta.col], text = data, type = row._metadata.type;
           switch(column.className){
             case 'id':
             case 'title':
-              text = row._metadata.type =='view' ? viewLinkTemplate({module:'view', viewId: row.id, text: data}) : docLinkTemplate({module:'document', docId: row.id, text: data});
+              text = type =='view' ? viewLinkTemplate({id: row.id, text: data}) : docLinkTemplate({domainId:row.getDomainId(), collectionId: row.getCollectionId(), documentId: row.id, text: data});
               break;
             case 'datetime':
               var date = moment.utc(data);
@@ -384,10 +384,6 @@ function create(opts) {
     });
   };
 
-  domain.getView(viewId, function(err, view){
-    _init(view);
-  });
-
   save = function(){
     if(_isDirty()){
       var newView = _.assignIn({}, view, {columns: columns, searchColumns: searchColumns});
@@ -428,6 +424,10 @@ function create(opts) {
 
     table.draw();
   };
+
+  domain.getView(viewId, function(err, view){
+    _init(view);
+  });
 
   return {save: save, saveAs:saveAs};
 };

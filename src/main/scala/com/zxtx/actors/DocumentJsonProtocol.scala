@@ -54,12 +54,10 @@ trait DocumentJsonProtocol extends DefaultJsonProtocol {
 
   def patchValueToString(patch: JsValue, errorMsg: String) = patch match {
     case ja: JsArray => JsArray(ja.elements.map {
-      case jo: JsObject =>
-        val vStr = jo.getFields("value") match {
-          case Seq(jv) => jv.compactPrint
-          case _       => throw new SerializationException(errorMsg)
-        }
-        JsObject(jo.fields + ("value" -> JsString(vStr)))
+      case jo: JsObject => jo.getFields("value") match {
+        case Seq(jv) => JsObject(jo.fields + ("value" -> JsString(jv.compactPrint)))
+        case _       => jo
+      }
       case _ => throw new SerializationException(errorMsg)
     })
     case _ => throw new SerializationException(errorMsg)
@@ -67,12 +65,10 @@ trait DocumentJsonProtocol extends DefaultJsonProtocol {
 
   def patchValueFromString(patch: JsValue, errorMsg: String) = patch match {
     case ja: JsArray => JsArray(ja.elements.map {
-      case jo: JsObject =>
-        val vObj = jo.getFields("value") match {
-          case Seq(JsString(vStr))=> vStr.parseJson
-          case _ => throw new DeserializationException(errorMsg)
-        }
-        JsObject(jo.fields + ("value" -> vObj))
+      case jo: JsObject => jo.getFields("value") match {
+        case Seq(JsString(vStr)) => JsObject(jo.fields + ("value" -> vStr.parseJson))
+        case _                   => jo
+      }
       case _ => throw new DeserializationException(errorMsg)
     })
     case _ => throw new DeserializationException(errorMsg)

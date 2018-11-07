@@ -1,59 +1,23 @@
 package com.zxtx.actors
 
-import ACL.ACLPatched
-import ACL.ACLReplaced
-import ACL.EventPermissionSubjectRemoved
-import ACL.JsonProtocol.ACLPatchedFormat
-import ACL.JsonProtocol.ACLReplacedFormat
-import ACL.JsonProtocol.EventPermissionSubjectRemovedFormat
-import ACL.JsonProtocol.PermissionSubjectRemovedFormat
-import ACL.PermissionSubjectRemoved
-import CollectionActor.CollectionCreated
-import CollectionActor.CollectionPatched
-import CollectionActor.CollectionRemoved
-import CollectionActor.CollectionReplaced
-import CollectionActor.JsonProtocol.CollectionCreatedFormat
-import CollectionActor.JsonProtocol.CollectionPatchedFormat
-import CollectionActor.JsonProtocol.CollectionRemovedFormat
-import CollectionActor.JsonProtocol.CollectionReplacedFormat
-import ViewActor.ViewCreated
-import ViewActor.ViewPatched
-import ViewActor.ViewRemoved
-import ViewActor.ViewReplaced
-import ViewActor.JsonProtocol.ViewCreatedFormat
-import ViewActor.JsonProtocol.ViewPatchedFormat
-import ViewActor.JsonProtocol.ViewRemovedFormat
-import ViewActor.JsonProtocol.ViewReplacedFormat
-import DocumentActor.DocumentCreated
-import DocumentActor.DocumentPatched
-import DocumentActor.DocumentRemoved
-import DocumentActor.DocumentReplaced
-import DocumentActor.JsonProtocol.DocumentCreatedFormat
-import DocumentActor.JsonProtocol.DocumentPatchedFormat
-import DocumentActor.JsonProtocol.DocumentRemovedFormat
-import DocumentActor.JsonProtocol.DocumentReplacedFormat
-import DomainActor.DomainCreated
-import DomainActor.DomainJoined
-import DomainActor.DomainPatched
-import DomainActor.DomainQuited
-import DomainActor.DomainRemoved
-import DomainActor.DomainReplaced
-import DomainActor.JsonProtocol.DomainCreatedFormat
-import DomainActor.JsonProtocol.DomainJoinedFormat
-import DomainActor.JsonProtocol.DomainPatchedFormat
-import DomainActor.JsonProtocol.DomainQuitedFormat
-import DomainActor.JsonProtocol.DomainRemovedFormat
-import DomainActor.JsonProtocol.DomainReplacedFormat
-import UserActor.JsonProtocol.PasswordResetedFormat
-import UserActor.JsonProtocol.UserCreatedFormat
-import UserActor.JsonProtocol.UserPatchedFormat
-import UserActor.JsonProtocol.UserRemovedFormat
-import UserActor.JsonProtocol.UserReplacedFormat
-import UserActor.PasswordReset
-import UserActor.UserCreated
-import UserActor.UserPatched
-import UserActor.UserRemoved
-import UserActor.UserReplaced
+import ACL._
+import ACL.JsonProtocol._
+import CollectionActor._
+import CollectionActor.JsonProtocol._
+import ViewActor._
+import ViewActor.JsonProtocol._
+import FormActor._
+import FormActor.JsonProtocol._
+import RoleActor._
+import RoleActor.JsonProtocol._
+import ProfileActor._
+import ProfileActor.JsonProtocol._
+import DocumentActor._
+import DocumentActor.JsonProtocol._
+import DomainActor._
+import DomainActor.JsonProtocol._
+import UserActor.JsonProtocol._
+import UserActor._
 import akka.persistence.journal.EventAdapter
 import akka.persistence.journal.EventSeq
 import spray.json.JsArray
@@ -76,6 +40,21 @@ class DocumentEventAdapter extends EventAdapter {
   final val MANIFEST_VIEW_REPLACED = classOf[ViewReplaced].getName
   final val MANIFEST_VIEW_PATCHED = classOf[ViewPatched].getName
   final val MANIFEST_VIEW_REMOVED = classOf[ViewRemoved].getName
+  
+  final val MANIFEST_FORM_CREATED = classOf[FormCreated].getName
+  final val MANIFEST_FORM_REPLACED = classOf[FormReplaced].getName
+  final val MANIFEST_FORM_PATCHED = classOf[FormPatched].getName
+  final val MANIFEST_FORM_REMOVED = classOf[FormRemoved].getName
+  
+  final val MANIFEST_ROLE_CREATED = classOf[RoleCreated].getName
+  final val MANIFEST_ROLE_REPLACED = classOf[RoleReplaced].getName
+  final val MANIFEST_ROLE_PATCHED = classOf[RolePatched].getName
+  final val MANIFEST_ROLE_REMOVED = classOf[RoleRemoved].getName
+  
+  final val MANIFEST_PROFILE_CREATED = classOf[ProfileCreated].getName
+  final val MANIFEST_PROFILE_REPLACED = classOf[ProfileReplaced].getName
+  final val MANIFEST_PROFILE_PATCHED = classOf[ProfilePatched].getName
+  final val MANIFEST_PROFILE_REMOVED = classOf[ProfileRemoved].getName
   
   final val MANIFEST_DOMAIN_CREATED = classOf[DomainCreated].getName
   final val MANIFEST_DOMAIN_REPLACED = classOf[DomainReplaced].getName
@@ -127,6 +106,18 @@ class DocumentEventAdapter extends EventAdapter {
     case vr: ViewReplaced                    => vr.toJson
     case vp: ViewPatched                     => vp.toJson
     case vr: ViewRemoved                     => vr.toJson
+    case fc: FormCreated                     => fc.toJson
+    case fr: FormReplaced                    => fr.toJson
+    case fp: FormPatched                     => fp.toJson
+    case fr: FormRemoved                     => fr.toJson
+    case rc: RoleCreated                     => rc.toJson
+    case rr: RoleReplaced                    => rr.toJson
+    case rp: RolePatched                     => rp.toJson
+    case rr: RoleRemoved                     => rr.toJson
+    case pc: ProfileCreated                     => pc.toJson
+    case pr: ProfileReplaced                    => pr.toJson
+    case pp: ProfilePatched                     => pp.toJson
+    case pr: ProfileRemoved                     => pr.toJson
     case dc: DomainCreated                   => dc.toJson
     case dr: DomainReplaced                  => dr.toJson
     case dp: DomainPatched                   => dp.toJson
@@ -172,6 +163,18 @@ class DocumentEventAdapter extends EventAdapter {
     case MANIFEST_VIEW_REPLACED => convertTo(event)(_.convertTo[ViewReplaced])
     case MANIFEST_VIEW_PATCHED => convertTo(event)(_.convertTo[ViewPatched])
     case MANIFEST_VIEW_REMOVED => convertTo(event)(_.convertTo[ViewRemoved])
+    case MANIFEST_FORM_CREATED => convertTo(event)(_.convertTo[FormCreated])
+    case MANIFEST_FORM_REPLACED => convertTo(event)(_.convertTo[FormReplaced])
+    case MANIFEST_FORM_PATCHED => convertTo(event)(_.convertTo[FormPatched])
+    case MANIFEST_FORM_REMOVED => convertTo(event)(_.convertTo[FormRemoved])
+    case MANIFEST_ROLE_CREATED => convertTo(event)(_.convertTo[RoleCreated])
+    case MANIFEST_ROLE_REPLACED => convertTo(event)(_.convertTo[RoleReplaced])
+    case MANIFEST_ROLE_PATCHED => convertTo(event)(_.convertTo[RolePatched])
+    case MANIFEST_ROLE_REMOVED => convertTo(event)(_.convertTo[RoleRemoved])
+    case MANIFEST_PROFILE_CREATED => convertTo(event)(_.convertTo[ProfileCreated])
+    case MANIFEST_PROFILE_REPLACED => convertTo(event)(_.convertTo[ProfileReplaced])
+    case MANIFEST_PROFILE_PATCHED => convertTo(event)(_.convertTo[ProfilePatched])
+    case MANIFEST_PROFILE_REMOVED => convertTo(event)(_.convertTo[ProfileRemoved])
     case MANIFEST_DOMAIN_CREATED => convertTo(event)(_.convertTo[DomainCreated])
     case MANIFEST_DOMAIN_REPLACED => convertTo(event)(_.convertTo[DomainReplaced])
     case MANIFEST_DOMAIN_PATCHED => convertTo(event)(_.convertTo[DomainPatched])
