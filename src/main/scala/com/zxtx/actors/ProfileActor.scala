@@ -73,7 +73,7 @@ object ProfileActor {
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
   val shardName: String = "Profiles"
 
-  def persistenceId(domain: String, profileId: String) = s"${domain}~.profiles~${profileId}"
+  def persistenceId(domainId: String, profileId: String) = s"${domainId}~.profiles~${profileId}"
 
   object JsonProtocol extends DocumentJsonProtocol {
     implicit object ProfileFormat extends RootJsonFormat[Profile] {

@@ -1,6 +1,5 @@
 import './datetime-range.scss';
 
-import 'bootstrap';
 import 'jquery-datetimepicker';
 import 'jquery-datetimepicker/jquery.datetimepicker.css';
 import validate from "validate.js";

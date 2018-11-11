@@ -29,7 +29,7 @@ function create(opts) {
     $searchContainer, $saveBtn, $itemSaveAs, $itemDiscard, $form, $submitBtn,
     $newViewModel, $viewTable, $titleInput,
     _init, _initSearchBar, _armSearchCol, _searchColumnType, _kvMap, _buildSearch, _isDirty, 
-    _refreshHeader, _onSubmit, _setRowActive, _clearRowActive, _isRowActive, _showDocMenu,
+    _refreshHeader, _onSubmit, _onItemSaveAs, _setRowActive, _clearRowActive, _isRowActive, _showDocMenu,
     save, saveAs, onDiscard;
 
   _initSearchBar = function(){
@@ -197,29 +197,6 @@ function create(opts) {
     };
   };
 
-  _onSubmit = function(evt){
-    evt.preventDefault();
-    evt.stopPropagation();
-
-    var errors = validate($form, constraints);
-    if (errors) {
-      utils.showErrors($form, errors);
-    } else {
-      var values = validate.collectFormValues($form, {trim: true}), title = values.title, viewInfo = _.cloneDeep(view);
-      delete viewInfo.id;
-      delete viewInfo.collectionId;
-      delete viewInfo.domainId;
-      viewInfo.title = title;
-      currentDomain.createView(viewInfo, function(err, v){
-        view.refresh(function(){
-          table.draw(false);
-          $newViewModel.modal('toggle')
-        })
-      })
-      utils.clearErrors($form);
-    }
-  };
-
   _showDocMenu = function($dropdownMenu, doc){
     $('<li class="dropdown-item delete"><span>Delete</span></li>').appendTo($dropdownMenu.empty());
   };
@@ -235,6 +212,17 @@ function create(opts) {
 
   _isRowActive = function($row){
     return $row.hasClass('table-active');
+  };
+
+
+  _onSubmit = function(evt){
+    evt.preventDefault();
+    evt.stopPropagation();
+    saveAs();
+  };
+
+  _onItemSaveAs = function(evt){
+    $newViewModel.modal('toggle');
   };
 
   _init = function(v){
@@ -345,6 +333,7 @@ function create(opts) {
     })    
 
     $saveBtn.on('click', save);
+    $itemSaveAs.on('click', _onItemSaveAs);
     $itemDiscard.on('click', onDiscard);
     $submitBtn.on('click', _onSubmit);
     $form.bind('submit', _onSubmit);
@@ -396,7 +385,24 @@ function create(opts) {
   };
 
   saveAs = function(){
-
+    var errors = validate($form, constraints);
+    if (errors) {
+      utils.showErrors($form, errors);
+    } else {
+      var values = validate.collectFormValues($form, {trim: true}), title = values.title, viewInfo = _.cloneDeep(view);
+      delete viewInfo.id;
+      delete viewInfo.collectionId;
+      delete viewInfo.domainId;
+      viewInfo.title = title;
+      currentDomain.createView(viewInfo, function(err, v){
+        if(err) return console.log(err);
+        view.refresh(function(){
+          table.draw(false);
+          $newViewModel.modal('toggle')
+        });
+      })
+      utils.clearErrors($form);
+    }
   };
 
   onDiscard = function(){

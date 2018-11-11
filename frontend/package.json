@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.4.1",
-    "@notesabc/frontend-client": "^1.0.12",
+    "@notesabc/frontend-client": "^1.0.13",
     "@notesabc/loader": "^1.0.4",
     "JSV": "^4.0.2",
     "babel-polyfill": "^6.26.0",
@@ -74,6 +74,7 @@
     "eslint": "^5.6.1",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.14.0",
+    "expose-loader": "^0.7.5",
     "extract-text-webpack-plugin": "4.0.0-beta.0",
     "file-loader": "^2.0.0",
     "html-loader": "^0.5.5",

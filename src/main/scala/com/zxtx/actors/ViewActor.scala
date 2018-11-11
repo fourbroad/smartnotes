@@ -78,7 +78,7 @@ object ViewActor {
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
   val shardName: String = "Views"
 
-  def persistenceId(domain: String, viewId: String) = s"${domain}~.views~${viewId}"
+  def persistenceId(domainId: String, viewId: String) = s"${domainId}~.views~${viewId}"
 
   object JsonProtocol extends DocumentJsonProtocol {
     implicit object ViewFormat extends RootJsonFormat[View] {
@@ -521,7 +521,7 @@ class ViewActor extends PersistentActor with ACL with ActorLogging {
 
   private def findDocuments(user: String, query: JsObject) = checkPermission(user, FindDocuments).flatMap {
     case Granted => filterQuery(domain, user, query).flatMap {
-      case fq: JsObject => println(fq.prettyPrint);store.search(getIndexAliases, fq.compactPrint).map {
+      case fq: JsObject => store.search(getIndexAliases, fq.compactPrint).map {
         case (StatusCodes.OK, jo: JsObject) => DoFindDocuments(user, query, Some(jo))
         case (code, jv)                     => throw new RuntimeException(s"Find views error: $jv")
       }

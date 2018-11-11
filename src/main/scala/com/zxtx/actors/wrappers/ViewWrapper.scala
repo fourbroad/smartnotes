@@ -26,8 +26,6 @@ class ViewWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
 
   val viewRegion: ActorRef = ClusterSharding(system).shardRegion(ViewActor.shardName)
 
-  def viewPID(domainId: String, viewId: String) = s"${domainId}~.views~${viewId}"
-
   def bind(receiver: V8Object) = {
     val runtime = receiver.getRuntime
     val dw = runtime.getObject("__ViewWrapper")
@@ -52,36 +50,36 @@ class ViewWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
 
   def create(receiver: V8Object, token: String, domainId: String, viewId: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
-    commandWithView(receiver, token, callback) { user => viewRegion ? CreateView(viewPID(domainId, viewId), user, jsRaw) }
+    commandWithView(receiver, token, callback) { user => viewRegion ? CreateView(persistenceId(domainId, viewId), user, jsRaw) }
   }
 
   def get(receiver: V8Object, token: String, domainId: String, viewId: String, callback: V8Function) =
-    commandWithView(receiver, token, callback) { user => viewRegion ? GetView(viewPID(domainId, viewId), user) }
+    commandWithView(receiver, token, callback) { user => viewRegion ? GetView(persistenceId(domainId, viewId), user) }
 
   def replace(receiver: V8Object, token: String, domainId: String, viewId: String, content: V8Object, callback: V8Function) = {
     val jsContent = toJsObject(content)
-    commandWithView(receiver, token, callback) { user => viewRegion ? ReplaceView(viewPID(domainId, viewId), user, jsContent) }
+    commandWithView(receiver, token, callback) { user => viewRegion ? ReplaceView(persistenceId(domainId, viewId), user, jsContent) }
   }
 
   def patch(receiver: V8Object, token: String, domainId: String, viewId: String, v8Patch: V8Array, callback: V8Function) = {
     val jsPatch = toJsArray(v8Patch)
-    commandWithView(receiver, token, callback) { user => viewRegion ? PatchView(viewPID(domainId, viewId), user, JsonPatch(jsPatch)) }
+    commandWithView(receiver, token, callback) { user => viewRegion ? PatchView(persistenceId(domainId, viewId), user, JsonPatch(jsPatch)) }
   }
 
   def remove(receiver: V8Object, token: String, domainId: String, viewId: String, callback: V8Function) =
-    commandWithSuccess(receiver, token, callback) { user => viewRegion ? RemoveView(viewPID(domainId, viewId), user) }
+    commandWithSuccess(receiver, token, callback) { user => viewRegion ? RemoveView(persistenceId(domainId, viewId), user) }
 
   def getACL(receiver: V8Object, token: String, domainId: String, viewId: String, callback: V8Function) =
-    commandWithACL(receiver, token, callback) { user => viewRegion ? GetACL(viewPID(domainId, viewId), user) }
+    commandWithACL(receiver, token, callback) { user => viewRegion ? GetACL(persistenceId(domainId, viewId), user) }
 
   def replaceACL(receiver: V8Object, token: String, domainId: String, viewId: String, v8ACL: V8Object, callback: V8Function) = {
     val jsACL = toJsObject(v8ACL)
-    commandWithSuccess(receiver, token, callback) { user => viewRegion ? ReplaceACL(viewPID(domainId, viewId), user, jsACL) }
+    commandWithSuccess(receiver, token, callback) { user => viewRegion ? ReplaceACL(persistenceId(domainId, viewId), user, jsACL) }
   }
 
   def patchACL(receiver: V8Object, token: String, domainId: String, viewId: String, v8ACLPatch: V8Array, callback: V8Function) = {
     val jsACLPatch = toJsArray(v8ACLPatch)
-    commandWithSuccess(receiver, token, callback) { user => viewRegion ? PatchACL(viewPID(domainId, viewId), user, JsonPatch(jsACLPatch)) }
+    commandWithSuccess(receiver, token, callback) { user => viewRegion ? PatchACL(persistenceId(domainId, viewId), user, JsonPatch(jsACLPatch)) }
   }
   
   def findDocuments(receiver: V8Object, token: String, domainId: String, viewId: String, query: V8Object, callback: V8Function) = {
@@ -90,7 +88,7 @@ class ViewWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
     validateToken(token).map {
       case TokenValid(user) => user
       case other            => "anonymous"
-    }.flatMap { user => viewRegion ? FindDocuments(viewPID(domainId, viewId), user, jsQuery) }.recover { case e => e }.foreach {
+    }.flatMap { user => viewRegion ? FindDocuments(persistenceId(domainId, viewId), user, jsQuery) }.recover { case e => e }.foreach {
       case jo: JsObject =>
         cbw.setParametersGenerator(new ParametersGenerator(cbw.runtime) {
           def prepare(params: V8Array) = {
@@ -106,7 +104,7 @@ class ViewWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
   }
   
   def refresh(receiver: V8Object, token: String, domainId: String, viewId: String, callback: V8Function) =
-    commandWithSuccess(receiver, token, callback) { user => viewRegion ? Refresh(viewPID(domainId, viewId), user) }
+    commandWithSuccess(receiver, token, callback) { user => viewRegion ? Refresh(persistenceId(domainId, viewId), user) }
 
   private def commandWithView(receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any]) =
     command[View](receiver, token, callback)(cmd) { (cbw, t) => viewCallback(cbw, t) }

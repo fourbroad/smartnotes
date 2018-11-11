@@ -73,7 +73,7 @@ object FormActor {
   val shardResolver: ShardRegion.ExtractShardId = { case cmd: Command => (math.abs(cmd.pid.hashCode) % 100).toString }
   val shardName: String = "Forms"
 
-  def persistenceId(domain: String, formId: String) = s"${domain}~.forms~${formId}"
+  def persistenceId(domainId: String, formId: String) = s"${domainId}~.forms~${formId}"
 
   object JsonProtocol extends DocumentJsonProtocol {
     implicit object FormFormat extends RootJsonFormat[Form] {

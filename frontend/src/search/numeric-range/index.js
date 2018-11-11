@@ -1,11 +1,8 @@
 import './numeric-range.scss';
 
-import 'bootstrap';
-import * as $ from 'jquery';
 import utils from 'utils';
 import validate from "validate.js";
 import numericRangeHtml from './numeric-range.html';
-
 
 function create(opts) {
   const

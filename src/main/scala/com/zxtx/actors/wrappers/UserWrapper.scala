@@ -30,10 +30,9 @@ class UserWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
   import CallbackWrapper._
   import Wrapper._
 
-  val documentRegion: ActorRef = ClusterSharding(system).shardRegion(DocumentActor.shardName)
   val userRegion: ActorRef = ClusterSharding(system).shardRegion(UserActor.shardName)
 
-  def userPID(userId: String) = s"${rootDomain}~.users~${userId}"
+  def userPID(userId: String) = UserActor.persistenceId(rootDomain, userId)
 
   def bind(receiver: V8Object) = {
     val runtime = receiver.getRuntime

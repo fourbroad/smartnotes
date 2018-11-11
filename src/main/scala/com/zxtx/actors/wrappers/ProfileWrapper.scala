@@ -26,8 +26,6 @@ class ProfileWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper])
 
   val profileRegion: ActorRef = ClusterSharding(system).shardRegion(ProfileActor.shardName)
 
-  def profilePID(domainId: String, profileId: String) = s"${domainId}~.profiles~${profileId}"
-
   def bind(receiver: V8Object) = {
     val runtime = receiver.getRuntime
     val dw = runtime.getObject("__ProfileWrapper")
@@ -50,36 +48,36 @@ class ProfileWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper])
 
   def create(receiver: V8Object, token: String, domainId: String, profileId: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
-    commandWithProfile(receiver, token, callback) { user => profileRegion ? CreateProfile(profilePID(domainId, profileId), user, jsRaw) }
+    commandWithProfile(receiver, token, callback) { user => profileRegion ? CreateProfile(persistenceId(domainId, profileId), user, jsRaw) }
   }
 
   def get(receiver: V8Object, token: String, domainId: String, profileId: String, callback: V8Function) =
-    commandWithProfile(receiver, token, callback) { user => profileRegion ? GetProfile(profilePID(domainId, profileId), user) }
+    commandWithProfile(receiver, token, callback) { user => profileRegion ? GetProfile(persistenceId(domainId, profileId), user) }
 
   def replace(receiver: V8Object, token: String, domainId: String, profileId: String, content: V8Object, callback: V8Function) = {
     val jsContent = toJsObject(content)
-    commandWithProfile(receiver, token, callback) { user => profileRegion ? ReplaceProfile(profilePID(domainId, profileId), user, jsContent) }
+    commandWithProfile(receiver, token, callback) { user => profileRegion ? ReplaceProfile(persistenceId(domainId, profileId), user, jsContent) }
   }
 
   def patch(receiver: V8Object, token: String, domainId: String, profileId: String, v8Patch: V8Array, callback: V8Function) = {
     val jsPatch = toJsArray(v8Patch)
-    commandWithProfile(receiver, token, callback) { user => profileRegion ? PatchProfile(profilePID(domainId, profileId), user, JsonPatch(jsPatch)) }
+    commandWithProfile(receiver, token, callback) { user => profileRegion ? PatchProfile(persistenceId(domainId, profileId), user, JsonPatch(jsPatch)) }
   }
 
   def remove(receiver: V8Object, token: String, domainId: String, profileId: String, callback: V8Function) =
-    commandWithSuccess(receiver, token, callback) { user => profileRegion ? RemoveProfile(profilePID(domainId, profileId), user) }
+    commandWithSuccess(receiver, token, callback) { user => profileRegion ? RemoveProfile(persistenceId(domainId, profileId), user) }
 
   def getACL(receiver: V8Object, token: String, domainId: String, profileId: String, callback: V8Function) =
-    commandWithACL(receiver, token, callback) { user => profileRegion ? GetACL(profilePID(domainId, profileId), user) }
+    commandWithACL(receiver, token, callback) { user => profileRegion ? GetACL(persistenceId(domainId, profileId), user) }
 
   def replaceACL(receiver: V8Object, token: String, domainId: String, profileId: String, v8ACL: V8Object, callback: V8Function) = {
     val jsACL = toJsObject(v8ACL)
-    commandWithSuccess(receiver, token, callback) { user => profileRegion ? ReplaceACL(profilePID(domainId, profileId), user, jsACL) }
+    commandWithSuccess(receiver, token, callback) { user => profileRegion ? ReplaceACL(persistenceId(domainId, profileId), user, jsACL) }
   }
 
   def patchACL(receiver: V8Object, token: String, domainId: String, profileId: String, v8ACLPatch: V8Array, callback: V8Function) = {
     val jsACLPatch = toJsArray(v8ACLPatch)
-    commandWithSuccess(receiver, token, callback) { user => profileRegion ? PatchACL(profilePID(domainId, profileId), user, JsonPatch(jsACLPatch)) }
+    commandWithSuccess(receiver, token, callback) { user => profileRegion ? PatchACL(persistenceId(domainId, profileId), user, JsonPatch(jsACLPatch)) }
   }
   
   private def commandWithProfile(receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any]) =

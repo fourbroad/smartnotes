@@ -30,9 +30,8 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
   import CallbackWrapper._
 
   val domainRegion: ActorRef = ClusterSharding(system).shardRegion(DomainActor.shardName)
-  val documentRegion: ActorRef = ClusterSharding(system).shardRegion(DocumentActor.shardName)
 
-  def domainPID(domainId: String) = s"${rootDomain}~.domains~${domainId}"
+  def domainPID(domainId: String) = DomainActor.persistenceId(rootDomain, domainId)
 
   def bind(receiver: V8Object) = {
     val runtime = receiver.getRuntime

@@ -46,7 +46,10 @@ const htmlWebpackPlugins = Object.keys(titles).map(title => {
 });
 
 module.exports = {
-  entry: [path.join(__dirname, 'src/index.js')],
+  entry: {
+    context: ['jquery', 'bootstrap', 'lodash'],
+    index: path.join(__dirname, 'src/index.js')    
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
     publicPath: '/',
@@ -90,6 +93,21 @@ module.exports = {
           minimize: true
         }
       }]      
+    },{
+      test: require.resolve('jquery'),
+      use: [{
+        loader: 'expose-loader',
+        options: 'jQuery'
+      },{
+        loader: 'expose-loader',
+        options: '$'
+      }]
+    },{
+      test: require.resolve('lodash'),
+      use: [{
+        loader: 'expose-loader',
+        options: '_'
+      }]
     }]
   },
   plugins: [
@@ -134,11 +152,6 @@ module.exports = {
       },
     }),
     new webpack.ProvidePlugin({
-      $: 'jquery',
-      jQuery: 'jquery',
-      'window.jQuery': 'jquery',
-      _: 'lodash',
-      'window._': 'lodash',
       moment: 'moment',
       'window.moment': 'moment',
       jiff: 'jiff',

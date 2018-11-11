@@ -1,7 +1,5 @@
 import './keywords.scss';
 
-import * as $ from 'jquery';
-import _ from 'lodash';
 import uuidv4 from 'uuid/v4';
 import keywordsHtml from './keywords.html';
 

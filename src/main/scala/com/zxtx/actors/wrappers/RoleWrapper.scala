@@ -26,8 +26,6 @@ class RoleWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
 
   val roleRegion: ActorRef = ClusterSharding(system).shardRegion(RoleActor.shardName)
 
-  def rolePID(domainId: String, roleId: String) = s"${domainId}~.roles~${roleId}"
-
   def bind(receiver: V8Object) = {
     val runtime = receiver.getRuntime
     val dw = runtime.getObject("__RoleWrapper")
@@ -50,36 +48,36 @@ class RoleWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
 
   def create(receiver: V8Object, token: String, domainId: String, roleId: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
-    commandWithRole(receiver, token, callback) { user => roleRegion ? CreateRole(rolePID(domainId, roleId), user, jsRaw) }
+    commandWithRole(receiver, token, callback) { user => roleRegion ? CreateRole(persistenceId(domainId, roleId), user, jsRaw) }
   }
 
   def get(receiver: V8Object, token: String, domainId: String, roleId: String, callback: V8Function) =
-    commandWithRole(receiver, token, callback) { user => roleRegion ? GetRole(rolePID(domainId, roleId), user) }
+    commandWithRole(receiver, token, callback) { user => roleRegion ? GetRole(persistenceId(domainId, roleId), user) }
 
   def replace(receiver: V8Object, token: String, domainId: String, roleId: String, content: V8Object, callback: V8Function) = {
     val jsContent = toJsObject(content)
-    commandWithRole(receiver, token, callback) { user => roleRegion ? ReplaceRole(rolePID(domainId, roleId), user, jsContent) }
+    commandWithRole(receiver, token, callback) { user => roleRegion ? ReplaceRole(persistenceId(domainId, roleId), user, jsContent) }
   }
 
   def patch(receiver: V8Object, token: String, domainId: String, roleId: String, v8Patch: V8Array, callback: V8Function) = {
     val jsPatch = toJsArray(v8Patch)
-    commandWithRole(receiver, token, callback) { user => roleRegion ? PatchRole(rolePID(domainId, roleId), user, JsonPatch(jsPatch)) }
+    commandWithRole(receiver, token, callback) { user => roleRegion ? PatchRole(persistenceId(domainId, roleId), user, JsonPatch(jsPatch)) }
   }
 
   def remove(receiver: V8Object, token: String, domainId: String, roleId: String, callback: V8Function) =
-    commandWithSuccess(receiver, token, callback) { user => roleRegion ? RemoveRole(rolePID(domainId, roleId), user) }
+    commandWithSuccess(receiver, token, callback) { user => roleRegion ? RemoveRole(persistenceId(domainId, roleId), user) }
 
   def getACL(receiver: V8Object, token: String, domainId: String, roleId: String, callback: V8Function) =
-    commandWithACL(receiver, token, callback) { user => roleRegion ? GetACL(rolePID(domainId, roleId), user) }
+    commandWithACL(receiver, token, callback) { user => roleRegion ? GetACL(persistenceId(domainId, roleId), user) }
 
   def replaceACL(receiver: V8Object, token: String, domainId: String, roleId: String, v8ACL: V8Object, callback: V8Function) = {
     val jsACL = toJsObject(v8ACL)
-    commandWithSuccess(receiver, token, callback) { user => roleRegion ? ReplaceACL(rolePID(domainId, roleId), user, jsACL) }
+    commandWithSuccess(receiver, token, callback) { user => roleRegion ? ReplaceACL(persistenceId(domainId, roleId), user, jsACL) }
   }
 
   def patchACL(receiver: V8Object, token: String, domainId: String, roleId: String, v8ACLPatch: V8Array, callback: V8Function) = {
     val jsACLPatch = toJsArray(v8ACLPatch)
-    commandWithSuccess(receiver, token, callback) { user => roleRegion ? PatchACL(rolePID(domainId, roleId), user, JsonPatch(jsACLPatch)) }
+    commandWithSuccess(receiver, token, callback) { user => roleRegion ? PatchACL(persistenceId(domainId, roleId), user, JsonPatch(jsACLPatch)) }
   }
   
   private def commandWithRole(receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any]) =

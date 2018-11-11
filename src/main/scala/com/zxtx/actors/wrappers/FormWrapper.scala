@@ -26,8 +26,6 @@ class FormWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
 
   val formRegion: ActorRef = ClusterSharding(system).shardRegion(FormActor.shardName)
 
-  def formPID(domainId: String, formId: String) = s"${domainId}~.forms~${formId}"
-
   def bind(receiver: V8Object) = {
     val runtime = receiver.getRuntime
     val dw = runtime.getObject("__FormWrapper")
@@ -50,36 +48,36 @@ class FormWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) ex
 
   def create(receiver: V8Object, token: String, domainId: String, formId: String, v8Raw: V8Object, callback: V8Function) = {
     val jsRaw = toJsObject(v8Raw)
-    commandWithForm(receiver, token, callback) { user => formRegion ? CreateForm(formPID(domainId, formId), user, jsRaw) }
+    commandWithForm(receiver, token, callback) { user => formRegion ? CreateForm(persistenceId(domainId, formId), user, jsRaw) }
   }
 
   def get(receiver: V8Object, token: String, domainId: String, formId: String, callback: V8Function) =
-    commandWithForm(receiver, token, callback) { user => formRegion ? GetForm(formPID(domainId, formId), user) }
+    commandWithForm(receiver, token, callback) { user => formRegion ? GetForm(persistenceId(domainId, formId), user) }
 
   def replace(receiver: V8Object, token: String, domainId: String, formId: String, content: V8Object, callback: V8Function) = {
     val jsContent = toJsObject(content)
-    commandWithForm(receiver, token, callback) { user => formRegion ? ReplaceForm(formPID(domainId, formId), user, jsContent) }
+    commandWithForm(receiver, token, callback) { user => formRegion ? ReplaceForm(persistenceId(domainId, formId), user, jsContent) }
   }
 
   def patch(receiver: V8Object, token: String, domainId: String, formId: String, v8Patch: V8Array, callback: V8Function) = {
     val jsPatch = toJsArray(v8Patch)
-    commandWithForm(receiver, token, callback) { user => formRegion ? PatchForm(formPID(domainId, formId), user, JsonPatch(jsPatch)) }
+    commandWithForm(receiver, token, callback) { user => formRegion ? PatchForm(persistenceId(domainId, formId), user, JsonPatch(jsPatch)) }
   }
 
   def remove(receiver: V8Object, token: String, domainId: String, formId: String, callback: V8Function) =
-    commandWithSuccess(receiver, token, callback) { user => formRegion ? RemoveForm(formPID(domainId, formId), user) }
+    commandWithSuccess(receiver, token, callback) { user => formRegion ? RemoveForm(persistenceId(domainId, formId), user) }
 
   def getACL(receiver: V8Object, token: String, domainId: String, formId: String, callback: V8Function) =
-    commandWithACL(receiver, token, callback) { user => formRegion ? GetACL(formPID(domainId, formId), user) }
+    commandWithACL(receiver, token, callback) { user => formRegion ? GetACL(persistenceId(domainId, formId), user) }
 
   def replaceACL(receiver: V8Object, token: String, domainId: String, formId: String, v8ACL: V8Object, callback: V8Function) = {
     val jsACL = toJsObject(v8ACL)
-    commandWithSuccess(receiver, token, callback) { user => formRegion ? ReplaceACL(formPID(domainId, formId), user, jsACL) }
+    commandWithSuccess(receiver, token, callback) { user => formRegion ? ReplaceACL(persistenceId(domainId, formId), user, jsACL) }
   }
 
   def patchACL(receiver: V8Object, token: String, domainId: String, formId: String, v8ACLPatch: V8Array, callback: V8Function) = {
     val jsACLPatch = toJsArray(v8ACLPatch)
-    commandWithSuccess(receiver, token, callback) { user => formRegion ? PatchACL(formPID(domainId, formId), user, JsonPatch(jsACLPatch)) }
+    commandWithSuccess(receiver, token, callback) { user => formRegion ? PatchACL(persistenceId(domainId, formId), user, JsonPatch(jsACLPatch)) }
   }
   
   private def commandWithForm(receiver: V8Object, token: String, callback: V8Function)(cmd: (String) => Future[Any]) =

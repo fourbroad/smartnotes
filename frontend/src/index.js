@@ -1,4 +1,3 @@
-import 'bootstrap';
 import 'index.scss';
 
 import Loader from '@notesabc/loader';
