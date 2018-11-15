@@ -171,33 +171,13 @@
                 <span class="title">Chat</span>
               </a>
             </li>
-            <li class="nav-item dropdown">
-              <a class="dropdown-toggle">
+            <li id="views" class="nav-item">
+              <a class='sidebar-link'>
                 <span class="icon-holder">
-                  <i class="c-teal-500 ti-view-list-alt"></i>
+                  <i class="c-deep-purple-500 ti-view-list-alt"></i>
                 </span>
-                <span class="title">View List</span>
-                <span class="arrow">
-                  <i class="ti-angle-right"></i>
-                </span>
+                <span class="title">Views</span>
               </a>
-              <ul class="view-container dropdown-menu">
-                <li class="nav-item dropdown">
-                  <a class='sidebar-link'>
-                    <span>Latest Visited View</span>
-                  </a>
-                </li>
-                <li class="nav-item dropdown">
-                  <a>
-                    <span>Saved View List</span>
-                    <span class="arrow">
-                      <i class="ti-angle-right"></i>
-                    </span>
-                  </a>
-                  <ul class="view-list dropdown-menu">
-                  </ul>
-                </li>
-              </ul>
             </li>
             <li id="charts" class="nav-item">
               <a class='sidebar-link'>
@@ -283,6 +263,34 @@
                 </li>
               </ul>
             </li>
+            <li class="nav-item dropdown">
+              <a class="dropdown-toggle">
+                <span class="icon-holder">
+                  <i class="c-teal-500 ti-view-list-alt"></i>
+                </span>
+                <span class="title">View List</span>
+                <span class="arrow">
+                  <i class="ti-angle-right"></i>
+                </span>
+              </a>
+              <ul class="view-container dropdown-menu">
+                <li class="nav-item dropdown">
+                  <a class='sidebar-link'>
+                    <span>Latest Visited View</span>
+                  </a>
+                </li>
+                <li class="nav-item dropdown">
+                  <a>
+                    <span>Saved View List</span>
+                    <span class="arrow">
+                      <i class="ti-angle-right"></i>
+                    </span>
+                  </a>
+                  <ul class="view-list dropdown-menu">
+                  </ul>
+                </li>
+              </ul>
+            </li>
           </ul>
         </div>
       </div>
@@ -295,6 +303,11 @@
               <li>
                 <a id='sidebar-toggle' class="sidebar-toggle">
                   <i class="ti-menu"></i>
+                </a>
+              </li>
+              <li class="new-document">
+                <a>
+                  <i class="fa fa-file-text-o"></i>
                 </a>
               </li>
               <li class="search-box">

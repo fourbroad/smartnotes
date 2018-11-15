@@ -62,7 +62,7 @@ function create(opts) {
     view.findDocuments(_distinctQuery(name, wildcard), function(err, docs){
       if(err) return console.log(err);
       var items = _.map(docs.documents, function(doc){
-      	return {label:doc[name], value:doc[name]};
+      	return {label:_.at(doc,name)[0], value:_.at(doc,name)[0]};
       });
 
       _refreshClearLink();

@@ -15,10 +15,10 @@ const
 var
   client, domain,
   uriAnchor = {}, _changeAnchorPart, _setAchor,
-  $viewContainer, $viewList,
+  $viewContainer, $viewList,　$newDocumentBtn,
   _init, _armViewListItem, _onClientChanged, _onHashchange,
   _loadSignUp, _loadDashboard, _loadEmail, _loadCompose, _loadCalendar, _loadChat, 
-  _loadView, _loadDocument, _loadCharts, _loadForms, _loadUi, _loadBasicTable, _loadDataTable, 
+  _loadView, _newDocument, _loadDocument, _loadCharts, _loadForms, _loadUi, _loadBasicTable, _loadDataTable, 
   _loadGoogleMaps, _loadVectorMaps;
 
 _setAchor = function(anchor){
@@ -129,11 +129,6 @@ _onHashchange = function(event){
       case 'chat':
         _loadChat(opts);
         break;
-      case 'view':
-        opts.domain = domain;
-        opts.viewId = anchorProposed._module.id;
-        _loadView(opts);
-        break;
       case 'document':
         opts.domain = domain;
         opts.domainId = params.domainId;
@@ -161,6 +156,11 @@ _onHashchange = function(event){
         break;
       case 'vector-maps':
         _loadVectorMaps(opts);
+        break;
+      case 'view':
+        opts.domain = domain;
+        opts.viewId = anchorProposed._module.id;
+        _loadView(opts);
         break;
       default :        
     }
@@ -208,6 +208,21 @@ _loadChat = function(opts){
 _loadView = function(opts){
   import(/* webpackChunkName: "view" */ './view').then(({default: View}) => {
     View.create(opts);
+  });
+};
+
+_newDocument = function(){
+  domain.getForm('json-form', function(err, form){
+    if(err) return console.log(err);
+    Loader.load(form.plugin, function(module){
+      var JsonForm = module.default;
+      JsonForm.create({
+        client: client,
+        $container:$container,
+        form: form,
+        document: {}
+      });
+    });
   });
 };
 
@@ -350,7 +365,12 @@ $('.sidebar .sidebar-menu').on('click','li>a', function () {
   $('.sidebar').find('.sidebar-link').removeClass('active');
   $this.addClass('active');
 
-  if($parent.hasClass('view')){
+  if('views' == id){
+    _changeAnchorPart({
+      module: 'view',
+      _module:{id: '.views'}
+    });
+  }else if($parent.hasClass('view')){
     _changeAnchorPart({
       module: 'view',
       _module:{id: $parent.attr('id')}
@@ -387,12 +407,13 @@ _armViewListItem = function(name){
 
 _init = function(client){
   window.client = client;
-  client.moment = moment;
-  client.jiff = jiff;
 
   $viewContainer = $('.viewContainer');
   $viewList = $('.view-container .view-list');
+  $newDocumentBtn = $('li.new-document');
+
   account.init({$container: $('.page-container .nav-right'), client: client});
+  $newDocumentBtn.on('click', _newDocument);
 
   if(!client.getCurrentUser().isAnonymous()){
     client.getDomain(function(err, d){
