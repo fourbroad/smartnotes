@@ -1,0 +1,840 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="ivy-report.xsl"?>
+<ivy-report version="1.0">
+	<info
+		organisation="com.zxtx"
+		module="akka-persistence-elasticsearch$sources_javadoc"
+		revision="0.1.0"
+		conf="compile-internal"
+		confs="compile, runtime, test, provided, optional, compile-internal, runtime-internal, test-internal, plugin, pom, scala-tool, scalafmt"
+		date="20181117102847"/>
+	<dependencies>
+		<module organisation="com.typesafe.akka" name="akka-cluster-sharding_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011807" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="48">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="4108" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-cluster-sharding_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-cluster-sharding_2.12/2.5.8/akka-cluster-sharding_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-cluster-sharding_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="59079" time="1066" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-cluster-sharding_2.12/srcs/akka-cluster-sharding_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-cluster-sharding_2.12/2.5.8/akka-cluster-sharding_2.12-2.5.8-sources.jar"/>
+					</artifact>
+					<artifact name="akka-cluster-sharding_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="937717" time="1690" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-cluster-sharding_2.12/docs/akka-cluster-sharding_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-cluster-sharding_2.12/2.5.8/akka-cluster-sharding_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-distributed-data_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011719" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="default, compile, runtime(*), master(compile), runtime, default(compile), compile(*), master" position="45">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3351" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-distributed-data_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-distributed-data_2.12/2.5.8/akka-distributed-data_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-distributed-data_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1627841" time="1667" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-distributed-data_2.12/docs/akka-distributed-data_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-distributed-data_2.12/2.5.8/akka-distributed-data_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+					<artifact name="akka-distributed-data_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="196715" time="1152" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-distributed-data_2.12/srcs/akka-distributed-data_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-distributed-data_2.12/2.5.8/akka-distributed-data_2.12-2.5.8-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-persistence-query_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011550" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="44">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3622" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-persistence-query_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-persistence-query_2.12/2.5.8/akka-persistence-query_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-persistence-query_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="850307" time="1812" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-persistence-query_2.12/docs/akka-persistence-query_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-persistence-query_2.12/2.5.8/akka-persistence-query_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+					<artifact name="akka-persistence-query_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="26582" time="998" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-persistence-query_2.12/srcs/akka-persistence-query_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-persistence-query_2.12/2.5.8/akka-persistence-query_2.12-2.5.8-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-cluster-tools_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011734" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="default, compile, runtime(*), master(compile), runtime, default(compile), compile(*), master" position="38">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3203" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-cluster-tools_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-cluster-tools_2.12/2.5.8/akka-cluster-tools_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-cluster-tools_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="64173" time="1323" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-cluster-tools_2.12/srcs/akka-cluster-tools_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-cluster-tools_2.12/2.5.8/akka-cluster-tools_2.12-2.5.8-sources.jar"/>
+					</artifact>
+					<artifact name="akka-cluster-tools_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1130313" time="1589" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-cluster-tools_2.12/docs/akka-cluster-tools_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-cluster-tools_2.12/2.5.8/akka-cluster-tools_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-persistence_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011403" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="default, compile, runtime(*), master(compile), runtime, default(compile), compile(*), master" position="30">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="4150" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-persistence_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-persistence_2.12/2.5.8/akka-persistence_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-persistence_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="113760" time="1128" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-persistence_2.12/srcs/akka-persistence_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-persistence_2.12/2.5.8/akka-persistence_2.12-2.5.8-sources.jar"/>
+					</artifact>
+					<artifact name="akka-persistence_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1689149" time="1963" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-persistence_2.12/docs/akka-persistence_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-persistence_2.12/2.5.8/akka-persistence_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.pauldijou" name="jwt-core_2.12">
+			<revision name="0.16.0" status="release" pubdate="20180306063636" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://pauldijou.fr/jwt-scala/" extra-info.apiURL="http://pauldijou.fr/jwt-scala/api/" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="28">
+				<license name="Apache-2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3324" time="0" location="/home/fourbroad/.ivy2/cache/com.pauldijou/jwt-core_2.12/ivy-0.16.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/pauldijou/jwt-core_2.12/0.16.0/jwt-core_2.12-0.16.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.16.0" rev-constraint-default="0.16.0" rev-constraint-dynamic="0.16.0" callerrev="0.1.0" extra-info.apiURL="http://pauldijou.fr/jwt-scala/api/"/>
+				<artifacts>
+					<artifact name="jwt-core_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="836260" time="1279" location="/home/fourbroad/.ivy2/cache/com.pauldijou/jwt-core_2.12/docs/jwt-core_2.12-0.16.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/pauldijou/jwt-core_2.12/0.16.0/jwt-core_2.12-0.16.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="jwt-core_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="12330" time="896" location="/home/fourbroad/.ivy2/cache/com.pauldijou/jwt-core_2.12/srcs/jwt-core_2.12-0.16.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/pauldijou/jwt-core_2.12/0.16.0/jwt-core_2.12-0.16.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.bouncycastle" name="bcpkix-jdk15on">
+			<revision name="1.57" status="release" pubdate="20170515082611" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://www.bouncycastle.org/java.html" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="50">
+				<license name="Bouncy Castle Licence" url="http://www.bouncycastle.org/licence.html"/>
+				<metadata-artifact status="no" details="" size="2927" time="0" location="/home/fourbroad/.ivy2/cache/org.bouncycastle/bcpkix-jdk15on/ivy-1.57.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/bouncycastle/bcpkix-jdk15on/1.57/bcpkix-jdk15on-1.57.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.57" rev-constraint-default="1.57" rev-constraint-dynamic="1.57" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="bcpkix-jdk15on" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1152578" time="1242" location="/home/fourbroad/.ivy2/cache/org.bouncycastle/bcpkix-jdk15on/docs/bcpkix-jdk15on-1.57-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/bouncycastle/bcpkix-jdk15on/1.57/bcpkix-jdk15on-1.57-javadoc.jar"/>
+					</artifact>
+					<artifact name="bcpkix-jdk15on" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="487160" time="1637" location="/home/fourbroad/.ivy2/cache/org.bouncycastle/bcpkix-jdk15on/srcs/bcpkix-jdk15on-1.57-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/bouncycastle/bcpkix-jdk15on/1.57/bcpkix-jdk15on-1.57-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.bouncycastle" name="bcprov-jdk15on">
+			<revision name="1.57" status="release" pubdate="20170515082435" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://www.bouncycastle.org/java.html" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="42">
+				<license name="Bouncy Castle Licence" url="http://www.bouncycastle.org/licence.html"/>
+				<metadata-artifact status="no" details="" size="2676" time="0" location="/home/fourbroad/.ivy2/cache/org.bouncycastle/bcprov-jdk15on/ivy-1.57.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.57/bcprov-jdk15on-1.57.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.57" rev-constraint-default="1.57" rev-constraint-dynamic="1.57" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="bcprov-jdk15on" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="3330145" time="2110" location="/home/fourbroad/.ivy2/cache/org.bouncycastle/bcprov-jdk15on/srcs/bcprov-jdk15on-1.57-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.57/bcprov-jdk15on-1.57-sources.jar"/>
+					</artifact>
+					<artifact name="bcprov-jdk15on" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="10669254" time="2887" location="/home/fourbroad/.ivy2/cache/org.bouncycastle/bcprov-jdk15on/docs/bcprov-jdk15on-1.57-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.57/bcprov-jdk15on-1.57-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.roundeights" name="hasher_2.12">
+			<revision name="1.2.0" status="release" pubdate="20170205034121" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/Nycto/Hasher" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="24">
+				<license name="MIT" url="https://opensource.org/licenses/MIT"/>
+				<metadata-artifact status="no" details="" size="2864" time="0" location="/home/fourbroad/.ivy2/cache/com.roundeights/hasher_2.12/ivy-1.2.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/roundeights/hasher_2.12/1.2.0/hasher_2.12-1.2.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.2.0" rev-constraint-default="1.2.0" rev-constraint-dynamic="1.2.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="hasher_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="745378" time="1720" location="/home/fourbroad/.ivy2/cache/com.roundeights/hasher_2.12/docs/hasher_2.12-1.2.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/roundeights/hasher_2.12/1.2.0/hasher_2.12-1.2.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="hasher_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="9246" time="1210" location="/home/fourbroad/.ivy2/cache/com.roundeights/hasher_2.12/srcs/hasher_2.12-1.2.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/roundeights/hasher_2.12/1.2.0/hasher_2.12-1.2.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.slf4j" name="slf4j-api">
+			<revision name="1.7.25" status="release" pubdate="20170317003632" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://www.slf4j.org" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="23">
+				<license name="MIT License" url="http://www.opensource.org/licenses/mit-license.php"/>
+				<metadata-artifact status="no" details="" size="5377" time="0" location="/home/fourbroad/.ivy2/cache/org.slf4j/slf4j-api/ivy-1.7.25.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.7.25" rev-constraint-default="1.7.25" rev-constraint-dynamic="1.7.25" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="slf4j-api" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="248922" time="894" location="/home/fourbroad/.ivy2/cache/org.slf4j/slf4j-api/docs/slf4j-api-1.7.25-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25-javadoc.jar"/>
+					</artifact>
+					<artifact name="slf4j-api" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="55539" time="1015" location="/home/fourbroad/.ivy2/cache/org.slf4j/slf4j-api/srcs/slf4j-api-1.7.25-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-multi-node-testkit_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011631" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="19">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3620" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-multi-node-testkit_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-multi-node-testkit_2.12/2.5.8/akka-multi-node-testkit_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-multi-node-testkit_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="755560" time="1293" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-multi-node-testkit_2.12/docs/akka-multi-node-testkit_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-multi-node-testkit_2.12/2.5.8/akka-multi-node-testkit_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+					<artifact name="akka-multi-node-testkit_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="42235" time="1260" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-multi-node-testkit_2.12/srcs/akka-multi-node-testkit_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-multi-node-testkit_2.12/2.5.8/akka-multi-node-testkit_2.12-2.5.8-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.eclipsesource.j2v8" name="j2v8_linux_x86_64">
+			<revision name="4.8.0" status="release" pubdate="20170620021854" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/eclipsesource/j2v8" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="18">
+				<license name="Eclipse Public License - v 1.0" url="https://www.eclipse.org/legal/epl-v10.html"/>
+				<metadata-artifact status="no" details="" size="3218" time="0" location="/home/fourbroad/.ivy2/cache/com.eclipsesource.j2v8/j2v8_linux_x86_64/ivy-4.8.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/eclipsesource/j2v8/j2v8_linux_x86_64/4.8.0/j2v8_linux_x86_64-4.8.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="4.8.0" rev-constraint-default="4.8.0" rev-constraint-dynamic="4.8.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="j2v8_linux_x86_64" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="7276361" time="2447" location="/home/fourbroad/.ivy2/cache/com.eclipsesource.j2v8/j2v8_linux_x86_64/srcs/j2v8_linux_x86_64-4.8.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/eclipsesource/j2v8/j2v8_linux_x86_64/4.8.0/j2v8_linux_x86_64-4.8.0-sources.jar"/>
+					</artifact>
+					<artifact name="j2v8_linux_x86_64" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="422430" time="1701" location="/home/fourbroad/.ivy2/cache/com.eclipsesource.j2v8/j2v8_linux_x86_64/docs/j2v8_linux_x86_64-4.8.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/eclipsesource/j2v8/j2v8_linux_x86_64/4.8.0/j2v8_linux_x86_64-4.8.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.gnieh" name="diffson-spray-json_2.12">
+			<revision name="3.0.0" status="release" pubdate="20180429185059" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/gnieh/diffson" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="17">
+				<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="2997" time="0" location="/home/fourbroad/.ivy2/cache/org.gnieh/diffson-spray-json_2.12/ivy-3.0.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/gnieh/diffson-spray-json_2.12/3.0.0/diffson-spray-json_2.12-3.0.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="3.0.0" rev-constraint-default="3.0.0" rev-constraint-dynamic="3.0.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="diffson-spray-json_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1188663" time="1547" location="/home/fourbroad/.ivy2/cache/org.gnieh/diffson-spray-json_2.12/docs/diffson-spray-json_2.12-3.0.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/gnieh/diffson-spray-json_2.12/3.0.0/diffson-spray-json_2.12-3.0.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="diffson-spray-json_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="2166" time="1305" location="/home/fourbroad/.ivy2/cache/org.gnieh/diffson-spray-json_2.12/srcs/diffson-spray-json_2.12-3.0.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/gnieh/diffson-spray-json_2.12/3.0.0/diffson-spray-json_2.12-3.0.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.gnieh" name="diffson-core_2.12">
+			<revision name="3.0.0" status="release" pubdate="20180429185050" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/gnieh/diffson" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="31">
+				<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="2950" time="0" location="/home/fourbroad/.ivy2/cache/org.gnieh/diffson-core_2.12/ivy-3.0.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/gnieh/diffson-core_2.12/3.0.0/diffson-core_2.12-3.0.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="3.0.0" rev-constraint-default="3.0.0" rev-constraint-dynamic="3.0.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="diffson-core_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1328300" time="1674" location="/home/fourbroad/.ivy2/cache/org.gnieh/diffson-core_2.12/docs/diffson-core_2.12-3.0.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/gnieh/diffson-core_2.12/3.0.0/diffson-core_2.12-3.0.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="diffson-core_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="17477" time="920" location="/home/fourbroad/.ivy2/cache/org.gnieh/diffson-core_2.12/srcs/diffson-core_2.12-3.0.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/gnieh/diffson-core_2.12/3.0.0/diffson-core_2.12-3.0.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-cluster_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011637" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="default, compile, runtime(*), master(compile), runtime, default(compile), compile(*), master" position="16">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3449" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-cluster_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-cluster_2.12/2.5.8/akka-cluster_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-cluster_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="120567" time="1220" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-cluster_2.12/srcs/akka-cluster_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-cluster_2.12/2.5.8/akka-cluster_2.12-2.5.8-sources.jar"/>
+					</artifact>
+					<artifact name="akka-cluster_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1049425" time="1578" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-cluster_2.12/docs/akka-cluster_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-cluster_2.12/2.5.8/akka-cluster_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-remote_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011513" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="default, compile, runtime(*), master(compile), runtime, default(compile), compile(*), master" position="36">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="4419" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-remote_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-remote_2.12/2.5.8/akka-remote_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-remote_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="328996" time="1266" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-remote_2.12/srcs/akka-remote_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-remote_2.12/2.5.8/akka-remote_2.12-2.5.8-sources.jar"/>
+					</artifact>
+					<artifact name="akka-remote_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1621310" time="2100" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-remote_2.12/docs/akka-remote_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-remote_2.12/2.5.8/akka-remote_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="io.aeron" name="aeron-driver">
+			<revision name="1.3.0" status="release" pubdate="20170514123938" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/real-logic/Aeron" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="37">
+				<license name="The Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="3067" time="0" location="/home/fourbroad/.ivy2/cache/io.aeron/aeron-driver/ivy-1.3.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/io/aeron/aeron-driver/1.3.0/aeron-driver-1.3.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.3.0" rev-constraint-default="1.3.0" rev-constraint-dynamic="1.3.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="aeron-driver" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="473567" time="1424" location="/home/fourbroad/.ivy2/cache/io.aeron/aeron-driver/docs/aeron-driver-1.3.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/io/aeron/aeron-driver/1.3.0/aeron-driver-1.3.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="aeron-driver" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="169454" time="1116" location="/home/fourbroad/.ivy2/cache/io.aeron/aeron-driver/srcs/aeron-driver-1.3.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/io/aeron/aeron-driver/1.3.0/aeron-driver-1.3.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="io.aeron" name="aeron-client">
+			<revision name="1.3.0" status="release" pubdate="20170514123926" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/real-logic/Aeron" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="25">
+				<license name="The Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="3063" time="0" location="/home/fourbroad/.ivy2/cache/io.aeron/aeron-client/ivy-1.3.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/io/aeron/aeron-client/1.3.0/aeron-client-1.3.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.3.0" rev-constraint-default="1.3.0" rev-constraint-dynamic="1.3.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="aeron-client" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="290606" time="1320" location="/home/fourbroad/.ivy2/cache/io.aeron/aeron-client/docs/aeron-client-1.3.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/io/aeron/aeron-client/1.3.0/aeron-client-1.3.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="aeron-client" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="111352" time="1105" location="/home/fourbroad/.ivy2/cache/io.aeron/aeron-client/srcs/aeron-client-1.3.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/io/aeron/aeron-client/1.3.0/aeron-client-1.3.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="io.netty" name="netty">
+			<revision name="3.10.6.Final" status="release" pubdate="20160629204528" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://netty.io/" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="22">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="7197" time="0" location="/home/fourbroad/.ivy2/cache/io.netty/netty/ivy-3.10.6.Final.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/io/netty/netty/3.10.6.Final/netty-3.10.6.Final.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="3.10.6.Final" rev-constraint-default="3.10.6.Final" rev-constraint-dynamic="3.10.6.Final" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="netty" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1132389" time="1138" location="/home/fourbroad/.ivy2/cache/io.netty/netty/srcs/netty-3.10.6.Final-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/io/netty/netty/3.10.6.Final/netty-3.10.6.Final-sources.jar"/>
+					</artifact>
+					<artifact name="netty" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="3394533" time="1890" location="/home/fourbroad/.ivy2/cache/io.netty/netty/docs/netty-3.10.6.Final-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/io/netty/netty/3.10.6.Final/netty-3.10.6.Final-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-testkit_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011142" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="43">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3689" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-testkit_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-testkit_2.12/2.5.8/akka-testkit_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-testkit_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="41004" time="1078" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-testkit_2.12/srcs/akka-testkit_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-testkit_2.12/2.5.8/akka-testkit_2.12-2.5.8-sources.jar"/>
+					</artifact>
+					<artifact name="akka-testkit_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1196742" time="1493" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-testkit_2.12/docs/akka-testkit_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-testkit_2.12/2.5.8/akka-testkit_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="ch.megard" name="akka-http-cors_2.12">
+			<revision name="0.2.2" status="release" pubdate="20170926022553" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/lomigmegard/akka-http-cors" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="15">
+				<license name="Apache 2" url="https://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="3087" time="0" location="/home/fourbroad/.ivy2/cache/ch.megard/akka-http-cors_2.12/ivy-0.2.2.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/ch/megard/akka-http-cors_2.12/0.2.2/akka-http-cors_2.12-0.2.2.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.2.2" rev-constraint-default="0.2.2" rev-constraint-dynamic="0.2.2" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="akka-http-cors_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="739457" time="1732" location="/home/fourbroad/.ivy2/cache/ch.megard/akka-http-cors_2.12/docs/akka-http-cors_2.12-0.2.2-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/ch/megard/akka-http-cors_2.12/0.2.2/akka-http-cors_2.12-0.2.2-javadoc.jar"/>
+					</artifact>
+					<artifact name="akka-http-cors_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="10627" time="1022" location="/home/fourbroad/.ivy2/cache/ch.megard/akka-http-cors_2.12/srcs/akka-http-cors_2.12-0.2.2-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/ch/megard/akka-http-cors_2.12/0.2.2/akka-http-cors_2.12-0.2.2-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.pauldijou" name="jwt-core-impl_2.12">
+			<revision name="0.16.0" status="release" pubdate="20180306063602" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://pauldijou.fr/jwt-scala/" extra-info.apiURL="http://pauldijou.fr/jwt-scala/api/" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="13">
+				<license name="Apache-2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3040" time="0" location="/home/fourbroad/.ivy2/cache/com.pauldijou/jwt-core-impl_2.12/ivy-0.16.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/pauldijou/jwt-core-impl_2.12/0.16.0/jwt-core-impl_2.12-0.16.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.16.0" rev-constraint-default="0.16.0" rev-constraint-dynamic="0.16.0" callerrev="0.1.0" extra-info.apiURL="http://pauldijou.fr/jwt-scala/api/"/>
+				<artifacts>
+					<artifact name="jwt-core-impl_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="987" time="961" location="/home/fourbroad/.ivy2/cache/com.pauldijou/jwt-core-impl_2.12/srcs/jwt-core-impl_2.12-0.16.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/pauldijou/jwt-core-impl_2.12/0.16.0/jwt-core-impl_2.12-0.16.0-sources.jar"/>
+					</artifact>
+					<artifact name="jwt-core-impl_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="638753" time="1622" location="/home/fourbroad/.ivy2/cache/com.pauldijou/jwt-core-impl_2.12/docs/jwt-core-impl_2.12-0.16.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/pauldijou/jwt-core-impl_2.12/0.16.0/jwt-core-impl_2.12-0.16.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.fusesource.leveldbjni" name="leveldbjni-all">
+			<revision name="1.8" status="release" pubdate="20131017211826" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="12">
+				<license name="The BSD 3-Clause License" url="http://www.opensource.org/licenses/BSD-3-Clause"/>
+				<metadata-artifact status="no" details="" size="4642" time="0" location="/home/fourbroad/.ivy2/cache/org.fusesource.leveldbjni/leveldbjni-all/ivy-1.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/fusesource/leveldbjni/leveldbjni-all/1.8/leveldbjni-all-1.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.8" rev-constraint-default="1.8" rev-constraint-dynamic="1.8" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="leveldbjni-all" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="70225" time="939" location="/home/fourbroad/.ivy2/cache/org.fusesource.leveldbjni/leveldbjni-all/srcs/leveldbjni-all-1.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/fusesource/leveldbjni/leveldbjni-all/1.8/leveldbjni-all-1.8-sources.jar"/>
+					</artifact>
+					<artifact name="leveldbjni-all" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="34086" time="933" location="/home/fourbroad/.ivy2/cache/org.fusesource.leveldbjni/leveldbjni-all/docs/leveldbjni-all-1.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/fusesource/leveldbjni/leveldbjni-all/1.8/leveldbjni-all-1.8-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.softwaremill.akka-http-session" name="core_2.12">
+			<revision name="0.5.4" status="release" pubdate="20180211035651" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://softwaremill.com" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="8">
+				<license name="Apache2" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="3343" time="0" location="/home/fourbroad/.ivy2/cache/com.softwaremill.akka-http-session/core_2.12/ivy-0.5.4.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/softwaremill/akka-http-session/core_2.12/0.5.4/core_2.12-0.5.4.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.5.4" rev-constraint-default="0.5.4" rev-constraint-dynamic="0.5.4" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="core_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="948448" time="1595" location="/home/fourbroad/.ivy2/cache/com.softwaremill.akka-http-session/core_2.12/docs/core_2.12-0.5.4-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/softwaremill/akka-http-session/core_2.12/0.5.4/core_2.12-0.5.4-javadoc.jar"/>
+					</artifact>
+					<artifact name="core_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="17445" time="1275" location="/home/fourbroad/.ivy2/cache/com.softwaremill.akka-http-session/core_2.12/srcs/core_2.12-0.5.4-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/softwaremill/akka-http-session/core_2.12/0.5.4/core_2.12-0.5.4-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-http_2.12">
+			<revision name="10.1.0-RC1" status="release" pubdate="20171223022516" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://akka.io" extra-info.apiURL="http://doc.akka.io/api/akka-http/10.1.0-RC1/" downloaded="false" searched="false" default="false" conf="default, compile, runtime(*), master(compile), runtime, default(compile), compile(*), master" position="52">
+				<license name="Apache-2.0" url="https://opensource.org/licenses/Apache-2.0"/>
+				<metadata-artifact status="no" details="" size="3121" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-http_2.12/ivy-10.1.0-RC1.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-http_2.12/10.1.0-RC1/akka-http_2.12-10.1.0-RC1.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="10.1.0-RC1" rev-constraint-default="10.1.0-RC1" rev-constraint-dynamic="10.1.0-RC1" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka-http/10.1.0-RC1/"/>
+				<artifacts>
+					<artifact name="akka-http_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="4887198" time="5733" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-http_2.12/docs/akka-http_2.12-10.1.0-RC1-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-http_2.12/10.1.0-RC1/akka-http_2.12-10.1.0-RC1-javadoc.jar"/>
+					</artifact>
+					<artifact name="akka-http_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="199707" time="1172" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-http_2.12/srcs/akka-http_2.12-10.1.0-RC1-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-http_2.12/10.1.0-RC1/akka-http_2.12-10.1.0-RC1-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-http-core_2.12">
+			<revision name="10.1.0-RC1" status="release" pubdate="20171223022508" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://akka.io" extra-info.apiURL="http://doc.akka.io/api/akka-http/10.1.0-RC1/" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="26">
+				<license name="Apache-2.0" url="https://opensource.org/licenses/Apache-2.0"/>
+				<metadata-artifact status="no" details="" size="3744" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-http-core_2.12/ivy-10.1.0-RC1.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-http-core_2.12/10.1.0-RC1/akka-http-core_2.12-10.1.0-RC1.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="10.1.0-RC1" rev-constraint-default="10.1.0-RC1" rev-constraint-dynamic="10.1.0-RC1" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka-http/10.1.0-RC1/"/>
+				<artifacts>
+					<artifact name="akka-http-core_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="406632" time="1114" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-http-core_2.12/srcs/akka-http-core_2.12-10.1.0-RC1-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-http-core_2.12/10.1.0-RC1/akka-http-core_2.12-10.1.0-RC1-sources.jar"/>
+					</artifact>
+					<artifact name="akka-http-core_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="6369686" time="8443" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-http-core_2.12/docs/akka-http-core_2.12-10.1.0-RC1-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-http-core_2.12/10.1.0-RC1/akka-http-core_2.12-10.1.0-RC1-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-stream_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011144" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="46">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3380" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-stream_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-stream_2.12/2.5.8/akka-stream_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-stream_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="489309" time="1251" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-stream_2.12/srcs/akka-stream_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-stream_2.12/2.5.8/akka-stream_2.12-2.5.8-sources.jar"/>
+					</artifact>
+					<artifact name="akka-stream_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="5771908" time="2627" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-stream_2.12/docs/akka-stream_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-stream_2.12/2.5.8/akka-stream_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe" name="ssl-config-core_2.12">
+			<revision name="0.2.2" status="release" pubdate="20170308223931" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/typesafehub/ssl-config" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="20">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="2857" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe/ssl-config-core_2.12/ivy-0.2.2.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/ssl-config-core_2.12/0.2.2/ssl-config-core_2.12-0.2.2.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.2.2" rev-constraint-default="0.2.2" rev-constraint-dynamic="0.2.2" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="ssl-config-core_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1112423" time="1155" location="/home/fourbroad/.ivy2/cache/com.typesafe/ssl-config-core_2.12/docs/ssl-config-core_2.12-0.2.2-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/ssl-config-core_2.12/0.2.2/ssl-config-core_2.12-0.2.2-javadoc.jar"/>
+					</artifact>
+					<artifact name="ssl-config-core_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="49384" time="1496" location="/home/fourbroad/.ivy2/cache/com.typesafe/ssl-config-core_2.12/srcs/ssl-config-core_2.12-0.2.2-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/ssl-config-core_2.12/0.2.2/ssl-config-core_2.12-0.2.2-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scala-lang.modules" name="scala-parser-combinators_2.12">
+			<revision name="1.0.4" status="release" pubdate="20161029071045" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://www.scala-lang.org/" downloaded="false" searched="false" default="false" conf="master(*), compile, runtime(*), runtime, compile(*), master" position="35">
+				<license name="BSD 3-clause" url="http://opensource.org/licenses/BSD-3-Clause"/>
+				<metadata-artifact status="no" details="" size="2785" time="0" location="/home/fourbroad/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.12/ivy-1.0.4.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scala-lang/modules/scala-parser-combinators_2.12/1.0.4/scala-parser-combinators_2.12-1.0.4.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.0.4" rev-constraint-default="1.0.4" rev-constraint-dynamic="1.0.4" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="scala-parser-combinators_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1045773" time="1235" location="/home/fourbroad/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.12/docs/scala-parser-combinators_2.12-1.0.4-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-lang/modules/scala-parser-combinators_2.12/1.0.4/scala-parser-combinators_2.12-1.0.4-javadoc.jar"/>
+					</artifact>
+					<artifact name="scala-parser-combinators_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="42274" time="955" location="/home/fourbroad/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.12/srcs/scala-parser-combinators_2.12-1.0.4-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-lang/modules/scala-parser-combinators_2.12/1.0.4/scala-parser-combinators_2.12-1.0.4-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.reactivestreams" name="reactive-streams">
+			<revision name="1.0.1" status="release" pubdate="20170809182439" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://www.reactive-streams.org/" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="47">
+				<license name="CC0" url="http://creativecommons.org/publicdomain/zero/1.0/"/>
+				<metadata-artifact status="no" details="" size="2523" time="0" location="/home/fourbroad/.ivy2/cache/org.reactivestreams/reactive-streams/ivy-1.0.1.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/reactivestreams/reactive-streams/1.0.1/reactive-streams-1.0.1.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.0.1" rev-constraint-default="1.0.1" rev-constraint-dynamic="1.0.1" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="reactive-streams" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="33871" time="1165" location="/home/fourbroad/.ivy2/cache/org.reactivestreams/reactive-streams/docs/reactive-streams-1.0.1-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/reactivestreams/reactive-streams/1.0.1/reactive-streams-1.0.1-javadoc.jar"/>
+					</artifact>
+					<artifact name="reactive-streams" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="3997" time="916" location="/home/fourbroad/.ivy2/cache/org.reactivestreams/reactive-streams/srcs/reactive-streams-1.0.1-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/reactivestreams/reactive-streams/1.0.1/reactive-streams-1.0.1-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-parsing_2.12">
+			<revision name="10.1.0-RC1" status="release" pubdate="20171223022501" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://akka.io" extra-info.apiURL="http://doc.akka.io/api/akka-http/10.1.0-RC1/" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="29">
+				<license name="Apache-2.0" url="https://opensource.org/licenses/Apache-2.0"/>
+				<metadata-artifact status="no" details="" size="3120" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-parsing_2.12/ivy-10.1.0-RC1.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-parsing_2.12/10.1.0-RC1/akka-parsing_2.12-10.1.0-RC1.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="10.1.0-RC1" rev-constraint-default="10.1.0-RC1" rev-constraint-dynamic="10.1.0-RC1" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka-http/10.1.0-RC1/"/>
+				<artifacts>
+					<artifact name="akka-parsing_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="63787" time="861" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-parsing_2.12/srcs/akka-parsing_2.12-10.1.0-RC1-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-parsing_2.12/10.1.0-RC1/akka-parsing_2.12-10.1.0-RC1-sources.jar"/>
+					</artifact>
+					<artifact name="akka-parsing_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="2081123" time="1960" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-parsing_2.12/docs/akka-parsing_2.12-10.1.0-RC1-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-parsing_2.12/10.1.0-RC1/akka-parsing_2.12-10.1.0-RC1-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-actor_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208010951" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="default, compile, runtime(*), master(compile), runtime, default(compile), compile(*), master" position="39">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3099" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-actor_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-actor_2.12/2.5.8/akka-actor_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-actor_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="8003272" time="2933" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-actor_2.12/docs/akka-actor_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-actor_2.12/2.5.8/akka-actor_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+					<artifact name="akka-actor_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="521496" time="1151" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-actor_2.12/srcs/akka-actor_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-actor_2.12/2.5.8/akka-actor_2.12-2.5.8-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scala-lang.modules" name="scala-java8-compat_2.12">
+			<revision name="0.8.0" status="release" pubdate="20161030061227" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://www.scala-lang.org/" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="54">
+				<license name="BSD 3-clause" url="http://opensource.org/licenses/BSD-3-Clause"/>
+				<metadata-artifact status="no" details="" size="3036" time="0" location="/home/fourbroad/.ivy2/cache/org.scala-lang.modules/scala-java8-compat_2.12/ivy-0.8.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scala-lang/modules/scala-java8-compat_2.12/0.8.0/scala-java8-compat_2.12-0.8.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.8.0" rev-constraint-default="0.8.0" rev-constraint-dynamic="0.8.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="scala-java8-compat_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="63853" time="1137" location="/home/fourbroad/.ivy2/cache/org.scala-lang.modules/scala-java8-compat_2.12/srcs/scala-java8-compat_2.12-0.8.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-lang/modules/scala-java8-compat_2.12/0.8.0/scala-java8-compat_2.12-0.8.0-sources.jar"/>
+					</artifact>
+					<artifact name="scala-java8-compat_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1908047" time="4200" location="/home/fourbroad/.ivy2/cache/org.scala-lang.modules/scala-java8-compat_2.12/docs/scala-java8-compat_2.12-0.8.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-lang/modules/scala-java8-compat_2.12/0.8.0/scala-java8-compat_2.12-0.8.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe" name="config">
+			<revision name="1.3.2" status="release" pubdate="20171006220218" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/typesafehub/config" downloaded="false" searched="false" default="false" conf="master(*), compile, runtime(*), master(compile), runtime, compile(*), master" position="11">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="2875" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe/config/ivy-1.3.2.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/config/1.3.2/config-1.3.2.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.3.2" rev-constraint-default="1.3.2" rev-constraint-dynamic="1.3.2" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="config" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="462775" time="1399" location="/home/fourbroad/.ivy2/cache/com.typesafe/config/docs/config-1.3.2-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/config/1.3.2/config-1.3.2-javadoc.jar"/>
+					</artifact>
+					<artifact name="config" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="172766" time="1042" location="/home/fourbroad/.ivy2/cache/com.typesafe/config/srcs/config-1.3.2-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/config/1.3.2/config-1.3.2-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-protobuf_2.12">
+			<revision name="2.5.8" status="release" pubdate="20171208011026" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io/" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="7">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="2807" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-protobuf_2.12/ivy-2.5.8.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-protobuf_2.12/2.5.8/akka-protobuf_2.12-2.5.8.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.5.8" rev-constraint-default="2.5.8" rev-constraint-dynamic="2.5.8" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka/2.5.8"/>
+				<artifacts>
+					<artifact name="akka-protobuf_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="829201" time="2197" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-protobuf_2.12/docs/akka-protobuf_2.12-2.5.8-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-protobuf_2.12/2.5.8/akka-protobuf_2.12-2.5.8-javadoc.jar"/>
+					</artifact>
+					<artifact name="akka-protobuf_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="275261" time="1166" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-protobuf_2.12/srcs/akka-protobuf_2.12-2.5.8-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-protobuf_2.12/2.5.8/akka-protobuf_2.12-2.5.8-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe.akka" name="akka-http-spray-json_2.12">
+			<revision name="10.0.11" status="release" pubdate="20171201170505" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://akka.io" extra-info.apiURL="http://doc.akka.io/api/akka-http/10.0.11/" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="4">
+				<license name="Apache-2.0" url="https://opensource.org/licenses/Apache-2.0"/>
+				<metadata-artifact status="no" details="" size="3245" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-http-spray-json_2.12/ivy-10.0.11.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-http-spray-json_2.12/10.0.11/akka-http-spray-json_2.12-10.0.11.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="10.0.11" rev-constraint-default="10.0.11" rev-constraint-dynamic="10.0.11" callerrev="0.1.0" extra-info.apiURL="http://doc.akka.io/api/akka-http/10.0.11/"/>
+				<artifacts>
+					<artifact name="akka-http-spray-json_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="677254" time="1737" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-http-spray-json_2.12/docs/akka-http-spray-json_2.12-10.0.11-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-http-spray-json_2.12/10.0.11/akka-http-spray-json_2.12-10.0.11-javadoc.jar"/>
+					</artifact>
+					<artifact name="akka-http-spray-json_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="3994" time="966" location="/home/fourbroad/.ivy2/cache/com.typesafe.akka/akka-http-spray-json_2.12/srcs/akka-http-spray-json_2.12-10.0.11-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/akka/akka-http-spray-json_2.12/10.0.11/akka-http-spray-json_2.12-10.0.11-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="io.spray" name="spray-json_2.12">
+			<revision name="1.3.4" status="release" pubdate="20171024145349" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/spray/spray-json" downloaded="false" searched="false" default="false" conf="default, compile, runtime(*), master(compile), runtime, default(compile), compile(*), master" position="6">
+				<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="3081" time="0" location="/home/fourbroad/.ivy2/cache/io.spray/spray-json_2.12/ivy-1.3.4.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/io/spray/spray-json_2.12/1.3.4/spray-json_2.12-1.3.4.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.3.4" rev-constraint-default="1.3.4" rev-constraint-dynamic="1.3.4" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="spray-json_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="23747" time="1010" location="/home/fourbroad/.ivy2/cache/io.spray/spray-json_2.12/srcs/spray-json_2.12-1.3.4-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/io/spray/spray-json_2.12/1.3.4/spray-json_2.12-1.3.4-sources.jar"/>
+					</artifact>
+					<artifact name="spray-json_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1067268" time="1300" location="/home/fourbroad/.ivy2/cache/io.spray/spray-json_2.12/docs/spray-json_2.12-1.3.4-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/io/spray/spray-json_2.12/1.3.4/spray-json_2.12-1.3.4-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.lmdbjava" name="lmdbjava">
+			<revision name="0.6.0" status="release" pubdate="20170718083017" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="3">
+				<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="8834" time="0" location="/home/fourbroad/.ivy2/cache/org.lmdbjava/lmdbjava/ivy-0.6.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/lmdbjava/lmdbjava/0.6.0/lmdbjava-0.6.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.6.0" rev-constraint-default="0.6.0" rev-constraint-dynamic="0.6.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="lmdbjava" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="64682" time="913" location="/home/fourbroad/.ivy2/cache/org.lmdbjava/lmdbjava/srcs/lmdbjava-0.6.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/lmdbjava/lmdbjava/0.6.0/lmdbjava-0.6.0-sources.jar"/>
+					</artifact>
+					<artifact name="lmdbjava" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="332840" time="1147" location="/home/fourbroad/.ivy2/cache/org.lmdbjava/lmdbjava/docs/lmdbjava-0.6.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/lmdbjava/lmdbjava/0.6.0/lmdbjava-0.6.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.agrona" name="agrona">
+			<revision name="0.9.6" status="release" pubdate="20170514121532" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/real-logic/Agrona" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="33">
+				<license name="The Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="2893" time="0" location="/home/fourbroad/.ivy2/cache/org.agrona/agrona/ivy-0.9.6.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/agrona/agrona/0.9.6/agrona-0.9.6.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.9.6" rev-constraint-default="0.9.6" rev-constraint-dynamic="0.9.6" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="agrona" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="591758" time="1639" location="/home/fourbroad/.ivy2/cache/org.agrona/agrona/docs/agrona-0.9.6-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/agrona/agrona/0.9.6/agrona-0.9.6-javadoc.jar"/>
+					</artifact>
+					<artifact name="agrona" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="211107" time="1026" location="/home/fourbroad/.ivy2/cache/org.agrona/agrona/srcs/agrona-0.9.6-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/agrona/agrona/0.9.6/agrona-0.9.6-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.github.jnr" name="jnr-constants">
+			<revision name="0.9.9" status="release" pubdate="20170324232944" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://github.com/jnr/jnr-constants" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="27">
+				<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="3438" time="0" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jnr-constants/ivy-0.9.9.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/github/jnr/jnr-constants/0.9.9/jnr-constants-0.9.9.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.9.9" rev-constraint-default="0.9.9" rev-constraint-dynamic="0.9.9" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="jnr-constants" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1305430" time="1411" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jnr-constants/docs/jnr-constants-0.9.9-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/github/jnr/jnr-constants/0.9.9/jnr-constants-0.9.9-javadoc.jar"/>
+					</artifact>
+					<artifact name="jnr-constants" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="143786" time="887" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jnr-constants/srcs/jnr-constants-0.9.9-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/github/jnr/jnr-constants/0.9.9/jnr-constants-0.9.9-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.github.jnr" name="jnr-ffi">
+			<revision name="2.1.6" status="release" pubdate="20170531031916" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://github.com/jnr/jnr-ffi" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="40">
+				<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="4914" time="0" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jnr-ffi/ivy-2.1.6.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/github/jnr/jnr-ffi/2.1.6/jnr-ffi-2.1.6.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.1.6" rev-constraint-default="2.1.6" rev-constraint-dynamic="2.1.6" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="jnr-ffi" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="2228129" time="2202" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jnr-ffi/docs/jnr-ffi-2.1.6-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/github/jnr/jnr-ffi/2.1.6/jnr-ffi-2.1.6-javadoc.jar"/>
+					</artifact>
+					<artifact name="jnr-ffi" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="365683" time="1157" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jnr-ffi/srcs/jnr-ffi-2.1.6-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/github/jnr/jnr-ffi/2.1.6/jnr-ffi-2.1.6-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.github.jnr" name="jnr-x86asm">
+			<revision name="1.0.2" status="release" pubdate="20120407105021" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://github.com/jnr/jnr-x86asm" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="9">
+				<license name="MIT License" url="http://www.opensource.org/licenses/mit-license.php"/>
+				<metadata-artifact status="no" details="" size="3192" time="0" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jnr-x86asm/ivy-1.0.2.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.0.2" rev-constraint-default="1.0.2" rev-constraint-dynamic="1.0.2" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="jnr-x86asm" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="171252" time="1151" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jnr-x86asm/srcs/jnr-x86asm-1.0.2-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2-sources.jar"/>
+					</artifact>
+					<artifact name="jnr-x86asm" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="618769" time="1395" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jnr-x86asm/docs/jnr-x86asm-1.0.2-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.ow2.asm" name="asm-util">
+			<revision name="5.0.3" status="release" pubdate="20140524163053" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="49">
+				<license name="BSD" url="http://asm.objectweb.org/license.html"/>
+				<metadata-artifact status="no" details="" size="4134" time="0" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-util/ivy-5.0.3.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/ow2/asm/asm-util/5.0.3/asm-util-5.0.3.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="5.0.3" rev-constraint-default="5.0.3" rev-constraint-dynamic="5.0.3" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="asm-util" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1038486" time="1167" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-util/srcs/asm-util-5.0.3-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm-util/5.0.3/asm-util-5.0.3-sources.jar"/>
+					</artifact>
+					<artifact name="asm-util" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1702446" time="1304" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-util/docs/asm-util-5.0.3-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm-util/5.0.3/asm-util-5.0.3-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.ow2.asm" name="asm-analysis">
+			<revision name="5.0.3" status="release" pubdate="20140524163023" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="14">
+				<license name="BSD" url="http://asm.objectweb.org/license.html"/>
+				<metadata-artifact status="no" details="" size="4142" time="0" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-analysis/ivy-5.0.3.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/5.0.3/asm-analysis-5.0.3.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="5.0.3" rev-constraint-default="5.0.3" rev-constraint-dynamic="5.0.3" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="asm-analysis" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1038486" time="1322" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-analysis/srcs/asm-analysis-5.0.3-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/5.0.3/asm-analysis-5.0.3-sources.jar"/>
+					</artifact>
+					<artifact name="asm-analysis" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1702446" time="2155" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-analysis/docs/asm-analysis-5.0.3-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/5.0.3/asm-analysis-5.0.3-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.ow2.asm" name="asm-commons">
+			<revision name="5.0.3" status="release" pubdate="20140524163033" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="41">
+				<license name="BSD" url="http://asm.objectweb.org/license.html"/>
+				<metadata-artifact status="no" details="" size="4140" time="0" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-commons/ivy-5.0.3.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/5.0.3/asm-commons-5.0.3.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="5.0.3" rev-constraint-default="5.0.3" rev-constraint-dynamic="5.0.3" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="asm-commons" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1702446" time="1256" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-commons/docs/asm-commons-5.0.3-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/5.0.3/asm-commons-5.0.3-javadoc.jar"/>
+					</artifact>
+					<artifact name="asm-commons" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1038486" time="1175" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-commons/srcs/asm-commons-5.0.3-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/5.0.3/asm-commons-5.0.3-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.ow2.asm" name="asm-tree">
+			<revision name="5.0.3" status="release" pubdate="20140524163043" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="34">
+				<license name="BSD" url="http://asm.objectweb.org/license.html"/>
+				<metadata-artifact status="no" details="" size="4129" time="0" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-tree/ivy-5.0.3.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/5.0.3/asm-tree-5.0.3.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="5.0.3" rev-constraint-default="5.0.3" rev-constraint-dynamic="5.0.3" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="asm-tree" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1702446" time="1671" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-tree/docs/asm-tree-5.0.3-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/5.0.3/asm-tree-5.0.3-javadoc.jar"/>
+					</artifact>
+					<artifact name="asm-tree" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1038486" time="1118" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm-tree/srcs/asm-tree-5.0.3-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/5.0.3/asm-tree-5.0.3-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.ow2.asm" name="asm">
+			<revision name="5.0.3" status="release" pubdate="20140524163012" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="21">
+				<license name="BSD" url="http://asm.objectweb.org/license.html"/>
+				<metadata-artifact status="no" details="" size="3953" time="0" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm/ivy-5.0.3.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/ow2/asm/asm/5.0.3/asm-5.0.3.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="5.0.3" rev-constraint-default="5.0.3" rev-constraint-dynamic="5.0.3" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="asm" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1702446" time="1279" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm/docs/asm-5.0.3-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm/5.0.3/asm-5.0.3-javadoc.jar"/>
+					</artifact>
+					<artifact name="asm" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1038486" time="1124" location="/home/fourbroad/.ivy2/cache/org.ow2.asm/asm/srcs/asm-5.0.3-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/ow2/asm/asm/5.0.3/asm-5.0.3-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.github.jnr" name="jffi">
+			<revision name="1.2.16" status="release" pubdate="20170531030738" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://github.com/jnr/jffi" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="5">
+				<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="3612" time="0" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jffi/ivy-1.2.16.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/github/jnr/jffi/1.2.16/jffi-1.2.16.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.2.16" rev-constraint-default="1.2.16" rev-constraint-dynamic="1.2.16" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="jffi" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="88185" time="1014" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jffi/srcs/jffi-1.2.16-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/github/jnr/jffi/1.2.16/jffi-1.2.16-sources.jar"/>
+					</artifact>
+					<artifact name="jffi" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="315544" time="1044" location="/home/fourbroad/.ivy2/cache/com.github.jnr/jffi/docs/jffi-1.2.16-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/github/jnr/jffi/1.2.16/jffi-1.2.16-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scala-lang" name="scala-library">
+			<revision name="2.12.6" status="release" pubdate="20180427164006" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://www.scala-lang.org/" extra-info.apiURL="http://www.scala-lang.org/api/2.12.6/" downloaded="false" searched="false" default="false" conf="default, master(*), compile, runtime(*), master(compile), runtime, default(compile), compile(*), master" position="2">
+				<license name="BSD 3-Clause" url="http://www.scala-lang.org/license.html"/>
+				<metadata-artifact status="no" details="" size="2653" time="0" location="/home/fourbroad/.ivy2/cache/org.scala-lang/scala-library/ivy-2.12.6.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.12.6/scala-library-2.12.6.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="2.12.6" rev-constraint-default="2.12.6" rev-constraint-dynamic="2.12.6" callerrev="0.1.0" extra-info.apiURL="http://www.scala-lang.org/api/2.12.6/"/>
+				<artifacts>
+					<artifact name="scala-library" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="992293" time="1200" location="/home/fourbroad/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.12.6-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.12.6/scala-library-2.12.6-sources.jar"/>
+					</artifact>
+					<artifact name="scala-library" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="30565781" time="8073" location="/home/fourbroad/.ivy2/cache/org.scala-lang/scala-library/docs/scala-library-2.12.6-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.12.6/scala-library-2.12.6-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scala-sbt.ipcsocket" name="ipcsocket">
+			<revision name="1.0.0" status="release" pubdate="20180108083503" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/sbt/ipcsocket" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="1">
+				<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="2813" time="0" location="/home/fourbroad/.ivy2/cache/org.scala-sbt.ipcsocket/ipcsocket/ivy-1.0.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scala-sbt/ipcsocket/ipcsocket/1.0.0/ipcsocket-1.0.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="1.0.0" rev-constraint-default="1.0.0" rev-constraint-dynamic="1.0.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="ipcsocket" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="13014" time="1101" location="/home/fourbroad/.ivy2/cache/org.scala-sbt.ipcsocket/ipcsocket/srcs/ipcsocket-1.0.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-sbt/ipcsocket/ipcsocket/1.0.0/ipcsocket-1.0.0-sources.jar"/>
+					</artifact>
+					<artifact name="ipcsocket" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="92186" time="1131" location="/home/fourbroad/.ivy2/cache/org.scala-sbt.ipcsocket/ipcsocket/docs/ipcsocket-1.0.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-sbt/ipcsocket/ipcsocket/1.0.0/ipcsocket-1.0.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="net.java.dev.jna" name="jna-platform">
+			<revision name="4.5.0" status="release" pubdate="20170914042959" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/java-native-access/jna" downloaded="false" searched="false" default="false" conf="master(*), compile, runtime(*), runtime, compile(*), master" position="32">
+				<license name="LGPL, version 2.1" url="http://www.gnu.org/licenses/licenses.html"/>
+				<license name="Apache License v2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="2633" time="0" location="/home/fourbroad/.ivy2/cache/net.java.dev.jna/jna-platform/ivy-4.5.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/4.5.0/jna-platform-4.5.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="4.5.0" rev-constraint-default="4.5.0" rev-constraint-dynamic="4.5.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="jna-platform" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="899373" time="1217" location="/home/fourbroad/.ivy2/cache/net.java.dev.jna/jna-platform/srcs/jna-platform-4.5.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/4.5.0/jna-platform-4.5.0-sources.jar"/>
+					</artifact>
+					<artifact name="jna-platform" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="5120343" time="3768" location="/home/fourbroad/.ivy2/cache/net.java.dev.jna/jna-platform/docs/jna-platform-4.5.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/4.5.0/jna-platform-4.5.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="net.java.dev.jna" name="jna">
+			<revision name="4.5.0" status="release" pubdate="20170914042806" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/java-native-access/jna" downloaded="false" searched="false" default="false" conf="master(*), compile, runtime(*), runtime, compile(*), master" position="10">
+				<license name="LGPL, version 2.1" url="http://www.gnu.org/licenses/licenses.html"/>
+				<license name="Apache License v2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="2441" time="0" location="/home/fourbroad/.ivy2/cache/net.java.dev.jna/jna/ivy-4.5.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/net/java/dev/jna/jna/4.5.0/jna-4.5.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="4.5.0" rev-constraint-default="4.5.0" rev-constraint-dynamic="4.5.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="jna" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="146994" time="1069" location="/home/fourbroad/.ivy2/cache/net.java.dev.jna/jna/srcs/jna-4.5.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/net/java/dev/jna/jna/4.5.0/jna-4.5.0-sources.jar"/>
+					</artifact>
+					<artifact name="jna" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="5120343" time="2122" location="/home/fourbroad/.ivy2/cache/net.java.dev.jna/jna/docs/jna-4.5.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/net/java/dev/jna/jna/4.5.0/jna-4.5.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.iq80.leveldb" name="leveldb">
+			<revision name="0.7" status="release" pubdate="20140206121603" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="0">
+				<license name="Apache License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html"/>
+				<metadata-artifact status="no" details="" size="4415" time="0" location="/home/fourbroad/.ivy2/cache/org.iq80.leveldb/leveldb/ivy-0.7.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/iq80/leveldb/leveldb/0.7/leveldb-0.7.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.7" rev-constraint-default="0.7" rev-constraint-dynamic="0.7" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="leveldb" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="518633" time="1463" location="/home/fourbroad/.ivy2/cache/org.iq80.leveldb/leveldb/docs/leveldb-0.7-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/iq80/leveldb/leveldb/0.7/leveldb-0.7-javadoc.jar"/>
+					</artifact>
+					<artifact name="leveldb" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="140796" time="1296" location="/home/fourbroad/.ivy2/cache/org.iq80.leveldb/leveldb/srcs/leveldb-0.7-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/iq80/leveldb/leveldb/0.7/leveldb-0.7-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.google.guava" name="guava">
+			<revision name="16.0.1" status="release" pubdate="20140204064528" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="51">
+				<license name="The Apache Software License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="5619" time="0" location="/home/fourbroad/.ivy2/cache/com.google.guava/guava/ivy-16.0.1.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/google/guava/guava/16.0.1/guava-16.0.1.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="16.0.1" rev-constraint-default="16.0.1" rev-constraint-dynamic="16.0.1" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="guava" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="5166582" time="6163" location="/home/fourbroad/.ivy2/cache/com.google.guava/guava/docs/guava-16.0.1-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/google/guava/guava/16.0.1/guava-16.0.1-javadoc.jar"/>
+					</artifact>
+					<artifact name="guava" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1261127" time="1113" location="/home/fourbroad/.ivy2/cache/com.google.guava/guava/srcs/guava-16.0.1-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/google/guava/guava/16.0.1/guava-16.0.1-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.iq80.leveldb" name="leveldb-api">
+			<revision name="0.7" status="release" pubdate="20140206121442" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="53">
+				<license name="Apache License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html"/>
+				<metadata-artifact status="no" details="" size="3230" time="0" location="/home/fourbroad/.ivy2/cache/org.iq80.leveldb/leveldb-api/ivy-0.7.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/iq80/leveldb/leveldb-api/0.7/leveldb-api-0.7.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="compile-internal, compile, provided, optional" rev="0.7" rev-constraint-default="0.7" rev-constraint-dynamic="0.7" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="leveldb-api" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="155600" time="1096" location="/home/fourbroad/.ivy2/cache/org.iq80.leveldb/leveldb-api/docs/leveldb-api-0.7-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/iq80/leveldb/leveldb-api/0.7/leveldb-api-0.7-javadoc.jar"/>
+					</artifact>
+					<artifact name="leveldb-api" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="11343" time="1003" location="/home/fourbroad/.ivy2/cache/org.iq80.leveldb/leveldb-api/srcs/leveldb-api-0.7-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/iq80/leveldb/leveldb-api/0.7/leveldb-api-0.7-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+	</dependencies>
+</ivy-report>

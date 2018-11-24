@@ -163,7 +163,8 @@ object Main extends App {
       runtime.registerJavaMethod(documentWrapper, "bind", "__DocumentWrapper", Array[Class[_]](classOf[V8Object]), true)
       runtime.registerJavaMethod(userWrapper, "bind", "__UserWrapper", Array[Class[_]](classOf[V8Object]), true)
 
-      nodeJS.exec(new File("backend/www.js"))
+//      nodeJS.exec(new File("backend/www.js"))
+      nodeJS.exec(new File("backend/test/file-upload/server.js"))
 //      nodeJS.exec(new File("backend/test.js"))
 
       while (nodeJS.isRunning() && running) {

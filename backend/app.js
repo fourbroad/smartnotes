@@ -41,7 +41,7 @@ app.use('/plugins', express.static(path.join(__dirname, '../frontend/plugins')))
 
 //app.use(jwt().unless({path:['/','/_login','/js','/css']}));
 
-app.use("/", routes);
+// app.use("/", routes);
 
 io.use((socket, next) => {
   let token = socket.handshake.query.token;

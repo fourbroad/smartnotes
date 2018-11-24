@@ -13,12 +13,12 @@ const
   $container = $("#mainContent");
 
 var
-  client, domain,
+  client, domain, newDialog,
   uriAnchor = {}, _changeAnchorPart, _setAchor,
   $viewContainer, $viewList,　$newDocumentBtn,
   _init, _armViewListItem, _onClientChanged, _onHashchange,
   _loadSignUp, _loadDashboard, _loadEmail, _loadCompose, _loadCalendar, _loadChat, 
-  _loadView, _newDocument, _loadDocument, _loadCharts, _loadForms, _loadUi, _loadBasicTable, _loadDataTable, 
+  _loadView, _loadNewDialog, _loadDocument, _loadCharts, _loadForms, _loadUi, _loadBasicTable, _loadDataTable, 
   _loadGoogleMaps, _loadVectorMaps;
 
 _setAchor = function(anchor){
@@ -169,6 +169,21 @@ _onHashchange = function(event){
   return false;
 };
 
+_loadNewDialog = function(){
+  import(/* webpackChunkName: "new-dialog" */ './new-dialog').then(({default: nd}) => {
+    if(!newDialog){
+      newDialog = nd;
+      newDialog.init({
+        domain: currentDomain,
+        $container:$container
+      });
+      newDialog.show();
+    }else{
+      newDialog.show();
+    }
+  });
+};
+
 _loadSignUp = function(opts){
   import(/* webpackChunkName: "signup" */ './signup').then(({default: signUp}) => {
     signUp.init(opts);
@@ -208,21 +223,6 @@ _loadChat = function(opts){
 _loadView = function(opts){
   import(/* webpackChunkName: "view" */ './view').then(({default: View}) => {
     View.create(opts);
-  });
-};
-
-_newDocument = function(){
-  domain.getForm('json-form', function(err, form){
-    if(err) return console.log(err);
-    Loader.load(form.plugin, function(module){
-      var JsonForm = module.default;
-      JsonForm.create({
-        client: client,
-        $container:$container,
-        form: form,
-        document: {}
-      });
-    });
   });
 };
 
@@ -413,7 +413,7 @@ _init = function(client){
   $newDocumentBtn = $('li.new-document');
 
   account.init({$container: $('.page-container .nav-right'), client: client});
-  $newDocumentBtn.on('click', _newDocument);
+  $newDocumentBtn.on('click', _loadNewDialog);
 
   if(!client.getCurrentUser().isAnonymous()){
     client.getDomain(function(err, d){

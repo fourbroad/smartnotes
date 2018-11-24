@@ -152,14 +152,6 @@ object FormActor {
             "roles":["administrator"],
             "users":["${user}"]
         },
-        "findDocuments":{
-            "roles":["administrator","user"],
-            "users":["${user}"]
-        },
-        "refresh":{
-            "roles":["administrator","user"],
-            "users":["${user}"]
-        },
         "getACL":{
             "roles":["administrator"],
             "users":["${user}"]

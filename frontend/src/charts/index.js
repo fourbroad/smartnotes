@@ -1,6 +1,5 @@
 import './easyPieChart.scss';
 
-import * as $ from 'jquery';
 import 'jquery-sparkline';
 import { debounce } from 'lodash';
 import Masonry from 'masonry-layout';

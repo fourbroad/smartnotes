@@ -54,6 +54,7 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     prototype.registerJavaMethod(this, "findDomains", "findDomains", Array[Class[_]](classOf[V8Object], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "findCollections", "findCollections", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "findViews", "findViews", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
+    prototype.registerJavaMethod(this, "findForms", "findForms", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Object], classOf[V8Function]), true)
     prototype.registerJavaMethod(this, "garbageCollection", "garbageCollection", Array[Class[_]](classOf[V8Object], classOf[String], classOf[String], classOf[V8Function]), true)
 
     dw.setPrototype(prototype)
@@ -121,6 +122,11 @@ class DomainWrapper(system: ActorSystem, callbackQueue: Queue[CallbackWrapper]) 
     findDocuments(receiver, token, domainId, callback){(user, domainId) => domainRegion ? FindViews(domainPID(domainId), user, jsQuery)}
   }
 
+  def findForms(receiver: V8Object, token: String, domainId: String, query: V8Object, callback: V8Function) = {
+    val jsQuery = toJsObject(query)
+    findDocuments(receiver, token, domainId, callback){(user, domainId) => domainRegion ? FindForms(domainPID(domainId), user, jsQuery)}
+  }
+  
   def garbageCollection(receiver: V8Object, token: String, domainId: String, callback: V8Function) =
     commandWithSuccess(receiver, token, callback) { user => domainRegion ? GarbageCollection(domainPID(domainId), user) }
 

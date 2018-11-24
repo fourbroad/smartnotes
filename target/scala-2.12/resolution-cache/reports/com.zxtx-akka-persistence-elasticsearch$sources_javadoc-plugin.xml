@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="ivy-report.xsl"?>
+<ivy-report version="1.0">
+	<info
+		organisation="com.zxtx"
+		module="akka-persistence-elasticsearch$sources_javadoc"
+		revision="0.1.0"
+		conf="plugin"
+		confs="compile, runtime, test, provided, optional, compile-internal, runtime-internal, test-internal, plugin, pom, scala-tool, scalafmt"
+		date="20181117102847"/>
+	<dependencies>
+	</dependencies>
+</ivy-report>

@@ -249,6 +249,10 @@ io = {
         viewWrapper.refresh(token, domainId, viewId, callback);
       });
 
+      socket.on('findForms', function(domainId, query, callback){
+       	domainWrapper.findForms(token, domainId, query, callback);
+      });
+        
       socket.on('createForm', function(domainId, formId, formRaw, callback){
     	formWrapper.create(token, domainId, formId, formRaw, callback);
       });
@@ -285,6 +289,10 @@ io = {
        	formWrapper.removePermissionSubject(token, domainId, formId, acl, callback);
       });
 
+      socket.on('findRoles', function(domainId, query, callback){
+       	domainWrapper.findRoles(token, domainId, query, callback);
+      });
+      
       socket.on('createRole', function(domainId, roleId, roleRaw, callback){
     	roleWrapper.create(token, domainId, roleId, roleRaw, callback);
       });
@@ -321,6 +329,10 @@ io = {
        	roleWrapper.removePermissionSubject(token, domainId, roleId, acl, callback);
       });
 
+      socket.on('findProfiles', function(domainId, query, callback){
+       	domainWrapper.findProfiles(token, domainId, query, callback);
+      });
+      
       socket.on('createProfile', function(domainId, profileId, profileRaw, callback){
     	profileWrapper.create(token, domainId, profileId, profileRaw, callback);
       });

@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="ivy-report.xsl"?>
+<ivy-report version="1.0">
+	<info
+		organisation="com.zxtx"
+		module="akka-persistence-elasticsearch$sources_javadoc"
+		revision="0.1.0"
+		conf="scalafmt"
+		confs="compile, runtime, test, provided, optional, compile-internal, runtime-internal, test-internal, plugin, pom, scala-tool, scalafmt"
+		date="20181117102847"/>
+	<dependencies>
+		<module organisation="com.geirsson" name="scalafmt-core_2.12">
+			<revision name="1.3.0" status="release" pubdate="20170925030513" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalafmt" extra-info.apiURL="https://olafurpg.github.io/scalafmt/docs/" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="23">
+				<license name="Apache-2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3396" time="0" location="/home/fourbroad/.ivy2/cache/com.geirsson/scalafmt-core_2.12/ivy-1.3.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/geirsson/scalafmt-core_2.12/1.3.0/scalafmt-core_2.12-1.3.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.3.0" rev-constraint-default="1.3.0" rev-constraint-dynamic="1.3.0" callerrev="0.1.0" extra-info.apiURL="https://olafurpg.github.io/scalafmt/docs/"/>
+				<artifacts>
+					<artifact name="scalafmt-core_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="85263" time="900" location="/home/fourbroad/.ivy2/cache/com.geirsson/scalafmt-core_2.12/srcs/scalafmt-core_2.12-1.3.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/geirsson/scalafmt-core_2.12/1.3.0/scalafmt-core_2.12-1.3.0-sources.jar"/>
+					</artifact>
+					<artifact name="scalafmt-core_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="189" time="848" location="/home/fourbroad/.ivy2/cache/com.geirsson/scalafmt-core_2.12/docs/scalafmt-core_2.12-1.3.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/geirsson/scalafmt-core_2.12/1.3.0/scalafmt-core_2.12-1.3.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.geirsson" name="metaconfig-typesafe-config_2.12">
+			<revision name="0.4.0" status="release" pubdate="20170527051935" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/olafurpg/metaconfig" extra-info.apiURL="https://github.com/olafurpg/metaconfig" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="24">
+				<license name="Apache-2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3717" time="0" location="/home/fourbroad/.ivy2/cache/com.geirsson/metaconfig-typesafe-config_2.12/ivy-0.4.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/geirsson/metaconfig-typesafe-config_2.12/0.4.0/metaconfig-typesafe-config_2.12-0.4.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="0.4.0" rev-constraint-default="0.4.0" rev-constraint-dynamic="0.4.0" callerrev="0.1.0" extra-info.apiURL="https://github.com/olafurpg/metaconfig"/>
+				<artifacts>
+					<artifact name="metaconfig-typesafe-config_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="2076" time="890" location="/home/fourbroad/.ivy2/cache/com.geirsson/metaconfig-typesafe-config_2.12/srcs/metaconfig-typesafe-config_2.12-0.4.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/geirsson/metaconfig-typesafe-config_2.12/0.4.0/metaconfig-typesafe-config_2.12-0.4.0-sources.jar"/>
+					</artifact>
+					<artifact name="metaconfig-typesafe-config_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="189" time="861" location="/home/fourbroad/.ivy2/cache/com.geirsson/metaconfig-typesafe-config_2.12/docs/metaconfig-typesafe-config_2.12-0.4.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/geirsson/metaconfig-typesafe-config_2.12/0.4.0/metaconfig-typesafe-config_2.12-0.4.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.typesafe" name="config">
+			<revision name="1.2.1" status="release" pubdate="20140502225416" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/typesafehub/config" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="13">
+				<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="2878" time="0" location="/home/fourbroad/.ivy2/cache/com.typesafe/config/ivy-1.2.1.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/typesafe/config/1.2.1/config-1.2.1.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.2.1" rev-constraint-default="1.2.1" rev-constraint-dynamic="1.2.1" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="config" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="147508" time="996" location="/home/fourbroad/.ivy2/cache/com.typesafe/config/docs/config-1.2.1-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/config/1.2.1/config-1.2.1-javadoc.jar"/>
+					</artifact>
+					<artifact name="config" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="132611" time="1008" location="/home/fourbroad/.ivy2/cache/com.typesafe/config/srcs/config-1.2.1-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/typesafe/config/1.2.1/config-1.2.1-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.lucidchart" name="scalafmt-impl_2.12">
+			<revision name="1.14-1.0" status="release" pubdate="20171024130751" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/lucidsoftware/neo-sbt-scalafmt" downloaded="false" searched="false" default="false" conf="default, compile, runtime, default(compile), master" position="6">
+				<license name="Apache License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="2994" time="0" location="/home/fourbroad/.ivy2/cache/com.lucidchart/scalafmt-impl_2.12/ivy-1.14-1.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/lucidchart/scalafmt-impl_2.12/1.14-1.0/scalafmt-impl_2.12-1.14-1.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.14-1.0" rev-constraint-default="1.14-1.0" rev-constraint-dynamic="1.14-1.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="scalafmt-impl_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="2033" time="1246" location="/home/fourbroad/.ivy2/cache/com.lucidchart/scalafmt-impl_2.12/srcs/scalafmt-impl_2.12-1.14-1.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lucidchart/scalafmt-impl_2.12/1.14-1.0/scalafmt-impl_2.12-1.14-1.0-sources.jar"/>
+					</artifact>
+					<artifact name="scalafmt-impl_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="681192" time="1573" location="/home/fourbroad/.ivy2/cache/com.lucidchart/scalafmt-impl_2.12/docs/scalafmt-impl_2.12-1.14-1.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lucidchart/scalafmt-impl_2.12/1.14-1.0/scalafmt-impl_2.12-1.14-1.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.geirsson" name="metaconfig-core_2.12">
+			<revision name="0.4.0" status="release" pubdate="20170527051847" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/olafurpg/metaconfig" extra-info.apiURL="https://github.com/olafurpg/metaconfig" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="4">
+				<license name="Apache-2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
+				<metadata-artifact status="no" details="" size="3518" time="0" location="/home/fourbroad/.ivy2/cache/com.geirsson/metaconfig-core_2.12/ivy-0.4.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/geirsson/metaconfig-core_2.12/0.4.0/metaconfig-core_2.12-0.4.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="0.4.0" rev-constraint-default="0.4.0" rev-constraint-dynamic="0.4.0" callerrev="0.1.0" extra-info.apiURL="https://github.com/olafurpg/metaconfig"/>
+				<artifacts>
+					<artifact name="metaconfig-core_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="11044" time="1372" location="/home/fourbroad/.ivy2/cache/com.geirsson/metaconfig-core_2.12/srcs/metaconfig-core_2.12-0.4.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/geirsson/metaconfig-core_2.12/0.4.0/metaconfig-core_2.12-0.4.0-sources.jar"/>
+					</artifact>
+					<artifact name="metaconfig-core_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="189" time="2385" location="/home/fourbroad/.ivy2/cache/com.geirsson/metaconfig-core_2.12/docs/metaconfig-core_2.12-0.4.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/geirsson/metaconfig-core_2.12/0.4.0/metaconfig-core_2.12-0.4.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scala-lang" name="scala-library">
+			<revision name="2.12.2" status="release" pubdate="20170413161911" resolver="sbt-chain" artresolver="sbt-chain" homepage="http://www.scala-lang.org/" extra-info.apiURL="http://www.scala-lang.org/api/2.12.2/" downloaded="false" searched="false" default="false" conf="master(*), compile, runtime(*), master(compile), runtime, compile(*), master" position="8">
+				<license name="BSD 3-Clause" url="http://www.scala-lang.org/license.html"/>
+				<metadata-artifact status="no" details="" size="2653" time="0" location="/home/fourbroad/.ivy2/cache/org.scala-lang/scala-library/ivy-2.12.2.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.12.2/scala-library-2.12.2.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="2.12.2" rev-constraint-default="2.12.2" rev-constraint-dynamic="2.12.2" callerrev="0.1.0" extra-info.apiURL="http://www.scala-lang.org/api/2.12.2/"/>
+				<artifacts>
+					<artifact name="scala-library" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="30863154" time="14047" location="/home/fourbroad/.ivy2/cache/org.scala-lang/scala-library/docs/scala-library-2.12.2-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.12.2/scala-library-2.12.2-javadoc.jar"/>
+					</artifact>
+					<artifact name="scala-library" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="990185" time="1382" location="/home/fourbroad/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.12.2-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scala-lang/scala-library/2.12.2/scala-library-2.12.2-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="scalameta_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052543" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="1">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="4250" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/scalameta_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/scalameta_2.12/1.7.0/scalameta_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="scalameta_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="694119" time="1178" location="/home/fourbroad/.ivy2/cache/org.scalameta/scalameta_2.12/docs/scalameta_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/scalameta_2.12/1.7.0/scalameta_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="scalameta_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1243" time="856" location="/home/fourbroad/.ivy2/cache/org.scalameta/scalameta_2.12/srcs/scalameta_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/scalameta_2.12/1.7.0/scalameta_2.12-1.7.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="semantic_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052525" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="9">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3386" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/semantic_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/semantic_2.12/1.7.0/semantic_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="semantic_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="12341" time="999" location="/home/fourbroad/.ivy2/cache/org.scalameta/semantic_2.12/srcs/semantic_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/semantic_2.12/1.7.0/semantic_2.12-1.7.0-sources.jar"/>
+					</artifact>
+					<artifact name="semantic_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1103633" time="1981" location="/home/fourbroad/.ivy2/cache/org.scalameta/semantic_2.12/docs/semantic_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/semantic_2.12/1.7.0/semantic_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.trueaccord.scalapb" name="scalapb-runtime_2.12">
+			<revision name="0.6.0-pre2" status="release" pubdate="20170313053138" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalapb/ScalaPB" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="3">
+				<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="3497" time="0" location="/home/fourbroad/.ivy2/cache/com.trueaccord.scalapb/scalapb-runtime_2.12/ivy-0.6.0-pre2.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/trueaccord/scalapb/scalapb-runtime_2.12/0.6.0-pre2/scalapb-runtime_2.12-0.6.0-pre2.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="0.6.0-pre2" rev-constraint-default="0.6.0-pre2" rev-constraint-dynamic="0.6.0-pre2" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="scalapb-runtime_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="2657784" time="2042" location="/home/fourbroad/.ivy2/cache/com.trueaccord.scalapb/scalapb-runtime_2.12/docs/scalapb-runtime_2.12-0.6.0-pre2-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/trueaccord/scalapb/scalapb-runtime_2.12/0.6.0-pre2/scalapb-runtime_2.12-0.6.0-pre2-javadoc.jar"/>
+					</artifact>
+					<artifact name="scalapb-runtime_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="212608" time="1194" location="/home/fourbroad/.ivy2/cache/com.trueaccord.scalapb/scalapb-runtime_2.12/srcs/scalapb-runtime_2.12-0.6.0-pre2-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/trueaccord/scalapb/scalapb-runtime_2.12/0.6.0-pre2/scalapb-runtime_2.12-0.6.0-pre2-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.google.protobuf" name="protobuf-java">
+			<revision name="3.2.0" status="release" pubdate="20170128103320" resolver="sbt-chain" artresolver="sbt-chain" homepage="" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="2">
+				<license name="New BSD license" url="http://www.opensource.org/licenses/bsd-license.php"/>
+				<metadata-artifact status="no" details="" size="5085" time="0" location="/home/fourbroad/.ivy2/cache/com.google.protobuf/protobuf-java/ivy-3.2.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.2.0/protobuf-java-3.2.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="3.2.0" rev-constraint-default="3.2.0" rev-constraint-dynamic="3.2.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="protobuf-java" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="661826" time="1144" location="/home/fourbroad/.ivy2/cache/com.google.protobuf/protobuf-java/srcs/protobuf-java-3.2.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.2.0/protobuf-java-3.2.0-sources.jar"/>
+					</artifact>
+					<artifact name="protobuf-java" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="2992794" time="1611" location="/home/fourbroad/.ivy2/cache/com.google.protobuf/protobuf-java/docs/protobuf-java-3.2.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.2.0/protobuf-java-3.2.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.trueaccord.lenses" name="lenses_2.12">
+			<revision name="0.4.10" status="release" pubdate="20170220100735" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/trueaccord/lenses" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="22">
+				<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+				<metadata-artifact status="no" details="" size="2903" time="0" location="/home/fourbroad/.ivy2/cache/com.trueaccord.lenses/lenses_2.12/ivy-0.4.10.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/trueaccord/lenses/lenses_2.12/0.4.10/lenses_2.12-0.4.10.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="0.4.10" rev-constraint-default="0.4.10" rev-constraint-dynamic="0.4.10" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="lenses_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="664469" time="1252" location="/home/fourbroad/.ivy2/cache/com.trueaccord.lenses/lenses_2.12/docs/lenses_2.12-0.4.10-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/trueaccord/lenses/lenses_2.12/0.4.10/lenses_2.12-0.4.10-javadoc.jar"/>
+					</artifact>
+					<artifact name="lenses_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="2584" time="858" location="/home/fourbroad/.ivy2/cache/com.trueaccord.lenses/lenses_2.12/srcs/lenses_2.12-0.4.10-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/trueaccord/lenses/lenses_2.12/0.4.10/lenses_2.12-0.4.10-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="inline_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052427" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="18">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3107" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/inline_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/inline_2.12/1.7.0/inline_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="inline_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="654602" time="1778" location="/home/fourbroad/.ivy2/cache/org.scalameta/inline_2.12/docs/inline_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/inline_2.12/1.7.0/inline_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="inline_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="2111" time="1129" location="/home/fourbroad/.ivy2/cache/org.scalameta/inline_2.12/srcs/inline_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/inline_2.12/1.7.0/inline_2.12-1.7.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="transversers_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052453" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="19">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3435" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/transversers_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/transversers_2.12/1.7.0/transversers_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="transversers_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="659400" time="1973" location="/home/fourbroad/.ivy2/cache/org.scalameta/transversers_2.12/docs/transversers_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/transversers_2.12/1.7.0/transversers_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="transversers_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="1842" time="1010" location="/home/fourbroad/.ivy2/cache/org.scalameta/transversers_2.12/srcs/transversers_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/transversers_2.12/1.7.0/transversers_2.12-1.7.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="quasiquotes_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052507" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="12">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3985" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/quasiquotes_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/quasiquotes_2.12/1.7.0/quasiquotes_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="quasiquotes_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="13026" time="1063" location="/home/fourbroad/.ivy2/cache/org.scalameta/quasiquotes_2.12/srcs/quasiquotes_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/quasiquotes_2.12/1.7.0/quasiquotes_2.12-1.7.0-sources.jar"/>
+					</artifact>
+					<artifact name="quasiquotes_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="726478" time="1373" location="/home/fourbroad/.ivy2/cache/org.scalameta/quasiquotes_2.12/docs/quasiquotes_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/quasiquotes_2.12/1.7.0/quasiquotes_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="parsers_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052522" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="5">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3830" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/parsers_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/parsers_2.12/1.7.0/parsers_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="parsers_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1143307" time="3878" location="/home/fourbroad/.ivy2/cache/org.scalameta/parsers_2.12/docs/parsers_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/parsers_2.12/1.7.0/parsers_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="parsers_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="39999" time="1056" location="/home/fourbroad/.ivy2/cache/org.scalameta/parsers_2.12/srcs/parsers_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/parsers_2.12/1.7.0/parsers_2.12-1.7.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="trees_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052505" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="15">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3809" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/trees_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/trees_2.12/1.7.0/trees_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="trees_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="2612085" time="1872" location="/home/fourbroad/.ivy2/cache/org.scalameta/trees_2.12/docs/trees_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/trees_2.12/1.7.0/trees_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="trees_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="26262" time="988" location="/home/fourbroad/.ivy2/cache/org.scalameta/trees_2.12/srcs/trees_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/trees_2.12/1.7.0/trees_2.12-1.7.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="tokenizers_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052445" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="10">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3849" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/tokenizers_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/tokenizers_2.12/1.7.0/tokenizers_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="tokenizers_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="762683" time="1573" location="/home/fourbroad/.ivy2/cache/org.scalameta/tokenizers_2.12/docs/tokenizers_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/tokenizers_2.12/1.7.0/tokenizers_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="tokenizers_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="22694" time="1033" location="/home/fourbroad/.ivy2/cache/org.scalameta/tokenizers_2.12/srcs/tokenizers_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/tokenizers_2.12/1.7.0/tokenizers_2.12-1.7.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="tokens_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052421" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="7">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3558" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/tokens_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/tokens_2.12/1.7.0/tokens_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="tokens_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="9410" time="1076" location="/home/fourbroad/.ivy2/cache/org.scalameta/tokens_2.12/srcs/tokens_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/tokens_2.12/1.7.0/tokens_2.12-1.7.0-sources.jar"/>
+					</artifact>
+					<artifact name="tokens_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1746990" time="1968" location="/home/fourbroad/.ivy2/cache/org.scalameta/tokens_2.12/docs/tokens_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/tokens_2.12/1.7.0/tokens_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="inputs_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052405" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="21">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3389" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/inputs_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/inputs_2.12/1.7.0/inputs_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="inputs_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="762672" time="1290" location="/home/fourbroad/.ivy2/cache/org.scalameta/inputs_2.12/docs/inputs_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/inputs_2.12/1.7.0/inputs_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="inputs_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="6333" time="1026" location="/home/fourbroad/.ivy2/cache/org.scalameta/inputs_2.12/srcs/inputs_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/inputs_2.12/1.7.0/inputs_2.12-1.7.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="io_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052358" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="20">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="2937" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/io_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/io_2.12/1.7.0/io_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="io_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="2915" time="1131" location="/home/fourbroad/.ivy2/cache/org.scalameta/io_2.12/srcs/io_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/io_2.12/1.7.0/io_2.12-1.7.0-sources.jar"/>
+					</artifact>
+					<artifact name="io_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="658050" time="1310" location="/home/fourbroad/.ivy2/cache/org.scalameta/io_2.12/docs/io_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/io_2.12/1.7.0/io_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="dialects_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052408" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="16">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3224" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/dialects_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/dialects_2.12/1.7.0/dialects_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="dialects_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="654867" time="1357" location="/home/fourbroad/.ivy2/cache/org.scalameta/dialects_2.12/docs/dialects_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/dialects_2.12/1.7.0/dialects_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="dialects_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="4051" time="974" location="/home/fourbroad/.ivy2/cache/org.scalameta/dialects_2.12/srcs/dialects_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/dialects_2.12/1.7.0/dialects_2.12-1.7.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="org.scalameta" name="common_2.12">
+			<revision name="1.7.0" status="release" pubdate="20170412052432" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/scalameta/scalameta" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="14">
+				<license name="BSD" url="https://github.com/scalameta/scalameta/blob/master/LICENSE.md"/>
+				<metadata-artifact status="no" details="" size="3280" time="0" location="/home/fourbroad/.ivy2/cache/org.scalameta/common_2.12/ivy-1.7.0.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/org/scalameta/common_2.12/1.7.0/common_2.12-1.7.0.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="1.7.0" rev-constraint-default="1.7.0" rev-constraint-dynamic="1.7.0" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="common_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1449945" time="1789" location="/home/fourbroad/.ivy2/cache/org.scalameta/common_2.12/docs/common_2.12-1.7.0-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/common_2.12/1.7.0/common_2.12-1.7.0-javadoc.jar"/>
+					</artifact>
+					<artifact name="common_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="62747" time="913" location="/home/fourbroad/.ivy2/cache/org.scalameta/common_2.12/srcs/common_2.12-1.7.0-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/org/scalameta/common_2.12/1.7.0/common_2.12-1.7.0-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.lihaoyi" name="scalaparse_2.12">
+			<revision name="0.4.2" status="release" pubdate="20161103022234" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/lihaoyi/scala-parser" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="0">
+				<license name="MIT license" url="http://www.opensource.org/licenses/mit-license.php"/>
+				<metadata-artifact status="no" details="" size="3493" time="0" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/scalaparse_2.12/ivy-0.4.2.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/lihaoyi/scalaparse_2.12/0.4.2/scalaparse_2.12-0.4.2.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="0.4.2" rev-constraint-default="0.4.2" rev-constraint-dynamic="0.4.2" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="scalaparse_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="723243" time="1164" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/scalaparse_2.12/docs/scalaparse_2.12-0.4.2-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lihaoyi/scalaparse_2.12/0.4.2/scalaparse_2.12-0.4.2-javadoc.jar"/>
+					</artifact>
+					<artifact name="scalaparse_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="12661" time="879" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/scalaparse_2.12/srcs/scalaparse_2.12-0.4.2-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lihaoyi/scalaparse_2.12/0.4.2/scalaparse_2.12-0.4.2-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.lihaoyi" name="fastparse_2.12">
+			<revision name="0.4.2" status="release" pubdate="20161103022316" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/lihaoyi/scala-parser" downloaded="false" searched="false" default="false" conf="compile, runtime(*), master(compile), runtime, compile(*), master" position="25">
+				<license name="MIT license" url="http://www.opensource.org/licenses/mit-license.php"/>
+				<metadata-artifact status="no" details="" size="3355" time="0" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/fastparse_2.12/ivy-0.4.2.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/lihaoyi/fastparse_2.12/0.4.2/fastparse_2.12-0.4.2.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="0.4.2" rev-constraint-default="0.4.2" rev-constraint-dynamic="0.4.2" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="fastparse_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="1207626" time="1177" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/fastparse_2.12/docs/fastparse_2.12-0.4.2-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lihaoyi/fastparse_2.12/0.4.2/fastparse_2.12-0.4.2-javadoc.jar"/>
+					</artifact>
+					<artifact name="fastparse_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="22896" time="853" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/fastparse_2.12/srcs/fastparse_2.12-0.4.2-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lihaoyi/fastparse_2.12/0.4.2/fastparse_2.12-0.4.2-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.lihaoyi" name="fastparse-utils_2.12">
+			<revision name="0.4.2" status="release" pubdate="20161103022336" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/lihaoyi/scala-parser" downloaded="false" searched="false" default="false" conf="master(*), compile, runtime(*), runtime, compile(*), master" position="11">
+				<license name="MIT license" url="http://www.opensource.org/licenses/mit-license.php"/>
+				<metadata-artifact status="no" details="" size="3229" time="0" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/fastparse-utils_2.12/ivy-0.4.2.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/lihaoyi/fastparse-utils_2.12/0.4.2/fastparse-utils_2.12-0.4.2.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="0.4.2" rev-constraint-default="0.4.2" rev-constraint-dynamic="0.4.2" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="fastparse-utils_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="722460" time="1821" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/fastparse-utils_2.12/docs/fastparse-utils_2.12-0.4.2-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lihaoyi/fastparse-utils_2.12/0.4.2/fastparse-utils_2.12-0.4.2-javadoc.jar"/>
+					</artifact>
+					<artifact name="fastparse-utils_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="8522" time="1012" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/fastparse-utils_2.12/srcs/fastparse-utils_2.12-0.4.2-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lihaoyi/fastparse-utils_2.12/0.4.2/fastparse-utils_2.12-0.4.2-sources.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+		<module organisation="com.lihaoyi" name="sourcecode_2.12">
+			<revision name="0.1.3" status="release" pubdate="20161101023242" resolver="sbt-chain" artresolver="sbt-chain" homepage="https://github.com/lihaoyi/sourcecode" downloaded="false" searched="false" default="false" conf="master(*), compile, runtime(*), master(compile), runtime, compile(*), master" position="17">
+				<license name="MIT license" url="http://www.opensource.org/licenses/mit-license.php"/>
+				<metadata-artifact status="no" details="" size="2822" time="0" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/sourcecode_2.12/ivy-0.1.3.xml" searched="false" origin-is-local="false" origin-location="https://repo1.maven.org/maven2/com/lihaoyi/sourcecode_2.12/0.1.3/sourcecode_2.12-0.1.3.pom"/>
+				<caller organisation="com.zxtx" name="akka-persistence-elasticsearch$sources_javadoc" conf="scalafmt" rev="0.1.3" rev-constraint-default="0.1.3" rev-constraint-dynamic="0.1.3" callerrev="0.1.0"/>
+				<artifacts>
+					<artifact name="sourcecode_2.12" type="src" ext="jar" extra-classifier="sources" status="successful" details="" size="2593" time="1015" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/sourcecode_2.12/srcs/sourcecode_2.12-0.1.3-sources.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lihaoyi/sourcecode_2.12/0.1.3/sourcecode_2.12-0.1.3-sources.jar"/>
+					</artifact>
+					<artifact name="sourcecode_2.12" type="doc" ext="jar" extra-classifier="javadoc" status="successful" details="" size="769867" time="1607" location="/home/fourbroad/.ivy2/cache/com.lihaoyi/sourcecode_2.12/docs/sourcecode_2.12-0.1.3-javadoc.jar">
+						<origin-location is-local="false" location="https://repo1.maven.org/maven2/com/lihaoyi/sourcecode_2.12/0.1.3/sourcecode_2.12-0.1.3-javadoc.jar"/>
+					</artifact>
+				</artifacts>
+			</revision>
+		</module>
+	</dependencies>
+</ivy-report>

@@ -77,6 +77,7 @@ object DomainActor {
   case class FindDomains(pid: String, user: String, query: JsObject) extends Command
   case class FindCollections(pid: String, user: String, query: JsObject) extends Command
   case class FindViews(pid: String, user: String, query: JsObject) extends Command
+  case class FindForms(pid: String, user: String, query: JsObject) extends Command
   case class JoinDomain(pid: String, user: String, userName: String, permission: Option[JsObject] = None) extends Command
   case class QuitDomain(pid: String, user: String, userName: String) extends Command
   case class RefreshDomain(pid: String, user: String) extends Command
@@ -89,6 +90,7 @@ object DomainActor {
   private case class DoFindDomains(user: String, query: JsObject, request: Option[Any] = None)
   private case class DoFindCollections(user: String, query: JsObject, request: Option[Any] = None)
   private case class DoFindViews(user: String, query: JsObject, request: Option[Any] = None)
+  private case class DoFindForms(user: String, query: JsObject, request: Option[Any] = None)
   private case class DoJoinDomain(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoQuitDomain(user: String, raw: JsObject, request: Option[Any] = None)
   private case class DoRefreshDomain(user: String, request: Option[Any] = None)
@@ -295,6 +297,10 @@ object DomainActor {
             "users":["${user}"]
         },
         "findViews":{
+            "roles":["administrator","user"],
+            "users":["${user}"]
+        },
+        "findForms":{
             "roles":["administrator","user"],
             "users":["${user}"]
         },
@@ -573,6 +579,12 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
         case DoFindViews(_, query, Some(views)) => replyTo ! views
         case other                              => replyTo ! other
       }
+    case FindForms(_, user, query) =>
+      val replyTo = sender
+      findForms(user, query).foreach {
+        case DoFindForms(_, query, Some(forms)) => replyTo ! forms
+        case other                              => replyTo ! other
+      }
     case RefreshDomain(_, user) =>
       val replyTo = sender
       refreshDomain(user).foreach {
@@ -706,18 +718,25 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
   }
 
   private def findCollections(user: String, query: JsObject) = checkPermission(user, FindCollections).flatMap {
-    case Granted =>
-      (collectionRegion ? CollectionActor.FindDocuments(CollectionActor.persistenceId(id, ".collections"), user, query)).map {
-        case jo: JsObject => DoFindCollections(user, query, Some(jo))
-        case jv: JsValue  => throw new RuntimeException(jv.compactPrint)
-      }
+    case Granted => (collectionRegion ? CollectionActor.FindDocuments(CollectionActor.persistenceId(id, ".collections"), user, query)).map {
+      case jo: JsObject => DoFindCollections(user, query, Some(jo))
+      case jv: JsValue  => throw new RuntimeException(jv.compactPrint)
+    }
     case Denied => Future.successful(Denied)
   }
 
   private def findViews(user: String, query: JsObject) = checkPermission(user, FindViews).flatMap {
+    case Granted => (collectionRegion ? CollectionActor.FindDocuments(CollectionActor.persistenceId(id, ".views"), user, query)).map {
+      case jo: JsObject => DoFindViews(user, query, Some(jo))
+      case jv: JsValue  => throw new RuntimeException(jv.compactPrint)
+    }
+    case Denied => Future.successful(Denied)
+  }
+
+  private def findForms(user: String, query: JsObject) = checkPermission(user, FindForms).flatMap {
     case Granted =>
-      (collectionRegion ? CollectionActor.FindDocuments(CollectionActor.persistenceId(id, ".views"), user, query)).map {
-        case jo: JsObject => DoFindViews(user, query, Some(jo))
+      (collectionRegion ? CollectionActor.FindDocuments(CollectionActor.persistenceId(id, ".forms"), user, query)).map {
+        case jo: JsObject => DoFindForms(user, query, Some(jo))
         case jv: JsValue  => throw new RuntimeException(jv.compactPrint)
       }
     case Denied => Future.successful(Denied)
@@ -869,6 +888,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
             {"term":{"_metadata.acl.findDomains.users":"${subject}"}},
             {"term":{"_metadata.acl.findCollections.users":"${subject}"}},
             {"term":{"_metadata.acl.findViews.users":"${subject}"}},
+            {"term":{"_metadata.acl.findForms.users":"${subject}"}},
             {"term":{"_metadata.acl.findDocuments.users":"${subject}"}},
             {"term":{"_metadata.acl.getACL.users":"${subject}"}},
             {"term":{"_metadata.acl.replaceACL.users":"${subject}"}},
@@ -921,6 +941,7 @@ class DomainActor extends PersistentActor with ACL with ActorLogging {
     FindDomains -> "findDomains",
     FindCollections -> "findCollections",
     FindViews -> "findViews",
+    FindForms -> "findForms",
     RefreshDomain -> "refresh",
     GarbageCollection -> "gc",
     RemovePermissionSubject -> "removePermissionSubject",
